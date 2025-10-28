@@ -1,16 +1,31 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { states } from "@/components/search/states";
+import { interests } from "@/components/search/interests";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"
-import { useAuth } from "@/contexts/auth-context"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Search,
   GraduationCap,
@@ -31,54 +46,56 @@ import {
   LogOut,
   LayoutGrid,
   List,
-} from "lucide-react"
+} from "lucide-react";
 
-const API_URL =  "http://127.0.0.1:8000" // || process.env.NEXT_PUBLIC_API_URL "http://192.168.1.150:8000"  //
+const API_URL = "http://127.0.0.1:8000"; // || process.env.NEXT_PUBLIC_API_URL "http://192.168.1.150:8000"  //
 
 export default function SearchInterface() {
-  const { isAuthenticated, logout, isLoading: authLoading } = useAuth()
-  const router = useRouter()
+  const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
+  const router = useRouter();
 
-  const [query, setQuery] = useState("")
-  const [usahsIdQuery, setUsahsIdQuery] = useState("")
-  const [photoQuery, setPhotoQuery] = useState("")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [isprogram_typeOpen, setIsprogram_typeOpen] = useState(false)
-  const [isScholarshipOpen, setIsScholarshipOpen] = useState(false)
-  const [firstName, setFirstName] = useState(false)
+  const [query, setQuery] = useState("");
+  const [usahsIdQuery, setUsahsIdQuery] = useState("");
+  const [photoQuery, setPhotoQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isprogram_typeOpen, setIsprogram_typeOpen] = useState(false);
+  const [isScholarshipOpen, setIsScholarshipOpen] = useState(false);
+  const [firstName, setFirstName] = useState("");
 
-  const [isStatusOpen, setIsStatusOpen] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set())
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(
+    new Set()
+  );
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  const [viewMode, setViewMode] = useState<"card" | "compact">("compact")
-  const [totalResults, setTotalResults] = useState<number>(0)
+  const [viewMode, setViewMode] = useState<"card" | "compact">("compact");
+  const [totalResults, setTotalResults] = useState<number>(0);
 
   type Filters = {
-    country_of_origin: string
-    interests: string
-    state: string
-    gender_male: boolean
-    gender_female: boolean
-    pets_in_home: boolean
-    program_types: string[]
-    early_placement: string
-    grants_options: string[]
-    hasVideo: boolean
-    gpa: string
-    adjusted_age: string
-    religiousPractice: string
-    double_placement: string
-    single_placement: string
-    status?: string
-    statusOptions: string[]
-  }
+    country_of_origin: string;
+    interests: string;
+    state: string;
+    gender_male: boolean;
+    gender_female: boolean;
+    pets_in_home: boolean;
+    program_types: string[];
+    early_placement: string;
+    grants_options: string[];
+    hasVideo: boolean;
+    gpa: string;
+    adjusted_age: string;
+    religiousPractice: string;
+    double_placement: string;
+    single_placement: string;
+    status?: string;
+    statusOptions: string[];
+  };
 
   const defaultFilters: Filters = {
     country_of_origin: "all",
@@ -97,47 +114,47 @@ export default function SearchInterface() {
     double_placement: "all",
     single_placement: "all",
     statusOptions: ["Allocated"],
-  }
+  };
 
-  const [filters, setFilters] = useState<Filters>(defaultFilters)
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
 
-  const [students, setStudents] = useState<any[]>([])
-  const [countries, setCountries] = useState<string[]>([])
-  const [unassignedNow, setUnassignedNow] = useState<number>(0)
-  const [availableNow, setAvailableNow] = useState<number>(0)
-  const [alreadyPlaced, set_alreadyPlaced] = useState<number>(0)
+  const [students, setStudents] = useState<any[]>([]);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [unassignedNow, setUnassignedNow] = useState<number>(0);
+  const [availableNow, setAvailableNow] = useState<number>(0);
+  const [alreadyPlaced, set_alreadyPlaced] = useState<number>(0);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (usahsIdQuery.trim()) {
-        setCurrentPage(1)
-        fetchStudents(1)
+        setCurrentPage(1);
+        fetchStudents(1);
       }
-    }, 500)
+    }, 500);
 
-    return () => clearTimeout(timeoutId)
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usahsIdQuery])
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchStudentsByStatus(["Allocated"])
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated])
+  }, [usahsIdQuery]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchLoggedInUser()
+      fetchStudentsByStatus(["Allocated"]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchLoggedInUser();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -149,21 +166,23 @@ export default function SearchInterface() {
               accept: "application/json",
             },
             credentials: "include",
-          })
+          });
 
           if (response.ok) {
-            const data = await response.json()
-            const favoritedIds = new Set<string>(data.map((student: any) => String(student.pax_id)))
-            setFavoritedStudents(favoritedIds)
+            const data = await response.json();
+            const favoritedIds = new Set<string>(
+              data.map((student: any) => String(student.pax_id))
+            );
+            setFavoritedStudents(favoritedIds);
           }
         } catch (error) {
-          console.error("Error fetching favorites:", error)
+          console.error("Error fetching favorites:", error);
         }
-      }
+      };
 
-      fetchFavorites()
+      fetchFavorites();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -177,16 +196,16 @@ export default function SearchInterface() {
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) {
-            setCountries(data)
+            setCountries(data);
           } else if (Array.isArray(data.countries)) {
-            setCountries(data.countries)
+            setCountries(data.countries);
           } else {
-            setCountries([])
+            setCountries([]);
           }
         })
-        .catch(() => setCountries([]))
+        .catch(() => setCountries([]));
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -199,11 +218,11 @@ export default function SearchInterface() {
       })
         .then((res) => res.json())
         .then((data) => {
-          setAvailableNow(data[0])
+          setAvailableNow(data[0]);
         })
-        .catch(() => setAvailableNow(0))
+        .catch(() => setAvailableNow(0));
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -216,11 +235,11 @@ export default function SearchInterface() {
       })
         .then((res) => res.json())
         .then((data) => {
-          setUnassignedNow(data[0])
+          setUnassignedNow(data[0]);
         })
-        .catch(() => setUnassignedNow(0))
+        .catch(() => setUnassignedNow(0));
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -233,11 +252,11 @@ export default function SearchInterface() {
       })
         .then((res) => res.json())
         .then((data) => {
-          set_alreadyPlaced(data)
+          set_alreadyPlaced(data);
         })
-        .catch(() => set_alreadyPlaced(0))
+        .catch(() => set_alreadyPlaced(0));
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -247,7 +266,7 @@ export default function SearchInterface() {
           <p className="mt-4 text-slate-600 font-medium">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   const toggleprogram_type = (value: string) => {
@@ -256,8 +275,8 @@ export default function SearchInterface() {
       program_types: prev.program_types.includes(value)
         ? prev.program_types.filter((v) => v !== value)
         : [...prev.program_types, value],
-    }))
-  }
+    }));
+  };
 
   const toggleScholarship = (value: string) => {
     setFilters((prev) => ({
@@ -265,200 +284,214 @@ export default function SearchInterface() {
       grants_options: prev.grants_options.includes(value)
         ? prev.grants_options.filter((v) => v !== value)
         : [...prev.grants_options, value],
-    }))
-  }
+    }));
+  };
 
   const toggleStatus = (value: string) => {
     setFilters((prev) => {
       if (value === "All") {
-        return { ...prev, statusOptions: ["All"] }
+        return { ...prev, statusOptions: ["All"] };
       }
 
-      let newStatusOptions = prev.statusOptions.filter((v) => v !== "All")
+      let newStatusOptions = prev.statusOptions.filter((v) => v !== "All");
 
       if (newStatusOptions.includes(value)) {
-        newStatusOptions = newStatusOptions.filter((v) => v !== value)
+        newStatusOptions = newStatusOptions.filter((v) => v !== value);
       } else {
-        newStatusOptions = [...newStatusOptions, value]
+        newStatusOptions = [...newStatusOptions, value];
       }
 
       if (newStatusOptions.length === 0) {
-        newStatusOptions = ["All"]
+        newStatusOptions = ["All"];
       }
 
-      return { ...prev, statusOptions: newStatusOptions }
-    })
-  }
+      return { ...prev, statusOptions: newStatusOptions };
+    });
+  };
 
   const clearFilters = () => {
-    setFilters(defaultFilters)
-    setQuery("")
-    setUsahsIdQuery("")
-    setPhotoQuery("")
-    setCurrentPage(1)
-    setShowFavoritesOnly(false)
-    fetchStudentsWithDefaults()
-  }
+    setFilters(defaultFilters);
+    setQuery("");
+    setUsahsIdQuery("");
+    setPhotoQuery("");
+    setCurrentPage(1);
+    setShowFavoritesOnly(false);
+    fetchStudentsWithDefaults();
+  };
 
   const getHeaders = () => ({
     "Content-Type": "application/json",
-  })
+  });
 
   const fetchStudentsWithDefaults = async () => {
     try {
-      const response = await fetch(`${API_URL}/students/search?page=1&page_size=12`, {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include", // Add credentials for cookies
-        body: JSON.stringify({
-          ...defaultFilters,
-          status: "Allocated",
-          free_text: "",
-          usahsId: "",
-          photo_search: "",
-        }),
-      })
+      const response = await fetch(
+        `${API_URL}/students/search?page=1&page_size=12`,
+        {
+          method: "POST",
+          headers: getHeaders(),
+          credentials: "include", // Add credentials for cookies
+          body: JSON.stringify({
+            ...defaultFilters,
+            status: "Allocated",
+            free_text: "",
+            usahsId: "",
+            photo_search: "",
+          }),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
-      setCurrentPage(data.page || 1)
-      setTotalPages(data.total_pages || 1)
-      setStudents(data.results || [])
-      setTotalResults(data.total_results || data.results?.length || 0)
+      setCurrentPage(data.page || 1);
+      setTotalPages(data.total_pages || 1);
+      setStudents(data.results || []);
+      setTotalResults(data.total_results || data.results?.length || 0);
     } catch (error) {
-      console.error("Error:", error)
-      setStudents([])
+      console.error("Error:", error);
+      setStudents([]);
     }
-  }
+  };
 
   const fetchStudents = async (page = 1) => {
     try {
       const statusValue = filters.statusOptions.includes("All")
         ? "allocated"
-        : filters.statusOptions.map((s) => s.toLowerCase()).join(",")
+        : filters.statusOptions.map((s) => s.toLowerCase()).join(",");
 
-      const response = await fetch(`${API_URL}/students/search?page=${page}&page_size=12`, {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include", // Add credentials for cookies
-        body: JSON.stringify({
-          ...filters,
-          status: statusValue,
-          free_text: query,
-          usahsId: usahsIdQuery,
-          photo_search: photoQuery,
-        }),
-      })
+      const response = await fetch(
+        `${API_URL}/students/search?page=${page}&page_size=12`,
+        {
+          method: "POST",
+          headers: getHeaders(),
+          credentials: "include", // Add credentials for cookies
+          body: JSON.stringify({
+            ...filters,
+            status: statusValue,
+            free_text: query,
+            usahsId: usahsIdQuery,
+            photo_search: photoQuery,
+          }),
+        }
+      );
 
-      const data = await response.json()
-      console.log(data)
-      setCurrentPage(data.page || 1)
-      setTotalPages(data.total_pages || 1)
-      setStudents(data.results || [])
-      setTotalResults(data.total_results || data.results?.length || 0)
+      const data = await response.json();
+      console.log(data);
+      setCurrentPage(data.page || 1);
+      setTotalPages(data.total_pages || 1);
+      setStudents(data.results || []);
+      setTotalResults(data.total_results || data.results?.length || 0);
     } catch (error) {
-      console.error("Error:", error)
+      console.error("Error:", error);
       // setStudents([])
     }
-  }
+  };
 
   const fetchStudentsByStatus = async (status: string[]) => {
-    setCurrentPage(1)
-    setShowFavoritesOnly(false)
+    setCurrentPage(1);
+    setShowFavoritesOnly(false);
 
     setFilters((prev) => ({
       ...prev,
       statusOptions: status,
-    }))
+    }));
 
     try {
-      const response = await fetch(`${API_URL}/students/search?page=1&page_size=12`, {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include", // Add credentials for cookies
-        body: JSON.stringify({
-          ...filters,
-          statusOptions: status,
-        }),
-      })
+      const response = await fetch(
+        `${API_URL}/students/search?page=1&page_size=12`,
+        {
+          method: "POST",
+          headers: getHeaders(),
+          credentials: "include", // Add credentials for cookies
+          body: JSON.stringify({
+            ...filters,
+            statusOptions: status,
+          }),
+        }
+      );
 
-      toggleStatus("All") // set toggle to All to clear previous filter options, then iteratively set the correct ones
+      toggleStatus("All"); // set toggle to All to clear previous filter options, then iteratively set the correct ones
       status.forEach((stat) => {
-        toggleStatus(stat)
-      })
-      
+        toggleStatus(stat);
+      });
 
-      const data = await response.json()
-      setStudents(data.results || [])
-      setCurrentPage(data.page || 1)
-      setTotalPages(data.total_pages || 1)
-      setTotalResults(data.total_results || data.results?.length || 0)
+      const data = await response.json();
+      setStudents(data.results || []);
+      setCurrentPage(data.page || 1);
+      setTotalPages(data.total_pages || 1);
+      setTotalResults(data.total_results || data.results?.length || 0);
     } catch (error) {
-      console.error("Error:", error)
-      setStudents([])
+      console.error("Error:", error);
+      setStudents([]);
     }
-  }
+  };
 
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      const nextPage = currentPage + 1
-      setCurrentPage(nextPage)
-      fetchStudents(nextPage)
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchStudents(nextPage);
     }
-  }
+  };
 
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      const prevPage = currentPage - 1
-      setCurrentPage(prevPage)
-      fetchStudents(prevPage)
+      const prevPage = currentPage - 1;
+      setCurrentPage(prevPage);
+      fetchStudents(prevPage);
     }
-  }
+  };
 
   const handleFavorite = async (pax_id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation()
+    e?.stopPropagation();
     try {
-      const response = await fetch(`${API_URL}/user/favorites?pax_id=${pax_id.toString()}`, {
-        method: "PATCH",
-        headers: {
-          accept: "application/json",
-        },
-        credentials: "include",
-      })
+      const response = await fetch(
+        `${API_URL}/user/favorites?pax_id=${pax_id.toString()}`,
+        {
+          method: "PATCH",
+          headers: {
+            accept: "application/json",
+          },
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
-        setFavoritedStudents((prev) => new Set(prev).add(pax_id.toString()))
+        setFavoritedStudents((prev) => new Set(prev).add(pax_id.toString()));
       }
     } catch (error) {
-      console.error("Error favoriting student:", error)
+      console.error("Error favoriting student:", error);
     }
-  }
+  };
 
   const handleUnfavorite = async (pax_id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation()
+    e?.stopPropagation();
     try {
-      const response = await fetch(`${API_URL}/user/favorites?pax_id=${pax_id.toString()}`, {
-        method: "DELETE",
-        headers: {
-          accept: "application/json",
-        },
-        credentials: "include",
-      })
+      const response = await fetch(
+        `${API_URL}/user/favorites?pax_id=${pax_id.toString()}`,
+        {
+          method: "DELETE",
+          headers: {
+            accept: "application/json",
+          },
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         setFavoritedStudents((prev) => {
-          const newSet = new Set(prev)
-          newSet.delete(pax_id.toString())
-          return newSet
-        })
+          const newSet = new Set(prev);
+          newSet.delete(pax_id.toString());
+          return newSet;
+        });
       }
     } catch (error) {
-      console.error("Error unfavoriting student:", error)
+      console.error("Error unfavoriting student:", error);
     }
-  }
+  };
 
   const showFavorites = () => {
-    ;(async () => {
+    (async () => {
       try {
         const response = await fetch(`${API_URL}/user/favorites`, {
           method: "GET",
@@ -466,51 +499,54 @@ export default function SearchInterface() {
             accept: "application/json",
           },
           credentials: "include",
-        })
+        });
 
         if (response.ok) {
-          const data = await response.json()
-          setStudents(data || [])
-          const favoritedIds = new Set<string>((data || []).map((s: any) => String(s.pax_id.toString())))
-          setFavoritedStudents(favoritedIds)
-          setShowFavoritesOnly(true)
-          setCurrentPage(1)
-          setTotalPages(1)
-          setTotalResults(data?.length || 0)
+          const data = await response.json();
+          setStudents(data || []);
+          const favoritedIds = new Set<string>(
+            (data || []).map((s: any) => String(s.pax_id.toString()))
+          );
+          setFavoritedStudents(favoritedIds);
+          setShowFavoritesOnly(true);
+          setCurrentPage(1);
+          setTotalPages(1);
+          setTotalResults(data?.length || 0);
         }
       } catch (error) {
-        console.error("Error fetching favorites:", error)
+        console.error("Error fetching favorites:", error);
       }
-    })()
-  }
+    })();
+  };
 
-  const displayedStudents = students
+  const displayedStudents = students;
 
   const getStatusRingColor = (status: string) => {
-    if (!status) return "border-slate-300"
+    if (!status) return "border-slate-300";
 
-    const statusLower = status.toLowerCase()
-    if (statusLower.includes("pending")) return "border-yellow-200 "
-    if (statusLower.includes("placed")) return "border-green-500 rounded-md p-4"
-    if (statusLower === "allocated") return "border-blue-500"
-    if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 "
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes("pending")) return "border-yellow-200 ";
+    if (statusLower.includes("placed"))
+      return "border-green-500 rounded-md p-4";
+    if (statusLower === "allocated") return "border-blue-500";
+    if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
 
-    return "border-slate-300"
-  }
+    return "border-slate-300";
+  };
 
   const fetchLoggedInUser = async () => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: getHeaders(),
         credentials: "include", // Add credentials for cookies
-      })
+      });
 
-      const data = await response.json()
-      setFirstName(data["first_name"])
+      const data = await response.json();
+      setFirstName(data["first_name"]);
     } catch (error) {
-      console.error("Error:", error)
+      console.error("Error:", error);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 relative overflow-hidden">
@@ -521,44 +557,7 @@ export default function SearchInterface() {
       </div>
 
       <div className="relative z-10">
-        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-600/20">
-                  <GraduationCap className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-slate-900 tracking-tight">Student Exchange Portal</h1>
-                  <p className="text-[11px] text-slate-500 font-medium">Find your perfect match</p>
-                </div>
-              </div>
-              <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-                <a className="hover:text-blue-600 transition-colors duration-200 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5" />
-                  Hello, {firstName}!
-                </a>
-                {/* <a href="#" className="hover:text-blue-600 transition-colors duration-200 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5" />
-                  Programs
-                </a>
-                <a href="#" className="hover:text-blue-600 transition-colors duration-200">
-                  About
-                </a>
-                <a href="#" className="hover:text-blue-600 transition-colors duration-200">
-                  Contact
-                </a> */}
-                <button
-                  onClick={logout}
-                  className="hover:text-red-600 transition-colors duration-200 flex items-center gap-1.5"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header firstName={firstName} onLogout={logout} />
 
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
           <div className="flex gap-5">
@@ -575,8 +574,13 @@ export default function SearchInterface() {
                       className="flex items-center justify-between p-3 bg-gradient-to-br from-blue-200 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
                     >
                       <div>
-                        <p className="text-xs text-slate-600 font-medium">Available Now</p>
-                        <p className="text-2xl font-bold text-slate-900"> {availableNow} </p>
+                        <p className="text-xs text-slate-600 font-medium">
+                          Available Now
+                        </p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {" "}
+                          {availableNow}{" "}
+                        </p>
                       </div>
                       <Users className="w-8 h-8 text-blue-600" />
                     </div>
@@ -585,28 +589,43 @@ export default function SearchInterface() {
                       className="flex items-center justify-between p-3 bg-gradient-to-br from-slate-300 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
                     >
                       <div>
-                        <p className="text-xs text-slate-600 font-medium">Unassigned</p>
-                        <p className="text-2xl font-bold text-slate-900"> {unassignedNow} </p>
+                        <p className="text-xs text-slate-600 font-medium">
+                          Unassigned
+                        </p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {" "}
+                          {unassignedNow}{" "}
+                        </p>
                       </div>
                       <UserLock className="w-8 h-8 text-slate-600" />
                     </div>
                     <div
-                      onClick={() => fetchStudentsByStatus(["Placed", "Pending"])}
+                      onClick={() =>
+                        fetchStudentsByStatus(["Placed", "Pending"])
+                      }
                       className="flex items-center justify-between p-3 bg-gradient-to-br from-green-200 to-white-50 rounded-lg border border-green-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
                     >
                       <div>
-                        <p className="text-xs text-slate-600 font-medium">Students Placed</p>
-                        <p className="text-2xl font-bold text-slate-900">{alreadyPlaced}</p>
+                        <p className="text-xs text-slate-600 font-medium">
+                          Students Placed
+                        </p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {alreadyPlaced}
+                        </p>
                       </div>
-                      <CheckCircle2 className="w-8 h-8 text-green-600"/>
+                      <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
                     <div
                       onClick={showFavorites}
                       className="flex items-center justify-between p-3 bg-gradient-to-br from-pink-200 to-white-50 rounded-lg border border-pink-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
                     >
                       <div>
-                        <p className="text-xs text-slate-600 font-medium">My Favorites</p>
-                        <p className="text-2xl font-bold text-slate-900">{favoritedStudents.size}</p>
+                        <p className="text-xs text-slate-600 font-medium">
+                          My Favorites
+                        </p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {favoritedStudents.size}
+                        </p>
                       </div>
                       <Heart className="w-8 h-8 text-purple-600" />
                     </div>
@@ -621,23 +640,34 @@ export default function SearchInterface() {
                   <ul className="space-y-2 text-xs leading-relaxed">
                     <li className="flex items-start gap-2">
                       <span className="text-blue-200 mt-0.5">•</span>
-                      <span>Photo search looks for keywords in the photo comment section</span>
+                      <span>
+                        Photo search looks for keywords in the photo comment
+                        section
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-blue-200 mt-0.5">•</span>
-                      <span>Click the heart on a profile card to add it to your favorites.</span>
+                      <span>
+                        Click the heart on a profile card to add it to your
+                        favorites.
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-blue-200 mt-0.5">•</span>
-                      <span>Click on a student card for detailed information</span>
+                      <span>
+                        Click on a student card for detailed information
+                      </span>
                     </li>
                   </ul>
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3">Need Help?</h3>
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">
+                    Need Help?
+                  </h3>
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-                    Our team is here to assist you with finding the perfect student match.
+                    Our team is here to assist you with finding the perfect
+                    student match.
                   </p>
                   <Button className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
                     Contact Support
@@ -688,9 +718,9 @@ export default function SearchInterface() {
                   </Button>
                   <Button
                     onClick={() => {
-                      setShowFavoritesOnly(false)
-                      setCurrentPage(1)
-                      fetchStudents(1)
+                      setShowFavoritesOnly(false);
+                      setCurrentPage(1);
+                      fetchStudents(1);
                     }}
                     className="flex-1 h-10 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md shadow-orange-600/25 hover:shadow-lg hover:shadow-orange-600/30 transition-all duration-200 font-semibold"
                   >
@@ -708,10 +738,15 @@ export default function SearchInterface() {
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-slate-600">
-                    <span className="font-bold text-slate-900">{totalResults}</span> results found
+                    <span className="font-bold text-slate-900">
+                      {totalResults}
+                    </span>{" "}
+                    results found
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-600">View:</span>
+                    <span className="text-xs font-medium text-slate-600">
+                      View:
+                    </span>
                     <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
                       <button
                         onClick={() => setViewMode("card")}
@@ -746,10 +781,12 @@ export default function SearchInterface() {
                     <div
                       key={student.pax_id.toString()}
                       onClick={() => {
-                        setSelectedStudent(student)
-                        console.log(student)
+                        setSelectedStudent(student);
+                        console.log(student);
                       }}
-                      className={`group cursor-pointer border-2 ${getStatusRingColor(student.placement_status)} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative`}
+                      className={`group cursor-pointer border-2 ${getStatusRingColor(
+                        student.placement_status
+                      )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative`}
                     >
                       <button
                         onClick={(e) =>
@@ -773,7 +810,9 @@ export default function SearchInterface() {
                           <h2 className="text-slate-900 font-semibold text-base tracking-tight group-hover:text-blue-700 transition-colors duration-200">
                             {student.first_name}
                           </h2>
-                          <p className="text-xs text-slate-500 font-mono mt-0.5">{student.usahsid.toString()}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-0.5">
+                            {student.usahsid.toString()}
+                          </p>
                         </div>
                         <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1.5 rounded-lg font-semibold text-sm border border-blue-200/60 shadow-sm">
                           <Award className="w-3.5 h-3.5" />
@@ -785,36 +824,56 @@ export default function SearchInterface() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-xs font-medium text-slate-500">Country</span>
+                            <span className="text-xs font-medium text-slate-500">
+                              Country
+                            </span>
                           </div>
-                          <span className="font-semibold text-slate-700">{student.country}</span>
+                          <span className="font-semibold text-slate-700">
+                            {student.country}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">City Size</span>
-                          <span className="font-semibold text-slate-700">{student.urban_request}</span>
+                          <span className="text-xs font-medium text-slate-500">
+                            City Size
+                          </span>
+                          <span className="font-semibold text-slate-700">
+                            {student.urban_request}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">Grade / Age </span>
+                          <span className="text-xs font-medium text-slate-500">
+                            Grade / Age{" "}
+                          </span>
                           <span className="font-semibold text-slate-700">
                             {student.applying_to_grade} / {student.adjusted_age}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">English</span>
-                          <span className="font-semibold text-blue-600">{student.english_score}</span>
+                          <span className="text-xs font-medium text-slate-500">
+                            English
+                          </span>
+                          <span className="font-semibold text-blue-600">
+                            {student.english_score}
+                          </span>
                         </div>
                         <div className="flex items-start justify-between pt-1">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-xs font-medium text-slate-500">Program</span>
+                            <span className="text-xs font-medium text-slate-500">
+                              Program
+                            </span>
                           </div>
                           <span className="font-medium text-slate-700 text-xs text-right leading-tight max-w-[180px]">
                             {student.program_type}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">Application Status</span>
-                          <span className="font-semibold text-slate-700">{student.placement_status}</span>
+                          <span className="text-xs font-medium text-slate-500">
+                            Application Status
+                          </span>
+                          <span className="font-semibold text-slate-700">
+                            {student.placement_status}
+                          </span>
                         </div>
                       </div>
 
@@ -824,14 +883,16 @@ export default function SearchInterface() {
                           Interests
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {student.selected_interests.slice(0, 4).map((i: string) => (
-                            <span
-                              key={i}
-                              className="bg-gradient-to-br from-slate-50 to-blue-50/50 text-slate-700 text-[11px] px-2 py-1 rounded-md border border-slate-200/60 font-medium hover:border-blue-300 transition-colors duration-200"
-                            >
-                              {i}
-                            </span>
-                          ))}
+                          {student.selected_interests
+                            .slice(0, 4)
+                            .map((i: string) => (
+                              <span
+                                key={i}
+                                className="bg-gradient-to-br from-slate-50 to-blue-50/50 text-slate-700 text-[11px] px-2 py-1 rounded-md border border-slate-200/60 font-medium hover:border-blue-300 transition-colors duration-200"
+                              >
+                                {i}
+                              </span>
+                            ))}
                           {student.selected_interests.length > 4 && (
                             <span className="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 rounded-md font-semibold">
                               +{student.selected_interests.length - 4}
@@ -883,14 +944,20 @@ export default function SearchInterface() {
                           <tr
                             key={student.usahsid.toString()}
                             onClick={() => {
-                              setSelectedStudent(student)
-                              console.log(student)
+                              setSelectedStudent(student);
+                              console.log(student);
                             }}
                             className="hover:bg-blue-50/50 cursor-pointer transition-colors duration-150"
                           >
-                            <td className="px-4 py-3 text-sm font-medium text-slate-900">{student.first_name}</td>
-                            <td className="px-4 py-3 text-xs font-mono text-slate-500">{student.usahsid.toString()}</td>
-                            <td className="px-4 py-3 text-sm text-slate-700">{student.country}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                              {student.first_name}
+                            </td>
+                            <td className="px-4 py-3 text-xs font-mono text-slate-500">
+                              {student.usahsid.toString()}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-700">
+                              {student.country}
+                            </td>
                             <td className="px-4 py-3">
                               <span className="inline-flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-md font-semibold text-xs border border-blue-200/60">
                                 <Award className="w-3 h-3" />
@@ -898,9 +965,12 @@ export default function SearchInterface() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-slate-700">
-                              {student.applying_to_grade} / {student.adjusted_age}
+                              {student.applying_to_grade} /{" "}
+                              {student.adjusted_age}
                             </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-blue-600">{student.english_score}</td>
+                            <td className="px-4 py-3 text-sm font-semibold text-blue-600">
+                              {student.english_score}
+                            </td>
                             <td
                               className="px-4 py-3 text-xs text-slate-700 max-w-[150px] truncate"
                               title={student.program_type}
@@ -910,13 +980,19 @@ export default function SearchInterface() {
                             <td className="px-4 py-3">
                               <span
                                 className={`inline-block px-2 py-1 rounded-md text-xs font-medium ${
-                                  student.placement_status?.toLowerCase().includes("unassigned")
+                                  student.placement_status
+                                    ?.toLowerCase()
+                                    .includes("unassigned")
                                     ? "bg-slate-100 text-slate-700 border border-slate-300"
-                                  : student.placement_status?.toLowerCase().includes("pending")
+                                    : student.placement_status
+                                        ?.toLowerCase()
+                                        .includes("pending")
                                     ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
-                                    : student.placement_status?.toLowerCase().includes("placed")
-                                      ? "bg-green-100 text-green-700 border border-green-300"
-                                      : "bg-blue-100 text-blue-700 border border-blue-300"
+                                    : student.placement_status
+                                        ?.toLowerCase()
+                                        .includes("placed")
+                                    ? "bg-green-100 text-green-700 border border-green-300"
+                                    : "bg-blue-100 text-blue-700 border border-blue-300"
                                 }`}
                               >
                                 {student.placement_status}
@@ -925,16 +1001,26 @@ export default function SearchInterface() {
                             <td className="px-4 py-3 text-center">
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  favoritedStudents.has(student.pax_id.toString())
-                                    ? handleUnfavorite(student.pax_id.toString(), e)
-                                    : handleFavorite(student.pax_id.toString(), e)
+                                  e.stopPropagation();
+                                  favoritedStudents.has(
+                                    student.pax_id.toString()
+                                  )
+                                    ? handleUnfavorite(
+                                        student.pax_id.toString(),
+                                        e
+                                      )
+                                    : handleFavorite(
+                                        student.pax_id.toString(),
+                                        e
+                                      );
                                 }}
                                 className="p-1.5 rounded-full hover:bg-slate-100 transition-all duration-200"
                               >
                                 <Heart
                                   className={`w-4 h-4 ${
-                                    favoritedStudents.has(student.pax_id.toString())
+                                    favoritedStudents.has(
+                                      student.pax_id.toString()
+                                    )
                                       ? "fill-pink-500 text-pink-500"
                                       : "text-slate-400 hover:text-pink-500"
                                   } transition-colors duration-200`}
@@ -962,10 +1048,18 @@ export default function SearchInterface() {
                   </Button>
 
                   <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-                    <span className="text-sm font-medium text-slate-600">Page</span>
-                    <span className="text-sm font-bold text-slate-900">{currentPage}</span>
-                    <span className="text-sm font-medium text-slate-400">of</span>
-                    <span className="text-sm font-bold text-slate-900">{totalPages}</span>
+                    <span className="text-sm font-medium text-slate-600">
+                      Page
+                    </span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {currentPage}
+                    </span>
+                    <span className="text-sm font-medium text-slate-400">
+                      of
+                    </span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {totalPages}
+                    </span>
                   </div>
 
                   <Button
@@ -982,82 +1076,7 @@ export default function SearchInterface() {
             </div>
           </div>
         </div>
-
-        <footer className="bg-white/80 backdrop-blur-xl border-t border-slate-200/60 mt-auto shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg shadow-md shadow-blue-600/20">
-                    <GraduationCap className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-slate-900 text-sm">Student Exchange Portal</h3>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Connecting students worldwide for enriching educational experiences.
-                </p>
-              </div> */}
-
-              {/* <div>
-                <h4 className="font-semibold text-slate-900 mb-3 text-sm">Quick Links</h4>
-                <ul className="space-y-2 text-xs text-slate-600">
-                  <li>
-                    <a href="#" className="hover:text-blue-600 transition-colors duration-200 font-medium">
-                      Browse Programs
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="hover:text-blue-600 transition-colors duration-200 font-medium">
-                      Application Process
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="hover:text-blue-600 transition-colors duration-200 font-medium">
-                      FAQs
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="hover:text-blue-600 transition-colors duration-200 font-medium">
-                      Resources
-                    </a>
-                  </li>
-                </ul>
-              </div> */}
-
-              {/* <div>
-                <h4 className="font-semibold text-slate-900 mb-3 text-sm">Contact Us</h4>
-                <ul className="space-y-2 text-xs text-slate-600">
-                  <li className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                    <a
-                      href="mailto:info@exchange.edu"
-                      className="hover:text-blue-600 transition-colors duration-200 font-medium"
-                    >
-                      info@exchange.edu
-                    </a>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                    <a
-                      href="tel:+1234567890"
-                      className="hover:text-blue-600 transition-colors duration-200 font-medium"
-                    >
-                      +1 (234) 567-890
-                    </a>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Globe className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                    <span className="font-medium">Available 24/7</span>
-                  </li>
-                </ul>
-              </div> */}
-            </div>
-
-            <div className="border-t border-slate-200 mt-6 pt-5 text-center text-xs text-slate-500 font-medium">
-              <p>&copy; 2025 Student Exchange Portal. All rights reserved.</p>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
 
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -1077,14 +1096,18 @@ export default function SearchInterface() {
               </h3>
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Placement Status</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Placement Status
+                  </label>
                   <Button
                     variant="outline"
                     onClick={() => setIsStatusOpen(true)}
                     className="w-full h-9 justify-between text-sm bg-white border-slate-200 hover:bg-slate-50"
                   >
                     <span className="text-slate-700">
-                      {filters.statusOptions.length > 0 ? filters.statusOptions.join(", ") : "Select status"}
+                      {filters.statusOptions.length > 0
+                        ? filters.statusOptions.join(", ")
+                        : "Select status"}
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </Button>
@@ -1099,10 +1122,14 @@ export default function SearchInterface() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Country of Origin</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Country of Origin
+                  </label>
                   <Select
                     value={filters.country_of_origin}
-                    onValueChange={(v) => setFilters({ ...filters, country_of_origin: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, country_of_origin: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
@@ -1119,31 +1146,44 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">State</label>
-                  <Select value={filters.state} onValueChange={(v) => setFilters({ ...filters, state: v })}>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    State
+                  </label>
+                  <Select
+                    value={filters.state}
+                    onValueChange={(v) => setFilters({ ...filters, state: v })}
+                  >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
+
                     <SelectContent>
-                      <SelectItem value="all">Show All</SelectItem>
-                      <SelectItem value="ca">California</SelectItem>
-                      <SelectItem value="ny">New York</SelectItem>
-                      <SelectItem value="tx">Texas</SelectItem>
-                      <SelectItem value="fl">Florida</SelectItem>
+                      {states.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Gender</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Gender
+                  </label>
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="male"
                         checked={filters.gender_male}
-                        onCheckedChange={(checked) => setFilters({ ...filters, gender_male: !!checked })}
+                        onCheckedChange={(checked) =>
+                          setFilters({ ...filters, gender_male: !!checked })
+                        }
                       />
-                      <label htmlFor="male" className="text-sm text-slate-700 cursor-pointer">
+                      <label
+                        htmlFor="male"
+                        className="text-sm text-slate-700 cursor-pointer"
+                      >
                         Male
                       </label>
                     </div>
@@ -1151,9 +1191,14 @@ export default function SearchInterface() {
                       <Checkbox
                         id="female"
                         checked={filters.gender_female}
-                        onCheckedChange={(checked) => setFilters({ ...filters, gender_female: !!checked })}
+                        onCheckedChange={(checked) =>
+                          setFilters({ ...filters, gender_female: !!checked })
+                        }
                       />
-                      <label htmlFor="female" className="text-sm text-slate-700 cursor-pointer">
+                      <label
+                        htmlFor="female"
+                        className="text-sm text-slate-700 cursor-pointer"
+                      >
                         Female
                       </label>
                     </div>
@@ -1169,8 +1214,13 @@ export default function SearchInterface() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">GPA</label>
-                  <Select value={filters.gpa} onValueChange={(v) => setFilters({ ...filters, gpa: v })}>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    GPA
+                  </label>
+                  <Select
+                    value={filters.gpa}
+                    onValueChange={(v) => setFilters({ ...filters, gpa: v })}
+                  >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
@@ -1185,16 +1235,21 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Age</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Age
+                  </label>
                   <Select
                     value={filters.adjusted_age}
-                    onValueChange={(v) => setFilters({ ...filters, adjusted_age: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, adjusted_age: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Show All</SelectItem>
+                      <SelectItem value="14">14</SelectItem>
                       <SelectItem value="15">15</SelectItem>
                       <SelectItem value="16">16</SelectItem>
                       <SelectItem value="17">17</SelectItem>
@@ -1204,17 +1259,25 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Interests</label>
-                  <Select value={filters.interests} onValueChange={(v) => setFilters({ ...filters, interests: v })}>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Interests
+                  </label>
+                  <Select
+                    value={filters.interests}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, interests: v })
+                    }
+                  >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
+
                     <SelectContent>
-                      <SelectItem value="all">Show All</SelectItem>
-                      <SelectItem value="sports">Sports</SelectItem>
-                      <SelectItem value="arts">Arts</SelectItem>
-                      <SelectItem value="music">Music</SelectItem>
-                      <SelectItem value="dance">Dance</SelectItem>
+                      {interests.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1228,11 +1291,15 @@ export default function SearchInterface() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Pets in Home</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Pets in Home
+                  </label>
                   <div className="flex items-center gap-3 mt-2">
                     <Switch
                       checked={filters.pets_in_home}
-                      onCheckedChange={(checked) => setFilters({ ...filters, pets_in_home: checked })}
+                      onCheckedChange={(checked) =>
+                        setFilters({ ...filters, pets_in_home: checked })
+                      }
                     />
                     <span className="text-sm text-slate-700 font-medium">
                       {filters.pets_in_home ? "Enabled" : "Disabled"}
@@ -1241,10 +1308,14 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Early Placement</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Early Placement
+                  </label>
                   <Select
                     value={filters.early_placement}
-                    onValueChange={(v) => setFilters({ ...filters, early_placement: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, early_placement: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
@@ -1258,14 +1329,18 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Program Length</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Program Length
+                  </label>
                   <Button
                     variant="outline"
                     onClick={() => setIsprogram_typeOpen(true)}
                     className="w-full h-9 justify-between text-sm bg-white border-slate-200 hover:bg-slate-50"
                   >
                     <span className="text-slate-700">
-                      {filters.program_types.length > 0 ? `${filters.program_types.length} selected` : "Select options"}
+                      {filters.program_types.length > 0
+                        ? `${filters.program_types.length} selected`
+                        : "Select options"}
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </Button>
@@ -1280,10 +1355,14 @@ export default function SearchInterface() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Double Placement</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Double Placement
+                  </label>
                   <Select
                     value={filters.double_placement}
-                    onValueChange={(v) => setFilters({ ...filters, double_placement: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, double_placement: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
@@ -1297,10 +1376,14 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">Single Placement</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Single Placement
+                  </label>
                   <Select
                     value={filters.single_placement}
-                    onValueChange={(v) => setFilters({ ...filters, single_placement: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, single_placement: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="Show All" />
@@ -1314,7 +1397,9 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Scholarship Options</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Scholarship Options
+                  </label>
                   <Button
                     variant="outline"
                     onClick={() => setIsScholarshipOpen(true)}
@@ -1332,7 +1417,9 @@ export default function SearchInterface() {
             </div>
 
             <div className="bg-slate-50/50 rounded-lg p-4 border border-slate-200/60">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">Additional Preferences</h3>
+              <h3 className="text-sm font-bold text-slate-900 mb-3">
+                Additional Preferences
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
@@ -1340,7 +1427,9 @@ export default function SearchInterface() {
                   </label>
                   <Select
                     value={filters.religiousPractice}
-                    onValueChange={(v) => setFilters({ ...filters, religiousPractice: v })}
+                    onValueChange={(v) =>
+                      setFilters({ ...filters, religiousPractice: v })
+                    }
                   >
                     <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                       <SelectValue placeholder="all" />
@@ -1355,14 +1444,21 @@ export default function SearchInterface() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Video Available</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                    Video Available
+                  </label>
                   <div className="flex items-center gap-2 mt-2">
                     <Checkbox
                       id="has-video"
                       checked={filters.hasVideo}
-                      onCheckedChange={(checked) => setFilters({ ...filters, hasVideo: !!checked })}
+                      onCheckedChange={(checked) =>
+                        setFilters({ ...filters, hasVideo: !!checked })
+                      }
                     />
-                    <label htmlFor="has-video" className="text-sm text-slate-700 cursor-pointer">
+                    <label
+                      htmlFor="has-video"
+                      className="text-sm text-slate-700 cursor-pointer"
+                    >
                       Yes
                     </label>
                   </div>
@@ -1381,10 +1477,10 @@ export default function SearchInterface() {
             </Button>
             <Button
               onClick={() => {
-                setShowFavoritesOnly(false)
-                setCurrentPage(1)
-                fetchStudents(1)
-                setIsFilterOpen(false)
+                setShowFavoritesOnly(false);
+                setCurrentPage(1);
+                fetchStudents(1);
+                setIsFilterOpen(false);
               }}
               className="flex-1 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/25 font-semibold"
             >
@@ -1397,7 +1493,9 @@ export default function SearchInterface() {
       <Dialog open={isprogram_typeOpen} onOpenChange={setIsprogram_typeOpen}>
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 w-md mx-auto rounded-xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-slate-900 text-lg font-bold">Select Program Length</DialogTitle>
+            <DialogTitle className="text-slate-900 text-lg font-bold">
+              Select Program Length
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
@@ -1406,7 +1504,10 @@ export default function SearchInterface() {
                 checked={filters.program_types.includes("10-month-jan")}
                 onCheckedChange={() => toggleprogram_type("10-month-jan")}
               />
-              <label htmlFor="10-month-jan" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="10-month-jan"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 10 month Jan
               </label>
             </div>
@@ -1416,7 +1517,10 @@ export default function SearchInterface() {
                 checked={filters.program_types.includes("10-month-aug")}
                 onCheckedChange={() => toggleprogram_type("10-month-aug")}
               />
-              <label htmlFor="10-month-aug" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="10-month-aug"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 10 month Aug
               </label>
             </div>
@@ -1426,7 +1530,10 @@ export default function SearchInterface() {
                 checked={filters.program_types.includes("5-month-jan")}
                 onCheckedChange={() => toggleprogram_type("5-month-jan")}
               />
-              <label htmlFor="5-month-jan" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="5-month-jan"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 5 month Jan
               </label>
             </div>
@@ -1436,7 +1543,10 @@ export default function SearchInterface() {
                 checked={filters.program_types.includes("5-month-aug")}
                 onCheckedChange={() => toggleprogram_type("5-month-aug")}
               />
-              <label htmlFor="5-month-aug" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="5-month-aug"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 5 month Aug
               </label>
             </div>
@@ -1455,7 +1565,9 @@ export default function SearchInterface() {
       <Dialog open={isScholarshipOpen} onOpenChange={setIsScholarshipOpen}>
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 w-md mx-auto rounded-xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-slate-900 text-lg font-bold">Select Scholarship Options</DialogTitle>
+            <DialogTitle className="text-slate-900 text-lg font-bold">
+              Select Scholarship Options
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
@@ -1464,7 +1576,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("grant")}
                 onCheckedChange={() => toggleScholarship("grant")}
               />
-              <label htmlFor="grant" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="grant"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 Show all grant students
               </label>
             </div>
@@ -1474,7 +1589,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("cbe")}
                 onCheckedChange={() => toggleScholarship("cbe")}
               />
-              <label htmlFor="cbe" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="cbe"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 CBE
               </label>
             </div>
@@ -1484,7 +1602,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("cbx")}
                 onCheckedChange={() => toggleScholarship("cbx")}
               />
-              <label htmlFor="cbx" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="cbx"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 CBX
               </label>
             </div>
@@ -1494,7 +1615,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("cbg")}
                 onCheckedChange={() => toggleScholarship("cbg")}
               />
-              <label htmlFor="cbg" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="cbg"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 CBG
               </label>
             </div>
@@ -1504,7 +1628,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("fao")}
                 onCheckedChange={() => toggleScholarship("fao")}
               />
-              <label htmlFor="fao" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="fao"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 FAO
               </label>
             </div>
@@ -1514,7 +1641,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("flx")}
                 onCheckedChange={() => toggleScholarship("flx")}
               />
-              <label htmlFor="flx" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="flx"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 FLX
               </label>
             </div>
@@ -1524,7 +1654,10 @@ export default function SearchInterface() {
                 checked={filters.grants_options.includes("yes")}
                 onCheckedChange={() => toggleScholarship("yes")}
               />
-              <label htmlFor="yes" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="yes"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 YES
               </label>
             </div>
@@ -1540,7 +1673,10 @@ export default function SearchInterface() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+      <Dialog
+        open={!!selectedStudent}
+        onOpenChange={() => setSelectedStudent(null)}
+      >
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-xl mx-auto rounded-xl shadow-2xl">
           {selectedStudent && (
             <>
@@ -1571,31 +1707,51 @@ export default function SearchInterface() {
                     {selectedStudent.first_name}
                   </a>
                 </DialogTitle>
-                <p className="text-sm text-slate-500 font-mono">{selectedStudent.usahsid.toString()}</p>
+                <p className="text-sm text-slate-500 font-mono">
+                  {selectedStudent.usahsid.toString()}
+                </p>
               </DialogHeader>
               <div className="space-y-2 text-slate-700 mt-2">
                 <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">GPA</span>
+                  <span className="text-sm font-medium text-slate-600">
+                    GPA
+                  </span>
                   <span className="font-semibold text-blue-600 flex items-center gap-1">
                     <Award className="w-4 h-4" />
                     {selectedStudent.gpa}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">Country</span>
-                  <span className="font-semibold">{selectedStudent.country}</span>
+                  <span className="text-sm font-medium text-slate-600">
+                    Country
+                  </span>
+                  <span className="font-semibold">
+                    {selectedStudent.country}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">City Size</span>
-                  <span className="font-semibold">{selectedStudent.urban_request}</span>
+                  <span className="text-sm font-medium text-slate-600">
+                    City Size
+                  </span>
+                  <span className="font-semibold">
+                    {selectedStudent.urban_request}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">English Score</span>
-                  <span className="font-semibold text-blue-600">{selectedStudent.english_score}</span>
+                  <span className="text-sm font-medium text-slate-600">
+                    English Score
+                  </span>
+                  <span className="font-semibold text-blue-600">
+                    {selectedStudent.english_score}
+                  </span>
                 </div>
                 <div className="flex items-start justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">Program</span>
-                  <span className="font-semibold text-right max-w-[280px]">{selectedStudent.program_type}</span>
+                  <span className="text-sm font-medium text-slate-600">
+                    Program
+                  </span>
+                  <span className="font-semibold text-right max-w-[280px]">
+                    {selectedStudent.program_type}
+                  </span>
                 </div>
               </div>
               <div className="mt-4">
@@ -1628,7 +1784,9 @@ export default function SearchInterface() {
       <Dialog open={isStatusOpen} onOpenChange={setIsStatusOpen}>
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 w-md mx-auto rounded-xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-slate-900 text-lg font-bold">Select Placement Status</DialogTitle>
+            <DialogTitle className="text-slate-900 text-lg font-bold">
+              Select Placement Status
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
@@ -1637,7 +1795,10 @@ export default function SearchInterface() {
                 checked={filters.statusOptions.includes("All")}
                 onCheckedChange={() => toggleStatus("All")}
               />
-              <label htmlFor="status-all" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="status-all"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 All
               </label>
             </div>
@@ -1647,7 +1808,10 @@ export default function SearchInterface() {
                 checked={filters.statusOptions.includes("Allocated")}
                 onCheckedChange={() => toggleStatus("Allocated")}
               />
-              <label htmlFor="status-allocated" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="status-allocated"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 Allocated
               </label>
             </div>
@@ -1657,7 +1821,10 @@ export default function SearchInterface() {
                 checked={filters.statusOptions.includes("Placed")}
                 onCheckedChange={() => toggleStatus("Placed")}
               />
-              <label htmlFor="status-placed" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="status-placed"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 Placed
               </label>
             </div>
@@ -1667,7 +1834,10 @@ export default function SearchInterface() {
                 checked={filters.statusOptions.includes("Pending")}
                 onCheckedChange={() => toggleStatus("Pending")}
               />
-              <label htmlFor="status-pending" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="status-pending"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 Pending
               </label>
             </div>
@@ -1677,7 +1847,10 @@ export default function SearchInterface() {
                 checked={filters.statusOptions.includes("Unassigned")}
                 onCheckedChange={() => toggleStatus("Unassigned")}
               />
-              <label htmlFor="status-unassigned" className="text-sm text-slate-700 cursor-pointer flex-1 font-medium">
+              <label
+                htmlFor="status-unassigned"
+                className="text-sm text-slate-700 cursor-pointer flex-1 font-medium"
+              >
                 Unassigned
               </label>
             </div>
@@ -1693,5 +1866,5 @@ export default function SearchInterface() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

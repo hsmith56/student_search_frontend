@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/auth-context";
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [first_name, setFirstname] = useState("");
+  const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [verifyPassword, setVerifyPassword] = useState("");
@@ -46,7 +47,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     if (mode === "register") {
-      const result = await register(first_name, username, password);
+      const result = await register(first_name, username, password, code);
       if (result.success) {
         setSuccess("Account created successfully! Please sign in.");
         setMode("login");
@@ -196,6 +197,29 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
+                 <div>
+                  <label
+                    htmlFor="code"
+                    className="block text-sm font-semibold text-slate-700 mb-2"
+                  >
+                    Sign up code
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      id="code"
+                      type="text"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="Enter the sign up code (same as password from old site)."
+                      className="pl-10 h-11 text-slate-700 bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+
               </div>
             )}
 

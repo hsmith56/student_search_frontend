@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (first_name: string, username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (first_name: string, username: string, password: string, code: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log("[v0] Attempting registration for user:", username)
 
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           accept: "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ username, password, first_name}),
+        body: JSON.stringify({ username, password, first_name, code}),
       })
 
       console.log("[v0] Registration response status:", response.status)
