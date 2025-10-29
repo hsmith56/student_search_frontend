@@ -1,11 +1,10 @@
-"use client";
+"use client"
 
-import { GraduationCap, Users, LogOut } from "lucide-react";
-import React from "react";
+import { GraduationCap, Users, LogOut } from "lucide-react"
 
 interface HeaderProps {
-  firstName: string;
-  onLogout: () => void;
+  firstName: string
+  onLogout: () => void
 }
 
 export default function Header({ firstName, onLogout }: HeaderProps) {
@@ -18,12 +17,8 @@ export default function Header({ firstName, onLogout }: HeaderProps) {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">
-                Student Exchange Portal
-              </h1>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Find your perfect match
-              </p>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Student Exchange Portal</h1>
+              <p className="text-[11px] text-slate-500 font-medium">Find your perfect match</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
@@ -52,5 +47,5 @@ export default function Header({ firstName, onLogout }: HeaderProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

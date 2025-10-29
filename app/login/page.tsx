@@ -1,74 +1,66 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  GraduationCap,
-  Lock,
-  User,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { GraduationCap, Lock, User, AlertCircle, CheckCircle } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [first_name, setFirstname] = useState("");
-  const [code, setCode] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [verifyPassword, setVerifyPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { login, register } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login")
+  const [first_name, setFirstname] = useState("")
+  const [code, setCode] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [verifyPassword, setVerifyPassword] = useState("")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { login, register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+    e.preventDefault()
+    setError("")
+    setSuccess("")
 
     if (mode === "register") {
       if (password !== verifyPassword) {
-        setError("Passwords do not match. Please try again.");
-        return;
+        setError("Passwords do not match. Please try again.")
+        return
       }
       if (password.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        return;
+        setError("Password must be at least 6 characters long.")
+        return
       }
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
 
     if (mode === "register") {
-      const result = await register(first_name, username, password, code);
+      const result = await register(first_name, username, password, code)
       if (result.success) {
-        setSuccess("Account created successfully! Please sign in.");
-        setMode("login");
-        setPassword("");
-        setVerifyPassword("");
+        setSuccess("Account created successfully! Please sign in.")
+        setMode("login")
+        setPassword("")
+        setVerifyPassword("")
       } else {
-        setError(result.error || "Failed to create account. Please try again.");
+        setError(result.error || "Failed to create account. Please try again.")
       }
     } else {
-      const result = await login(username, password);
+      const result = await login(username, password)
       if (result.success) {
-        router.push("/");
+        router.push("/")
       } else {
-        setError(
-          result.error || "Invalid username or password. Please try again.",
-        );
+        setError(result.error || "Invalid username or password. Please try again.")
       }
     }
 
-    setIsLoading(false);
-  };
+    setIsLoading(false)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 relative overflow-hidden flex items-center justify-center">
@@ -86,9 +78,7 @@ export default function LoginPage() {
             <div className="bg-gradient-to-br from-orange-300 via-white-600 to-orange-600 p-3 rounded-xl shadow-lg shadow-blue-600/20 mb-4">
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight text-center">
-              Student Search Portal
-            </h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight text-center">Student Search Portal</h1>
             <p className="text-sm text-slate-500 font-medium mt-1">
               {mode === "login" ? "Sign in to continue" : "Create your account"}
             </p>
@@ -112,10 +102,7 @@ export default function LoginPage() {
           {/* Login/Register Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-semibold text-slate-700 mb-2"
-              >
+              <label htmlFor="username" className="block text-sm font-semibold text-slate-700 mb-2">
                 Username
               </label>
               <div className="relative">
@@ -134,10 +121,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-slate-700 mb-2"
-              >
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -157,10 +141,7 @@ export default function LoginPage() {
 
             {mode === "register" && (
               <div>
-                <label
-                  htmlFor="verifyPassword"
-                  className="block text-sm font-semibold text-slate-700 mb-2"
-                >
+                <label htmlFor="verifyPassword" className="block text-sm font-semibold text-slate-700 mb-2">
                   Verify Password
                 </label>
                 <div className="relative">
@@ -177,10 +158,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="first_name"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
-                  >
+                  <label htmlFor="first_name" className="block text-sm font-semibold text-slate-700 mb-2">
                     First Name
                   </label>
                   <div className="relative">
@@ -198,10 +176,7 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div>
-                  <label
-                    htmlFor="code"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
-                  >
+                  <label htmlFor="code" className="block text-sm font-semibold text-slate-700 mb-2">
                     Sign up code
                   </label>
                   <div className="relative">
@@ -239,17 +214,15 @@ export default function LoginPage() {
           {/* Toggle between login and register modes */}
           <div className="mt-6 pt-6 border-t border-slate-200">
             <p className="text-sm text-center text-slate-600">
-              {mode === "login"
-                ? "Don't have an account?"
-                : "Already have an account?"}{" "}
+              {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
               <button
                 type="button"
                 onClick={() => {
-                  setMode(mode === "login" ? "register" : "login");
-                  setError("");
-                  setSuccess("");
-                  setPassword("");
-                  setVerifyPassword("");
+                  setMode(mode === "login" ? "register" : "login")
+                  setError("")
+                  setSuccess("")
+                  setPassword("")
+                  setVerifyPassword("")
                 }}
                 className="text-blue-600 hover:text-blue-700 font-semibold"
                 disabled={isLoading}
@@ -263,10 +236,7 @@ export default function LoginPage() {
           <div className="mt-4 pt-4 border-t border-slate-200">
             <p className="text-xs text-center text-slate-500">
               Need help?{" "}
-              <a
-                href="#"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
+              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
                 Contact Support
               </a>
             </p>
@@ -275,11 +245,9 @@ export default function LoginPage() {
 
         {/* Additional Info */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-500">
-            &copy; 2025 Student Exchange Portal. All rights reserved.
-          </p>
+          <p className="text-xs text-slate-500">&copy; 2025 Student Exchange Portal. All rights reserved.</p>
         </div>
       </div>
     </div>
-  );
+  )
 }

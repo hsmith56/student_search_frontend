@@ -28,7 +28,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = "http://127.0.0.1:8000"; //  process.env.NEXT_PUBLIC_API_URL ||
+// const API_URL = "http://localhost:8000";
+const API_URL = "/api";
+// const API_URL =  "http://192.168.1.150/api"; //  process.env.NEXT_PUBLIC_API_URL ||
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
