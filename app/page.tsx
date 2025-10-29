@@ -1668,34 +1668,9 @@ export default function SearchInterface() {
                 </DialogTitle>
                 <p className="text-sm text-slate-500 font-mono">{selectedStudent.usahsid.toString()}</p>
               </DialogHeader>
-              <div className="space-y-2 text-slate-700 mt-2">
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">GPA</span>
-                  <span className="font-semibold text-blue-600 flex items-center gap-1">
-                    <Award className="w-4 h-4" />
-                    {selectedStudent.gpa}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">Country</span>
-                  <span className="font-semibold">{selectedStudent.country}</span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">City Size</span>
-                  <span className="font-semibold">{selectedStudent.urban_request}</span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">English Score</span>
-                  <span className="font-semibold text-blue-600">{selectedStudent.english_score}</span>
-                </div>
-                <div className="flex items-start justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">Program</span>
-                  <span className="font-semibold text-right max-w-[280px]">{selectedStudent.program_type}</span>
-                </div>
-              </div>
-              <div className="mt-4">
-                <p className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-slate-400" />
+                            <div className="mt-0">
+                <p className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5 border-t border-slate-200 pt-3">
+                  <Star className="w-4 h-4 text-blue-400" />
                   Interests
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1709,9 +1684,39 @@ export default function SearchInterface() {
                   ))}
                 </div>
               </div>
+              <div className="space-y-2 text-slate-700 mt-2 border-t border-slate-200 pt-3">
+                <div className="flex items-center justify-between border-slate-100">
+                  <span className="text-sm font-medium text-slate-600">Academics</span>
+                  <span className="font-semibold text-blue-600 flex items-center gap-1">
+                    {selectedStudent.applying_to_grade}th Grade - {selectedStudent.gpa}<Award className="w-4 h-4"/>
+                    
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-slate-100">
+                  <span className="text-sm font-medium text-slate-600">Program</span>
+                  <span className="font-semibold flex items-center gap-1">
+                    {selectedStudent.program_type}
+                  </span>
+                </div>
+
+
+                <div className="flex items-center justify-between border-slate-100">
+                  <span className="text-sm font-medium text-slate-600">Country</span>
+                  <span className="font-semibold">{selectedStudent.country}</span>
+                </div>
+                <div className="flex items-center justify-between border-slate-100">
+                  <span className="text-sm font-medium text-slate-600">City Size</span>
+                  <span className="font-semibold">{selectedStudent.urban_request}</span>
+                </div>
+                <div className="flex items-center justify-between border-slate-100 border-b border-slate-200 pb-1">
+                  <span className="text-sm font-medium text-slate-600">English Score</span>
+                  <span className="font-semibold text-blue-600">{selectedStudent.english_score}</span>
+                </div>
+              </div>
+
               <Button
                 onClick={() => setSelectedStudent(null)}
-                className="mt-6 w-full h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/25 font-medium"
+                className="mt-2 w-full h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/25 font-medium"
               >
                 Close
               </Button>
