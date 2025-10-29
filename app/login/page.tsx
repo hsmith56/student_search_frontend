@@ -62,7 +62,7 @@ export default function LoginPage() {
         router.push("/");
       } else {
         setError(
-          result.error || "Invalid username or password. Please try again."
+          result.error || "Invalid username or password. Please try again.",
         );
       }
     }
@@ -197,7 +197,7 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                 <div>
+                <div>
                   <label
                     htmlFor="code"
                     className="block text-sm font-semibold text-slate-700 mb-2"
@@ -218,8 +218,6 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-
-
               </div>
             )}
 
@@ -233,8 +231,8 @@ export default function LoginPage() {
                   ? "Signing in..."
                   : "Creating account..."
                 : mode === "login"
-                ? "Sign In"
-                : "Create Account"}
+                  ? "Sign In"
+                  : "Create Account"}
             </Button>
           </form>
 

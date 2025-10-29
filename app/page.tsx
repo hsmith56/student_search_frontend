@@ -70,7 +70,7 @@ export default function SearchInterface() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -171,7 +171,7 @@ export default function SearchInterface() {
           if (response.ok) {
             const data = await response.json();
             const favoritedIds = new Set<string>(
-              data.map((student: any) => String(student.pax_id))
+              data.map((student: any) => String(student.pax_id)),
             );
             setFavoritedStudents(favoritedIds);
           }
@@ -338,7 +338,7 @@ export default function SearchInterface() {
             usahsId: "",
             photo_search: "",
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -372,7 +372,7 @@ export default function SearchInterface() {
             usahsId: usahsIdQuery,
             photo_search: photoQuery,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -407,7 +407,7 @@ export default function SearchInterface() {
             ...filters,
             statusOptions: status,
           }),
-        }
+        },
       );
 
       toggleStatus("All"); // set toggle to All to clear previous filter options, then iteratively set the correct ones
@@ -453,7 +453,7 @@ export default function SearchInterface() {
             accept: "application/json",
           },
           credentials: "include",
-        }
+        },
       );
 
       if (response.ok) {
@@ -475,7 +475,7 @@ export default function SearchInterface() {
             accept: "application/json",
           },
           credentials: "include",
-        }
+        },
       );
 
       if (response.ok) {
@@ -505,7 +505,7 @@ export default function SearchInterface() {
           const data = await response.json();
           setStudents(data || []);
           const favoritedIds = new Set<string>(
-            (data || []).map((s: any) => String(s.pax_id.toString()))
+            (data || []).map((s: any) => String(s.pax_id.toString())),
           );
           setFavoritedStudents(favoritedIds);
           setShowFavoritesOnly(true);
@@ -785,7 +785,7 @@ export default function SearchInterface() {
                         console.log(student);
                       }}
                       className={`group cursor-pointer border-2 ${getStatusRingColor(
-                        student.placement_status
+                        student.placement_status,
                       )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative`}
                     >
                       <button
@@ -985,14 +985,14 @@ export default function SearchInterface() {
                                     .includes("unassigned")
                                     ? "bg-slate-100 text-slate-700 border border-slate-300"
                                     : student.placement_status
-                                        ?.toLowerCase()
-                                        .includes("pending")
-                                    ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
-                                    : student.placement_status
-                                        ?.toLowerCase()
-                                        .includes("placed")
-                                    ? "bg-green-100 text-green-700 border border-green-300"
-                                    : "bg-blue-100 text-blue-700 border border-blue-300"
+                                          ?.toLowerCase()
+                                          .includes("pending")
+                                      ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                                      : student.placement_status
+                                            ?.toLowerCase()
+                                            .includes("placed")
+                                        ? "bg-green-100 text-green-700 border border-green-300"
+                                        : "bg-blue-100 text-blue-700 border border-blue-300"
                                 }`}
                               >
                                 {student.placement_status}
@@ -1003,15 +1003,15 @@ export default function SearchInterface() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   favoritedStudents.has(
-                                    student.pax_id.toString()
+                                    student.pax_id.toString(),
                                   )
                                     ? handleUnfavorite(
                                         student.pax_id.toString(),
-                                        e
+                                        e,
                                       )
                                     : handleFavorite(
                                         student.pax_id.toString(),
-                                        e
+                                        e,
                                       );
                                 }}
                                 className="p-1.5 rounded-full hover:bg-slate-100 transition-all duration-200"
@@ -1019,7 +1019,7 @@ export default function SearchInterface() {
                                 <Heart
                                   className={`w-4 h-4 ${
                                     favoritedStudents.has(
-                                      student.pax_id.toString()
+                                      student.pax_id.toString(),
                                     )
                                       ? "fill-pink-500 text-pink-500"
                                       : "text-slate-400 hover:text-pink-500"

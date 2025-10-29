@@ -1,7 +1,6 @@
 "use client";
 
 import { GraduationCap, Users, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import React from "react";
 
 interface HeaderProps {
