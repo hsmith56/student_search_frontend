@@ -186,7 +186,7 @@ export default function LoginPage() {
                       type="text"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      placeholder="Enter the sign up code (same as password from old site)."
+                      placeholder="Verification Phrase"
                       className="pl-10 h-11 text-slate-700 bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
                       required
                       disabled={isLoading}
@@ -233,14 +233,14 @@ export default function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="mt-4 pt-4 border-t border-slate-200">
+          {/* <div className="mt-4 pt-4 border-t border-slate-200">
             <p className="text-xs text-center text-slate-500">
               Need help?{" "}
               <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
                 Contact Support
               </a>
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* Additional Info */}

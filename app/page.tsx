@@ -77,7 +77,7 @@ export default function SearchInterface() {
     state: string
     gender_male: boolean
     gender_female: boolean
-    pets_in_home: boolean
+    pets_in_home: string
     program_types: string[]
     early_placement: string
     grants_options: string[]
@@ -97,7 +97,7 @@ export default function SearchInterface() {
     state: "all",
     gender_male: false,
     gender_female: false,
-    pets_in_home: true,
+    pets_in_home: "all",
     program_types: [],
     early_placement: "all",
     grants_options: [],
@@ -607,7 +607,7 @@ export default function SearchInterface() {
                   </ul>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
+                {/* <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
                   <h3 className="text-sm font-bold text-slate-900 mb-3">Need Help?</h3>
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
                     Our team is here to assist you with finding the perfect student match.
@@ -615,7 +615,7 @@ export default function SearchInterface() {
                   <Button className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
                     Contact Support
                   </Button>
-                </div>
+                </div> */}
               </div>
             </aside>
 
@@ -1306,7 +1306,7 @@ export default function SearchInterface() {
                 Program Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+                {/* <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-2">Pets in Home</label>
                   <div className="flex items-center gap-3 mt-2">
                     <Switch
@@ -1317,6 +1317,23 @@ export default function SearchInterface() {
                       {filters.pets_in_home ? "Enabled" : "Disabled"}
                     </span>
                   </div>
+                </div> */}
+
+                                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-2">Pets in Home</label>
+                  <Select
+                    value={filters.pets_in_home}
+                    onValueChange={(v) => setFilters({ ...filters, pets_in_home: v })}
+                  >
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                      <SelectValue placeholder="Show All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Show All</SelectItem>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
