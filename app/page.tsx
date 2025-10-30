@@ -553,7 +553,7 @@ export default function SearchInterface() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 relative overflow-hidden">
+    <div className="min-h-screen bg-gray-200 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-br from-blue-300/12 to-indigo-300/12 rounded-full blur-3xl" /> */}
         {/* <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-violet-500/10 to-blue-500/10 rounded-full blur-3xl" /> */}
@@ -1947,9 +1947,15 @@ export default function SearchInterface() {
                     {selectedStudent.first_name}
                   </a>
                 </DialogTitle>
-                <p className="text-sm text-slate-500 font-mono">
-                  {selectedStudent.usahsid.toString()}
-                </p>
+
+                  <a
+                    href={`/StudentProfile?id=${selectedStudent.usahsid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-slate-500 font-mono"
+                  >{selectedStudent.usahsid.toString()}</a>
+                  
+
               </DialogHeader>
               <div className="mt-0">
                 <p className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5 border-t border-slate-200 pt-3">

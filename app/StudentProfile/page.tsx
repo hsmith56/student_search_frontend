@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -74,12 +75,9 @@ const getStatusRingColor = (status: string) => {
     return "border-slate-300";
   };
 
-export default function StudentProfilePage({
-  searchParams,
-}: {
-  searchParams: { id?: string };
-}) {
-  const studentId = searchParams?.id;
+export default function StudentProfilePage() {
+  const searchParams = useSearchParams();
+  const studentId = searchParams?.get("id") ?? undefined;
 
   const [student, setStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState<boolean>(!!studentId);
@@ -173,7 +171,7 @@ export default function StudentProfilePage({
     <div className="min-h-screen bg-gray-200">
       <div className="container mx-auto px-4 py-8 max-w-90%">
         {/* Header Section */}
-        <div className="mb-8">
+        <div className="mb-2">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ">
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
@@ -187,7 +185,9 @@ export default function StudentProfilePage({
               </div>
             </div>
 
-            <div className="flex items-center flex-wrap gap-2">
+
+          </div>
+                      <div className="flex items-center flex-wrap gap-2 mt-1">
 
               <Badge variant="outline" className={`text-xs ${getStatusRingColor(student.placement_status)}`}>
                 {student.placement_status}
@@ -207,7 +207,6 @@ export default function StudentProfilePage({
                 </a></Badge>
               )}
             </div>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
