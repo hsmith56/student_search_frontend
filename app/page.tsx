@@ -71,7 +71,7 @@ export default function SearchInterface() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -181,7 +181,7 @@ export default function SearchInterface() {
           if (response.ok) {
             const data = await response.json();
             const favoritedIds = new Set<string>(
-              data.map((student: any) => String(student.pax_id)),
+              data.map((student: any) => String(student.pax_id))
             );
             setFavoritedStudents(favoritedIds);
           }
@@ -342,15 +342,15 @@ export default function SearchInterface() {
           headers: getHeaders(),
           credentials: "include", // Add credentials for cookies
           body: JSON.stringify({
-                ...defaultFilters,
-                status: "Allocated",
-                free_text: "",
-                usahsId: "",
-                photo_search: "",
-                order_by: orderBy,
-                descending: descending,
-              }),
-        },
+            ...defaultFilters,
+            status: "Allocated",
+            free_text: "",
+            usahsId: "",
+            photo_search: "",
+            order_by: orderBy,
+            descending: descending,
+          }),
+        }
       );
 
       const data = await response.json();
@@ -365,9 +365,14 @@ export default function SearchInterface() {
     }
   };
 
-  const fetchStudents = async (page = 1, orderByParam?: string, descendingParam?: boolean) => {
+  const fetchStudents = async (
+    page = 1,
+    orderByParam?: string,
+    descendingParam?: boolean
+  ) => {
     const ob = orderByParam ?? orderBy;
-    const desc = typeof descendingParam === "boolean" ? descendingParam : descending;
+    const desc =
+      typeof descendingParam === "boolean" ? descendingParam : descending;
     try {
       const statusValue = filters.statusOptions.includes("All")
         ? "allocated"
@@ -385,9 +390,8 @@ export default function SearchInterface() {
             free_text: query,
             usahsId: usahsIdQuery,
             photo_search: photoQuery,
-
           }),
-        },
+        }
       );
 
       const data = await response.json();
@@ -437,7 +441,7 @@ export default function SearchInterface() {
             ...filters,
             statusOptions: status,
           }),
-        },
+        }
       );
 
       toggleStatus("All"); // set toggle to All to clear previous filter options, then iteratively set the correct ones
@@ -483,7 +487,7 @@ export default function SearchInterface() {
             accept: "application/json",
           },
           credentials: "include",
-        },
+        }
       );
 
       if (response.ok) {
@@ -505,7 +509,7 @@ export default function SearchInterface() {
             accept: "application/json",
           },
           credentials: "include",
-        },
+        }
       );
 
       if (response.ok) {
@@ -535,7 +539,7 @@ export default function SearchInterface() {
           const data = await response.json();
           setStudents(data || []);
           const favoritedIds = new Set<string>(
-            (data || []).map((s: any) => String(s.pax_id.toString())),
+            (data || []).map((s: any) => String(s.pax_id.toString()))
           );
           setFavoritedStudents(favoritedIds);
           setShowFavoritesOnly(true);
@@ -685,14 +689,18 @@ export default function SearchInterface() {
                     <li className="flex items-start gap-2">
                       <span className="text-blue-200 mt-0.5">•</span>
                       <span>
-                        Click on a student card for detailed information. On a card, click the students USAHSID to open the snippet view.
+                        Click on a student card for detailed information. On a
+                        card, click the students USAHSID to open the snippet
+                        view.
                       </span>
                     </li>
                   </ul>
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3">Have a suggestion or feedback?</h3>
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">
+                    Have a suggestion or feedback?
+                  </h3>
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
                     Let me know if something doesn't work or can be improved 😊
                   </p>
@@ -807,7 +815,13 @@ export default function SearchInterface() {
                 </button>
 
                 <div
-                  className={`${isSearchFiltersExpanded ? "block" : "hidden"} xl:block p-4 ${isSearchFiltersExpanded ? "border-t border-slate-200 xl:border-t-0" : ""}`}
+                  className={`${
+                    isSearchFiltersExpanded ? "block" : "hidden"
+                  } xl:block p-4 ${
+                    isSearchFiltersExpanded
+                      ? "border-t border-slate-200 xl:border-t-0"
+                      : ""
+                  }`}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 mb-3">
                     <div className="relative">
@@ -917,7 +931,7 @@ export default function SearchInterface() {
                         console.log(student);
                       }}
                       className={`group cursor-pointer border-2 ${getStatusRingColor(
-                        student.placement_status,
+                        student.placement_status
                       )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative`}
                     >
                       <button
@@ -1048,7 +1062,7 @@ export default function SearchInterface() {
                           console.log(student);
                         }}
                         className={`bg-white/95 backdrop-blur-sm border-2 ${getStatusRingColor(
-                          student.placement_status,
+                          student.placement_status
                         )} rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer relative`}
                       >
                         <button
@@ -1135,14 +1149,14 @@ export default function SearchInterface() {
                                   .includes("unassigned")
                                   ? "bg-slate-100 text-slate-700 border border-slate-300"
                                   : student.placement_status
-                                        ?.toLowerCase()
-                                        .includes("pending")
-                                    ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
-                                    : student.placement_status
-                                          ?.toLowerCase()
-                                          .includes("placed")
-                                      ? "bg-green-100 text-green-700 border border-green-300"
-                                      : "bg-blue-100 text-blue-700 border border-blue-300"
+                                      ?.toLowerCase()
+                                      .includes("pending")
+                                  ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                                  : student.placement_status
+                                      ?.toLowerCase()
+                                      .includes("placed")
+                                  ? "bg-green-100 text-green-700 border border-green-300"
+                                  : "bg-blue-100 text-blue-700 border border-blue-300"
                               }`}
                             >
                               {student.placement_status}
@@ -1167,7 +1181,11 @@ export default function SearchInterface() {
                                 <span>Name</span>
                                 {orderBy === "first_name" && (
                                   <span className="text-slate-400">
-                                    {descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                    {descending ? (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    )}
                                   </span>
                                 )}
                               </div>
@@ -1176,26 +1194,53 @@ export default function SearchInterface() {
                               ID
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("country")}>
+                              <div
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                                onClick={() => toggleSort("country")}
+                              >
                                 <span>Country</span>
                                 {orderBy === "country" && (
-                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                  <span className="text-slate-400">
+                                    {descending ? (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    )}
+                                  </span>
                                 )}
                               </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("gpa")}>
+                              <div
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                                onClick={() => toggleSort("gpa")}
+                              >
                                 <span>GPA</span>
                                 {orderBy === "gpa" && (
-                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                  <span className="text-slate-400">
+                                    {descending ? (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    )}
+                                  </span>
                                 )}
                               </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("adjusted_age")}>
+                              <div
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                                onClick={() => toggleSort("adjusted_age")}
+                              >
                                 <span>Grade/Age</span>
                                 {orderBy === "adjusted_age" && (
-                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                  <span className="text-slate-400">
+                                    {descending ? (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    )}
+                                  </span>
                                 )}
                               </div>
                             </th>
@@ -1206,10 +1251,19 @@ export default function SearchInterface() {
                               Program
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("placement_status")}>
+                              <div
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                                onClick={() => toggleSort("placement_status")}
+                              >
                                 <span>Status</span>
                                 {orderBy === "placement_status" && (
-                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                  <span className="text-slate-400">
+                                    {descending ? (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    )}
+                                  </span>
                                 )}
                               </div>
                             </th>
@@ -1264,14 +1318,14 @@ export default function SearchInterface() {
                                       .includes("unassigned")
                                       ? "bg-slate-100 text-slate-700 border border-slate-300"
                                       : student.placement_status
-                                            ?.toLowerCase()
-                                            .includes("pending")
-                                        ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
-                                        : student.placement_status
-                                              ?.toLowerCase()
-                                              .includes("placed")
-                                          ? "bg-green-100 text-green-700 border border-green-300"
-                                          : "bg-blue-100 text-blue-700 border border-blue-300"
+                                          ?.toLowerCase()
+                                          .includes("pending")
+                                      ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                                      : student.placement_status
+                                          ?.toLowerCase()
+                                          .includes("placed")
+                                      ? "bg-green-100 text-green-700 border border-green-300"
+                                      : "bg-blue-100 text-blue-700 border border-blue-300"
                                   }`}
                                 >
                                   {student.placement_status}
@@ -1282,15 +1336,15 @@ export default function SearchInterface() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     favoritedStudents.has(
-                                      student.pax_id.toString(),
+                                      student.pax_id.toString()
                                     )
                                       ? handleUnfavorite(
                                           student.pax_id.toString(),
-                                          e,
+                                          e
                                         )
                                       : handleFavorite(
                                           student.pax_id.toString(),
-                                          e,
+                                          e
                                         );
                                   }}
                                   className="p-1.5 rounded-full hover:bg-slate-100 transition-all duration-200"
@@ -1298,7 +1352,7 @@ export default function SearchInterface() {
                                   <Heart
                                     className={`w-4 h-4 ${
                                       favoritedStudents.has(
-                                        student.pax_id.toString(),
+                                        student.pax_id.toString()
                                       )
                                         ? "fill-pink-500 text-pink-500"
                                         : "text-slate-400 hover:text-pink-500"
@@ -1978,7 +2032,6 @@ export default function SearchInterface() {
           {selectedStudent && (
             <>
               <DialogHeader className="relative text-justify">
-               
                 <DialogTitle className="text-slate-900 text-xl font-bold tracking-tight">
                   <a
                     href={`https://beacon.ciee.org/participant/${selectedStudent.app_id}`}
@@ -1989,14 +2042,60 @@ export default function SearchInterface() {
                     {selectedStudent.first_name}
                   </a>
                 </DialogTitle>
-
+                <div className="flex items-center gap-2">
                   <a
                     href={`/StudentProfile?id=${selectedStudent.usahsid}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm text-slate-500 font-mono max-w-min underline underline-offset-2"
-                  >{selectedStudent.usahsid.toString()}</a>
-                   <button
+                  >
+                    {selectedStudent.usahsid.toString()}
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      // prevent parent click handlers from running (dialog closing / selection)
+                      e.stopPropagation();
+                      try {
+                        const text = selectedStudent.usahsid?.toString() ?? "";
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(text);
+                        } else {
+                          // fallback for older browsers
+                          const ta = document.createElement("textarea");
+                          ta.value = text;
+                          ta.setAttribute("readonly", "");
+                          ta.style.position = "absolute";
+                          ta.style.left = "-9999px";
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand("copy");
+                          document.body.removeChild(ta);
+                        }
+                      } catch (err) {
+                        // ignore errors silently - copying is best-effort
+                      }
+                    }}
+                    title="Copy usahsid"
+                    aria-label="Copy usahsid"
+                    className="p-1 rounded-md bg-white/90 border border-slate-200 hover:bg-slate-100 text-slate-500"
+                  >
+                    {/* Inline copy icon to avoid adding imports */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      className="w-4 h-4"
+                      aria-hidden="true"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                </div>
+                <button
                   onClick={() =>
                     favoritedStudents.has(selectedStudent.pax_id.toString())
                       ? handleUnfavorite(selectedStudent.pax_id.toString())
@@ -2012,7 +2111,6 @@ export default function SearchInterface() {
                     } transition-colors duration-200`}
                   />
                 </button>
-
               </DialogHeader>
               <div className="mt-0">
                 <p className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5 border-t border-slate-200 pt-3">
