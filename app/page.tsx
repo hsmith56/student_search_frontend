@@ -659,21 +659,21 @@ export default function SearchInterface() {
                     <li className="flex items-start gap-2">
                       <span className="text-blue-200 mt-0.5">•</span>
                       <span>
-                        Click on a student card for detailed information
+                        Click on a student card for detailed information. On a card, click the students USAHSID to open the snippet view.
                       </span>
                     </li>
                   </ul>
                 </div>
 
-                {/* <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3">Need Help?</h3>
+                <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">Have a suggestion or feedback?</h3>
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-                    Our team is here to assist you with finding the perfect student match.
+                    Let me know if something doesn't work or can be improved 😊
                   </p>
                   <Button className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
-                    Contact Support
+                    Send feedback
                   </Button>
-                </div> */}
+                </div>
               </div>
             </aside>
 

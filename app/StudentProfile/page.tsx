@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -63,25 +65,33 @@ interface StudentData {
 const API_URL = "/api";
 
 const getStatusRingColor = (status: string) => {
-    if (!status) return "border-slate-300";
+  if (!status) return "border-slate-300";
 
-    const statusLower = status.toLowerCase();
-    if (statusLower.includes("pending")) return "border-yellow-200 bg-yellow-50";
-    if (statusLower.includes("placed"))
-      return "border-green-500 rounded-md bg-green-100";
-    if (statusLower === "allocated") return "border-blue-500 bg-blue-100";
-    if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes("pending")) return "border-yellow-200 bg-yellow-50";
+  if (statusLower.includes("placed"))
+    return "border-green-500 rounded-md bg-green-100";
+  if (statusLower === "allocated") return "border-blue-500 bg-blue-100";
+  if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
 
-    return "border-slate-300";
-  };
+  return "border-slate-300";
+};
 
 export default function StudentProfilePage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const studentId = searchParams?.get("id") ?? undefined;
 
   const [student, setStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState<boolean>(!!studentId);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (!studentId) return;
@@ -134,14 +144,6 @@ export default function StudentProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Loading student…</CardTitle>
-            <CardDescription>
-              Please wait while student data loads.
-            </CardDescription>
-          </CardHeader>
-        </Card>
       </div>
     );
   }
@@ -181,22 +183,32 @@ export default function StudentProfilePage() {
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
                   {student.first_name}
                 </h1>
-                <p className="text-sm text-muted-foreground">Student ID: {student.usahsid}</p>
+                <p className="text-sm text-muted-foreground">
+                  Student ID: {student.usahsid}
+                </p>
               </div>
             </div>
-
-
           </div>
-                      <div className="flex items-center flex-wrap gap-2 mt-1">
-
-              <Badge variant="outline" className={`text-xs ${getStatusRingColor(student.placement_status)}`}>
-                {student.placement_status}
+          <div className="flex items-center flex-wrap gap-2 mt-1">
+            <Badge
+              variant="outline"
+              className={`text-xs ${getStatusRingColor(
+                student.placement_status
+              )}`}
+            >
+              {student.placement_status}
+            </Badge>
+            {student.early_placement && (
+              <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">
+                Early Placement
               </Badge>
-              {student.early_placement && (
-                <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">Early Placement</Badge>
-              )}
-              {student.media_link && (
-                <Badge variant="outline" className="text-xs border-slate-300 bg-white"><a
+            )}
+            {student.media_link && (
+              <Badge
+                variant="outline"
+                className="text-xs border-slate-300 bg-white"
+              >
+                <a
                   href={student.media_link}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -204,9 +216,10 @@ export default function StudentProfilePage() {
                 >
                   <Video className="w-4 h-4 text-pink-600" />
                   View Media
-                </a></Badge>
-              )}
-            </div>
+                </a>
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -219,30 +232,55 @@ export default function StudentProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-slate-100">
-              <div className="py-1"><InfoRow label="Application ID" value={student.app_id} /></div>
-              <div className="py-1"><InfoRow label="PAX ID" value={student.pax_id} /></div>
-              <div className="py-1"><InfoRow label="Gender" value={student.gender_desc} /></div>
-              <div className="py-1"><InfoRow label="Age" value={student.adjusted_age} /></div>
-              <div className="py-1"><InfoRow label="Country" value={student.country} /></div>
+              <div className="py-1">
+                <InfoRow label="Application ID" value={student.app_id} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="PAX ID" value={student.pax_id} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="Gender" value={student.gender_desc} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="Age" value={student.adjusted_age} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="Country" value={student.country} />
+              </div>
             </CardContent>
           </Card>
 
           {/* Academic Profile */}
           <Card className="shadow-sm border border-slate-300">
             <CardHeader className="border-l-4 border-green-500 pl-4 bg-gradient-to-r from-green-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-green-600 mt-2" />
                 Academic Profile
               </CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-slate-100">
-              <div className="py-1"><InfoRow label="GPA" value={student.gpa} /></div>
-              <div className="py-1"><InfoRow label="English Score" value={student.english_score} /></div>
-              <div className="py-1"><InfoRow label="Current Grade" value={student.current_grade} /></div>
-              <div className="py-1"><InfoRow label="Applying to Grade" value={student.applying_to_grade} /></div>
+              <div className="py-1">
+                <InfoRow label="GPA" value={student.gpa} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="English Score" value={student.english_score} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="Current Grade" value={student.current_grade} />
+              </div>
+              <div className="py-1">
+                <InfoRow
+                  label="Applying to Grade"
+                  value={student.applying_to_grade}
+                />
+              </div>
               {student.favorite_subjects && (
-                <div className="py-1"><InfoRow label="Favorite Subjects" value={student.favorite_subjects} /></div>
+                <div className="py-1">
+                  <InfoRow
+                    label="Favorite Subjects"
+                    value={student.favorite_subjects}
+                  />
+                </div>
               )}
             </CardContent>
           </Card>
@@ -250,17 +288,30 @@ export default function StudentProfilePage() {
           {/* Placement Details */}
           <Card className="shadow-sm border border-slate-300">
             <CardHeader className="border-l-4 border-purple-500 pl-4 bg-gradient-to-r from-purple-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-purple-600 mt-2" />
                 Placement Details
               </CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-slate-100">
-              <div className="py-1"><InfoRow label="Program Type" value={student.program_type} /></div>
-              <div className="py-1"><InfoRow label="Urban Request" value={student.urban_request} /></div>
-              <div className="py-1"><InfoRow label="Single Placement" value={student.single_placement ? "Yes" : "No"} /></div>
-              <div className="py-1"><InfoRow label="Double Placement" value={student.double_placement ? "Yes" : "No"} /></div>
+              <div className="py-1">
+                <InfoRow label="Program Type" value={student.program_type} />
+              </div>
+              <div className="py-1">
+                <InfoRow label="Urban Request" value={student.urban_request} />
+              </div>
+              <div className="py-1">
+                <InfoRow
+                  label="Single Placement"
+                  value={student.single_placement ? "Yes" : "No"}
+                />
+              </div>
+              <div className="py-1">
+                <InfoRow
+                  label="Double Placement"
+                  value={student.double_placement ? "Yes" : "No"}
+                />
+              </div>
               {student.states && student.states.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-2">
@@ -287,7 +338,6 @@ export default function StudentProfilePage() {
           {/* Interests & Activities */}
           <Card>
             <CardHeader className="border-l-4 border-red-500 pl-4 bg-gradient-to-r from-red-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-red-600 mt-2" />
                 Interests & Activities
@@ -334,7 +384,6 @@ export default function StudentProfilePage() {
           {/* Personal Background */}
           <Card>
             <CardHeader className="border-l-4 border-indigo-500 pl-4 bg-gradient-to-r from-indigo-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <Home className="w-5 h-5 text-indigo-600 mt-2" />
                 Personal Background
@@ -366,7 +415,6 @@ export default function StudentProfilePage() {
           {/* Health & Dietary */}
           <Card>
             <CardHeader className="border-l-4 border-amber-500 pl-4 bg-gradient-to-r from-amber-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-amber-600 mt-2" />
                 Health & Dietary Information
@@ -410,7 +458,6 @@ export default function StudentProfilePage() {
           {/* Messages */}
           <Card className="lg:col-span-3">
             <CardHeader className="border-l-4 border-cyan-500 pl-4 bg-gradient-to-r from-cyan-50 to-transparent">
-
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-cyan-600 mt-2" />
                 Messages & Comments

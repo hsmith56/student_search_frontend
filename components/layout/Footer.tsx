@@ -2,7 +2,7 @@
 
 export default function Footer() {
   return (
-    <footer className="bg-white/80 backdrop-blur-xl border-t border-slate-200/60 mt-auto shadow-sm">
+    <footer className="bg-white/80 backdrop-blur-xl border-t border-slate-200/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* <div>
@@ -72,7 +72,7 @@ export default function Footer() {
               </div> */}
         </div>
 
-        <div className="border-t border-slate-200 mt-6 pt-5 text-center text-xs text-slate-500 font-medium">
+        <div className="border-t border-slate-200 mt-1 pt-1 text-center text-xs text-slate-500 font-medium">
           <p>&copy; 2025 Student Exchange Portal. All rights reserved.</p>
         </div>
       </div>
