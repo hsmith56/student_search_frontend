@@ -77,6 +77,8 @@ export default function SearchInterface() {
 
   const [viewMode, setViewMode] = useState<"card" | "compact">("compact");
   const [totalResults, setTotalResults] = useState<number>(0);
+  const [orderBy, setOrderBy] = useState<string>("adjusted_age");
+  const [descending, setDescending] = useState<boolean>(true);
 
   const [isQuickStatsExpanded, setIsQuickStatsExpanded] = useState(false);
   const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(true);
@@ -336,12 +338,14 @@ export default function SearchInterface() {
           headers: getHeaders(),
           credentials: "include", // Add credentials for cookies
           body: JSON.stringify({
-            ...defaultFilters,
-            status: "Allocated",
-            free_text: "",
-            usahsId: "",
-            photo_search: "",
-          }),
+                ...defaultFilters,
+                status: "Allocated",
+                free_text: "",
+                usahsId: "",
+                photo_search: "",
+                order_by: orderBy,
+                descending: descending,
+              }),
         },
       );
 
@@ -357,14 +361,16 @@ export default function SearchInterface() {
     }
   };
 
-  const fetchStudents = async (page = 1) => {
+  const fetchStudents = async (page = 1, orderByParam?: string, descendingParam?: boolean) => {
+    const ob = orderByParam ?? orderBy;
+    const desc = typeof descendingParam === "boolean" ? descendingParam : descending;
     try {
       const statusValue = filters.statusOptions.includes("All")
         ? "allocated"
         : filters.statusOptions.map((s) => s.toLowerCase()).join(",");
 
       const response = await fetch(
-        `${API_URL}/students/search?page=${page}&page_size=15`,
+        `${API_URL}/students/search?page=${page}&page_size=15&order_by=${ob}&descending=${desc}`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -375,6 +381,7 @@ export default function SearchInterface() {
             free_text: query,
             usahsId: usahsIdQuery,
             photo_search: photoQuery,
+
           }),
         },
       );
@@ -387,8 +394,23 @@ export default function SearchInterface() {
       setTotalResults(data.total_results || data.results?.length || 0);
     } catch (error) {
       console.error("Error:", error);
-      // setStudents([])
     }
+  };
+
+  const toggleSort = (field: string) => {
+    let newDescending = true;
+    if (orderBy === field) {
+      newDescending = !descending;
+      setDescending(newDescending);
+      setOrderBy(field);
+    } else {
+      setOrderBy(field);
+      setDescending(true);
+      newDescending = true;
+    }
+    setCurrentPage(1);
+    // fetch page 1 with new sort immediately (pass values so fetch uses them)
+    fetchStudents(1, field, newDescending);
   };
 
   const fetchStudentsByStatus = async (status: string[]) => {
@@ -1134,19 +1156,44 @@ export default function SearchInterface() {
                         <thead className="bg-slate-50 border-b border-slate-200">
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              Name
+                              <div
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                                onClick={() => toggleSort("first_name")}
+                              >
+                                <span>Name</span>
+                                {orderBy === "first_name" && (
+                                  <span className="text-slate-400">
+                                    {descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                  </span>
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               ID
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              Country
+                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("country")}>
+                                <span>Country</span>
+                                {orderBy === "country" && (
+                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              GPA
+                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("gpa")}>
+                                <span>GPA</span>
+                                {orderBy === "gpa" && (
+                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              Grade/Age
+                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("adjusted_age")}>
+                                <span>Grade/Age</span>
+                                {orderBy === "adjusted_age" && (
+                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               English
@@ -1155,7 +1202,12 @@ export default function SearchInterface() {
                               Program
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                              Status
+                              <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => toggleSort("placement_status")}>
+                                <span>Status</span>
+                                {orderBy === "placement_status" && (
+                                  <span className="text-slate-400">{descending ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}</span>
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               Actions
