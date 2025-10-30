@@ -395,7 +395,6 @@ export default function SearchInterface() {
       );
 
       const data = await response.json();
-      console.log(data);
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
       setStudents(data.results || []);
@@ -928,7 +927,6 @@ export default function SearchInterface() {
                       key={student.pax_id.toString()}
                       onClick={() => {
                         setSelectedStudent(student);
-                        console.log(student);
                       }}
                       className={`group cursor-pointer border-2 ${getStatusRingColor(
                         student.placement_status
@@ -954,7 +952,7 @@ export default function SearchInterface() {
                       <div className="flex justify-between items-start border-b border-slate-200 pb-3 mb-3 pr-8 bg-pink">
                         <div className="flex-1">
                           <h2 className="text-slate-900 font-semibold text-base tracking-tight group-hover:text-blue-700 transition-colors duration-200">
-                            {student.first_name}
+                            {student.first_name} - {student.gender_desc[0]}
                           </h2>
                           <p className="text-xs text-slate-500 font-mono mt-0.5">
                             {student.usahsid.toString()}
@@ -1059,7 +1057,6 @@ export default function SearchInterface() {
                         key={student.pax_id.toString()}
                         onClick={() => {
                           setSelectedStudent(student);
-                          console.log(student);
                         }}
                         className={`bg-white/95 backdrop-blur-sm border-2 ${getStatusRingColor(
                           student.placement_status
@@ -1085,7 +1082,7 @@ export default function SearchInterface() {
 
                         <div className="mb-3 pr-8">
                           <h3 className="text-lg font-bold text-slate-900">
-                            {student.first_name}
+                            {student.first_name} - {student.gender_desc[0]}
                           </h3>
                           <p className="text-xs text-slate-500 font-mono">
                             {student.usahsid.toString()}
@@ -1278,12 +1275,11 @@ export default function SearchInterface() {
                               key={student.usahsid.toString()}
                               onClick={() => {
                                 setSelectedStudent(student);
-                                console.log(student);
                               }}
                               className="hover:bg-blue-50/50 cursor-pointer transition-colors duration-150"
                             >
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                                {student.first_name}
+                                {student.first_name} - {student.gender_desc[0]}
                               </td>
                               <td className="px-4 py-3 text-xs font-mono text-slate-500">
                                 {student.usahsid.toString()}
@@ -2039,7 +2035,7 @@ export default function SearchInterface() {
                     rel="noreferrer"
                     className="underline underline-offset-2"
                   >
-                    {selectedStudent.first_name}
+                    {selectedStudent.first_name} - {selectedStudent.gender_desc[0]}
                   </a>
                 </DialogTitle>
                 <div className="flex items-center gap-2">
@@ -2075,6 +2071,7 @@ export default function SearchInterface() {
                         }
                       } catch (err) {
                         // ignore errors silently - copying is best-effort
+                        console.error(err);
                       }
                     }}
                     title="Copy usahsid"

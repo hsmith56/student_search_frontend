@@ -111,7 +111,7 @@ export default function StudentProfilePage() {
         if (mounted) setStudent(data);
       })
       .catch((err) => {
-        console.error("[v0] Error fetching student data:", err);
+        console.error("Error fetching student data:", err);
         if (mounted) setError(String(err));
       })
       .finally(() => {

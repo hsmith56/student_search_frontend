@@ -17,8 +17,8 @@ export default function Header({ firstName, onLogout }: HeaderProps) {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Student Exchange Portal</h1>
-              <p className="text-[11px] text-slate-500 font-medium">Find your perfect match</p>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Exchange Profile Search</h1>
+              <p className="text-[11px] text-slate-500 font-medium">Tool to search student profiles for improved match making</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">

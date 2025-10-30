@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div className="bg-gradient-to-br from-orange-300 via-white-600 to-orange-600 p-3 rounded-xl shadow-lg shadow-blue-600/20 mb-4">
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight text-center">Student Search Portal</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight text-center">Exchange Profile Search</h1>
             <p className="text-sm text-slate-500 font-medium mt-1">
               {mode === "login" ? "Sign in to continue" : "Create your account"}
             </p>

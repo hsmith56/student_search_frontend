@@ -38,27 +38,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      console.log("[v0] Checking auth status at", `${API_URL}/auth/me`);
+      console.log("Checking auth status at", `${API_URL}/auth/me`);
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: "include",
       });
 
-      console.log("[v0] /auth/me response status:", response.status);
+      console.log("/auth/me response status:", response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log("[v0] Auth check successful, user:", data.username);
+        console.log("Auth check successful, user:", data.username);
         setIsAuthenticated(true);
         setUsername(data.username);
         return true;
       } else {
-        console.log("[v0] Auth check failed - not authenticated");
+        console.log("Auth check failed - not authenticated");
         setIsAuthenticated(false);
         setUsername(null);
         return false;
       }
     } catch (error) {
-      console.error("[v0] Auth check error:", error);
+      console.error("Auth check error:", error);
       setIsAuthenticated(false);
       setUsername(null);
       return false;
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       formData.append("password", password);
 
       console.log(
-        "[v0] Attempting login for user:",
+        "Attempting login for user:",
         username,
         "at",
         `${API_URL}/auth/login`,
@@ -100,19 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: formData.toString(),
       });
 
-      console.log("[v0] Login response status:", response.status);
+      console.log("Login response status:", response.status);
 
       if (response.ok) {
-        console.log("[v0] Login successful, checking auth status...");
+        console.log("Login successful, checking auth status...");
         await new Promise((resolve) => setTimeout(resolve, 100));
         const authVerified = await checkAuth();
 
         if (authVerified) {
-          console.log("[v0] Auth verified after login");
+          console.log("Auth verified after login");
           return { success: true };
         } else {
           console.error(
-            "[v0] Login succeeded but auth check failed - cookie not working",
+            "Login succeeded but auth check failed - cookie not working",
           );
           return {
             success: false,
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: false, error: errorMessage };
     } catch (error) {
-      console.error("[v0] Login error:", error);
+      console.error("Login error:", error);
       return {
         success: false,
         error: `Cannot connect to backend at ${API_URL}. Make sure NEXT_PUBLIC_API_URL is set to your ngrok or deployed backend URL.`,
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     code: string,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log("[v0] Attempting registration for user:", username);
+      console.log("Attempting registration for user:", username);
 
       const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
@@ -164,10 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ username, password, first_name, code }),
       });
 
-      console.log("[v0] Registration response status:", response.status);
+      console.log("Registration response status:", response.status);
 
       if (response.ok) {
-        console.log("[v0] Registration successful");
+        console.log("Registration successful");
         return { success: true };
       }
 
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: false, error: errorMessage };
     } catch (error) {
-      console.error("[v0] Registration error:", error);
+      console.error("Registration error:", error);
       return {
         success: false,
         error: `Cannot connect to backend at ${API_URL}. Make sure NEXT_PUBLIC_API_URL is set to your ngrok or deployed backend URL.`,
@@ -196,13 +196,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log("[v0] Logging out");
+      console.log("Logging out");
       await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
     } catch (error) {
-      console.error("[v0] Logout error:", error);
+      console.error("Logout error:", error);
     } finally {
       setIsAuthenticated(false);
       setUsername(null);
