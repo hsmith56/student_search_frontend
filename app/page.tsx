@@ -75,7 +75,11 @@ export default function SearchInterface() {
   );
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  const [viewMode, setViewMode] = useState<"card" | "compact">("compact");
+  const [viewMode, setViewMode] = useState<"card" | "compact">(() => {
+    // Default: mobile -> card view, desktop -> compact view
+    if (typeof window === "undefined") return "compact";
+    return window.innerWidth >= 768 ? "compact" : "card";
+  });
   const [totalResults, setTotalResults] = useState<number>(0);
   const [orderBy, setOrderBy] = useState<string>("adjusted_age");
   const [descending, setDescending] = useState<boolean>(true);
@@ -554,7 +558,7 @@ export default function SearchInterface() {
     if (statusLower.includes("pending")) return "border-yellow-200 ";
     if (statusLower.includes("placed"))
       return "border-green-500 rounded-md p-4";
-    if (statusLower === "allocated") return "border-blue-500";
+    if (statusLower === "allocated") return "border-blue-500 bg-white";
     if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
 
     return "border-slate-300";
@@ -904,7 +908,7 @@ export default function SearchInterface() {
               </div>
 
               {viewMode === "card" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8 ">
                   {displayedStudents.map((student) => (
                     <div
                       key={student.pax_id.toString()}
@@ -933,7 +937,7 @@ export default function SearchInterface() {
                         />
                       </button>
 
-                      <div className="flex justify-between items-start border-b border-slate-200 pb-3 mb-3 pr-8">
+                      <div className="flex justify-between items-start border-b border-slate-200 pb-3 mb-3 pr-8 bg-pink">
                         <div className="flex-1">
                           <h2 className="text-slate-900 font-semibold text-base tracking-tight group-hover:text-blue-700 transition-colors duration-200">
                             {student.first_name}
@@ -960,14 +964,14 @@ export default function SearchInterface() {
                             {student.country}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        {/* <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">
                             City Size
                           </span>
                           <span className="font-semibold text-slate-700">
                             {student.urban_request}
                           </span>
-                        </div>
+                        </div> */}
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">
                             Grade / Age{" "}
@@ -1973,8 +1977,26 @@ export default function SearchInterface() {
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-90% mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto">
           {selectedStudent && (
             <>
-              <DialogHeader className="relative">
-                <button
+              <DialogHeader className="relative text-justify">
+               
+                <DialogTitle className="text-slate-900 text-xl font-bold tracking-tight">
+                  <a
+                    href={`https://beacon.ciee.org/participant/${selectedStudent.app_id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {selectedStudent.first_name}
+                  </a>
+                </DialogTitle>
+
+                  <a
+                    href={`/StudentProfile?id=${selectedStudent.usahsid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-slate-500 font-mono max-w-min underline underline-offset-2"
+                  >{selectedStudent.usahsid.toString()}</a>
+                   <button
                   onClick={() =>
                     favoritedStudents.has(selectedStudent.pax_id.toString())
                       ? handleUnfavorite(selectedStudent.pax_id.toString())
@@ -1990,23 +2012,6 @@ export default function SearchInterface() {
                     } transition-colors duration-200`}
                   />
                 </button>
-                <DialogTitle className="text-slate-900 text-xl font-bold tracking-tight">
-                  <a
-                    href={`https://beacon.ciee.org/participant/${selectedStudent.app_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {selectedStudent.first_name}
-                  </a>
-                </DialogTitle>
-
-                  <a
-                    href={`/StudentProfile?id=${selectedStudent.usahsid}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-slate-500 font-mono"
-                  >{selectedStudent.usahsid.toString()}</a>
-                  
 
               </DialogHeader>
               <div className="mt-0">
