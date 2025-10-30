@@ -5,9 +5,10 @@ import { GraduationCap, Users, LogOut } from "lucide-react"
 interface HeaderProps {
   firstName: string
   onLogout: () => void
+  updateTime: string
 }
 
-export default function Header({ firstName, onLogout }: HeaderProps) {
+export default function Header({ firstName, onLogout, updateTime }: HeaderProps) {
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
@@ -17,7 +18,7 @@ export default function Header({ firstName, onLogout }: HeaderProps) {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Exchange Profile Search</h1>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Exchange Profile Search - {updateTime}</h1>
               <p className="text-[11px] text-slate-500 font-medium">Tool to search student profiles for improved match making</p>
             </div>
           </div>

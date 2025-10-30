@@ -56,6 +56,7 @@ export default function SearchInterface() {
   const router = useRouter();
 
   const [query, setQuery] = useState("");
+  const [updateTime, setUpdateTime] = useState("");
   const [usahsIdQuery, setUsahsIdQuery] = useState("");
   const [photoQuery, setPhotoQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -265,6 +266,24 @@ export default function SearchInterface() {
           set_alreadyPlaced(data);
         })
         .catch(() => set_alreadyPlaced(0));
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch(`${API_URL}/misc/last_update_time`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setUpdateTime(data[0]);
+          console.log(data);
+        })
+        .catch(() => setUpdateTime(""));
     }
   }, [isAuthenticated]);
 
@@ -590,7 +609,7 @@ export default function SearchInterface() {
       </div>
 
       <div className="relative z-10">
-        <Header firstName={firstName} onLogout={logout} />
+        <Header firstName={firstName} onLogout={logout} updateTime={updateTime} />
 
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
           <div className="flex gap-5">
