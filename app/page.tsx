@@ -86,6 +86,7 @@ export default function SearchInterface() {
   const [descending, setDescending] = useState<boolean>(true);
 
   const [isQuickStatsExpanded, setIsQuickStatsExpanded] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(true);
 
   type Filters = {
@@ -722,9 +723,21 @@ export default function SearchInterface() {
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
                     Let me know if something doesn't work or can be improved 😊
                   </p>
-                  <Button className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
+                  <Button onClick={() =>
+                      setIsFeedbackOpen(!isFeedbackOpen)
+                    }
+                  className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
                     Send feedback
                   </Button>
+                  <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+                    <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-200px mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-900 text-xl font-bold flex items-center gap-2 text-blue-600">
+              Provide Feedback
+            </DialogTitle>
+          </DialogHeader>
+          </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </aside>
@@ -1291,7 +1304,7 @@ export default function SearchInterface() {
                         <tbody className="divide-y divide-slate-200">
                           {displayedStudents.map((student) => (
                             <tr
-                              key={student.usahsid.toString()}
+                              key={student.pax_id.toString()}
                               onClick={() => {
                                 setSelectedStudent(student);
                               }}
@@ -2059,7 +2072,7 @@ export default function SearchInterface() {
                 </DialogTitle>
                 <div className="flex items-center gap-2">
                   <a
-                    href={`/StudentProfile?id=${selectedStudent.usahsid}`}
+                    href={`/StudentProfile?id=${selectedStudent.app_id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm text-slate-500 font-mono max-w-min underline underline-offset-2"
