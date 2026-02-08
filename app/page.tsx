@@ -68,6 +68,7 @@ export default function SearchInterface() {
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [selectedStudentMediaLink, setSelectedStudentMediaLink] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -312,6 +313,44 @@ export default function SearchInterface() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!selectedStudent) {
+      setSelectedStudentMediaLink("");
+      return;
+    }
+
+    const directLink = extractMediaLink(selectedStudent);
+    setSelectedStudentMediaLink(directLink);
+
+    // Search results may omit media URL; load full student payload as fallback.
+    if (directLink || !selectedStudent.app_id) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch(`${API_URL}/students/full/${selectedStudent.app_id}`, {
+      method: "GET",
+      headers: { accept: "application/json" },
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
+        const fullStudent = await res.json();
+        setSelectedStudentMediaLink(extractMediaLink(fullStudent));
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching selected student media:", error);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedStudent]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -718,6 +757,7 @@ export default function SearchInterface() {
 
   const displayedStudents = students;
   const shouldAnimateResults = resultsAnimationKey > 0;
+  const selectedStudentHasMedia = selectedStudentMediaLink.length > 0;
 
   const getStatusRingColor = (status: string) => {
     if (!status) return "border-slate-300";
@@ -730,6 +770,39 @@ export default function SearchInterface() {
     if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
 
     return "border-slate-300";
+  };
+
+  const textOrNotProvided = (value: unknown) => {
+    const text = String(value ?? "").trim();
+    return text ? text : "Not provided";
+  };
+
+  const extractMediaLink = (student: any): string => {
+    const candidates = [
+      student?.media_link,
+      student?.mediaLink,
+      student?.media_url,
+      student?.mediaUrl,
+      student?.video_link,
+      student?.videoLink,
+      student?.video_url,
+      student?.videoUrl,
+    ];
+
+    for (const candidate of candidates) {
+      const value = String(candidate ?? "").trim();
+      const normalized = value.toLowerCase();
+      if (
+        value &&
+        normalized !== "null" &&
+        normalized !== "none" &&
+        normalized !== "n/a"
+      ) {
+        return value;
+      }
+    }
+
+    return "";
   };
 
   const formatGender = (genderValue: unknown) => {
@@ -2209,160 +2282,225 @@ export default function SearchInterface() {
         open={!!selectedStudent}
         onOpenChange={() => setSelectedStudent(null)}
       >
-        <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-90% mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[96vw] max-w-[940px] border-stone-300 bg-[#f4eee4]/95 p-0 shadow-[0_24px_70px_-36px_rgba(41,30,22,0.72)] max-h-[88vh] overflow-y-auto rounded-3xl [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {selectedStudent && (
-            <>
-              <DialogHeader className="relative text-justify">
-                <DialogTitle className="text-slate-900 text-xl font-bold tracking-tight">
-                  <a
-                    href={`https://beacon.ciee.org/participant/${selectedStudent.app_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-2"
-                  >
-                    {selectedStudent.first_name}
-                  </a>
-                </DialogTitle>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={`/StudentProfile?id=${selectedStudent.app_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-slate-500 font-mono max-w-min underline underline-offset-2"
-                  >
-                    {selectedStudent.usahsid.toString()}
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      // prevent parent click handlers from running (dialog closing / selection)
-                      e.stopPropagation();
-                      try {
-                        const text = selectedStudent.usahsid?.toString() ?? "";
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                          navigator.clipboard.writeText(text);
-                        } else {
-                          // fallback for older browsers
-                          const ta = document.createElement("textarea");
-                          ta.value = text;
-                          ta.setAttribute("readonly", "");
-                          ta.style.position = "absolute";
-                          ta.style.left = "-9999px";
-                          document.body.appendChild(ta);
-                          ta.select();
-                          document.execCommand("copy");
-                          document.body.removeChild(ta);
-                        }
-                      } catch (err) {
-                        // ignore errors silently - copying is best-effort
-                        console.error(err);
+            <div className="rounded-3xl border border-stone-300/90 bg-[#fffdf9]/90 p-5 sm:p-7">
+              <DialogHeader className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <DialogTitle className="text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+                      <a
+                        href={`/StudentProfile?id=${selectedStudent.app_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="decoration-stone-400 underline-offset-4 transition hover:text-stone-700 hover:underline"
+                      >
+                        {textOrNotProvided(selectedStudent.first_name)}
+                      </a>
+                    </DialogTitle>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <a
+                        href={`https://beacon.ciee.org/participant/${selectedStudent.app_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center rounded-full border border-stone-300 bg-white px-3 font-semibold uppercase tracking-[0.14em] text-stone-700 transition hover:border-stone-400"
+                      >
+                        USAHS ID {textOrNotProvided(selectedStudent.usahsid)}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-2 sm:items-end">
+                    <button
+                      onClick={() =>
+                        favoritedStudents.has(selectedStudent.pax_id.toString())
+                          ? handleUnfavorite(selectedStudent.pax_id.toString())
+                          : handleFavorite(selectedStudent.pax_id.toString())
                       }
-                    }}
-                    title="Copy usahsid"
-                    aria-label="Copy usahsid"
-                    className="p-1 rounded-md bg-white/90 border border-slate-200 hover:bg-slate-100 text-slate-500"
-                  >
-                    {/* Inline copy icon to avoid adding imports */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                      aria-hidden="true"
+                      className="inline-flex h-9 items-center gap-2 rounded-full border border-stone-300 bg-white px-4 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700 transition hover:border-stone-500"
                     >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  </button>
+                      <Heart
+                        className={`h-4 w-4 ${
+                          favoritedStudents.has(selectedStudent.pax_id.toString())
+                            ? "fill-pink-500 text-pink-500"
+                            : "text-stone-500"
+                        }`}
+                      />
+                      {favoritedStudents.has(selectedStudent.pax_id.toString())
+                        ? "Favorited"
+                        : "Add Favorite"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          const text = selectedStudent.usahsid?.toString() ?? "";
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(text);
+                          } else {
+                            const ta = document.createElement("textarea");
+                            ta.value = text;
+                            ta.setAttribute("readonly", "");
+                            ta.style.position = "absolute";
+                            ta.style.left = "-9999px";
+                            document.body.appendChild(ta);
+                            ta.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(ta);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      title="Copy USAHS ID"
+                      aria-label="Copy USAHS ID"
+                      className="inline-flex h-9 items-center gap-1 rounded-full border border-stone-300 bg-white px-4 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700 transition hover:border-stone-500"
+                    >
+                      Copy ID
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() =>
-                    favoritedStudents.has(selectedStudent.pax_id.toString())
-                      ? handleUnfavorite(selectedStudent.pax_id.toString())
-                      : handleFavorite(selectedStudent.pax_id.toString())
-                  }
-                  className="absolute top-0 right-10 p-2 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-white hover:scale-110 transition-all duration-200 shadow-sm"
-                >
-                  <Heart
-                    className={`w-5 h-5 ${
-                      favoritedStudents.has(selectedStudent.pax_id.toString())
-                        ? "fill-pink-500 text-pink-500"
-                        : "text-slate-400 hover:text-pink-500"
-                    } transition-colors duration-200`}
-                  />
-                </button>
               </DialogHeader>
-              <div className="mt-0">
-                <p className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-1.5 border-t border-slate-200 pt-3">
-                  <Star className="w-4 h-4 text-blue-400" />
-                  Interests
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedStudent.selected_interests.map((i: string) => (
-                    <span
-                      key={i}
-                      className="bg-gradient-to-br from-slate-50 to-blue-50 text-slate-700 text-xs px-3 py-1.5 rounded-lg border border-slate-200 font-medium"
-                    >
-                      {i}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2 text-slate-700 mt-2 border-t border-slate-200 pt-3">
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">
-                    Academics
-                  </span>
-                  <span className="font-semibold text-blue-600 flex items-center gap-1">
-                    {selectedStudent.applying_to_grade}th Grade -{" "}
-                    {selectedStudent.gpa}
-                    <Award className="w-4 h-4" />
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">
-                    Program
-                  </span>
-                  <span className="font-semibold flex items-center gap-1">
-                    {selectedStudent.program_type}
-                  </span>
-                </div>
 
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">
-                    Country
-                  </span>
-                  <span className="font-semibold">
-                    {selectedStudent.country}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100">
-                  <span className="text-sm font-medium text-slate-600">
-                    City Size
-                  </span>
-                  <span className="font-semibold">
-                    {selectedStudent.urban_request}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-slate-100 border-b border-slate-200 pb-1">
-                  <span className="text-sm font-medium text-slate-600">
-                    English Score
-                  </span>
-                  <span className="font-semibold text-blue-600">
-                    {selectedStudent.english_score}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => setSelectedStudent(null)}
-                className="mt-2 w-full h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/25 font-medium"
+              <div
+                className={`mt-5 grid gap-3 sm:grid-cols-2 ${
+                  selectedStudentHasMedia ? "xl:grid-cols-4" : "xl:grid-cols-3"
+                }`}
               >
-                Close
-              </Button>
-            </>
+                {selectedStudentHasMedia && (
+                  <a
+                    href={selectedStudentMediaLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-900 transition hover:border-blue-300 hover:bg-blue-100/70"
+                  >
+                    <p className="text-[11px] uppercase tracking-[0.2em]">Media</p>
+                    <p className="mt-1 text-lg font-bold">Video</p>
+                  </a>
+                )}
+                <article className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-indigo-900">
+                  <p className="text-[11px] uppercase tracking-[0.2em]">GPA</p>
+                  <p className="mt-1 text-lg font-bold">
+                    {textOrNotProvided(selectedStudent.gpa)}
+                  </p>
+                </article>
+                <article className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                  <p className="text-[11px] uppercase tracking-[0.2em]">
+                    English
+                  </p>
+                  <p className="mt-1 text-lg font-bold">
+                    {textOrNotProvided(selectedStudent.english_score)}
+                  </p>
+                </article>
+                <article className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-violet-900">
+                  <p className="text-[11px] uppercase tracking-[0.2em]">
+                    Grade / Age
+                  </p>
+                  <p className="mt-1 text-lg font-bold">
+                    {textOrNotProvided(selectedStudent.applying_to_grade)} /{" "}
+                    {textOrNotProvided(selectedStudent.adjusted_age)}
+                  </p>
+                </article>
+              </div>
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-12">
+                <section className="rounded-2xl border border-stone-300 bg-white/85 p-5 lg:col-span-5">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-600">
+                    <Star className="h-4 w-4" />
+                    Interests
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(selectedStudent.selected_interests) &&
+                    selectedStudent.selected_interests.length > 0 ? (
+                      selectedStudent.selected_interests.map((interest: string) => (
+                        <span
+                          key={interest}
+                          className="rounded-full border border-stone-300/90 bg-[#f8f2e8] px-3 py-1 text-xs font-medium text-stone-700"
+                        >
+                          {interest}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-stone-500">Not provided</span>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-stone-300 bg-white/85 p-5 lg:col-span-7">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-stone-600">
+                    <GraduationCap className="h-4 w-4" />
+                    Student Snapshot
+                  </h3>
+                  <dl>
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        Gender
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {formatGender(selectedStudent.gender_desc)}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        Country
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {textOrNotProvided(selectedStudent.country)}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        City Preference
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {textOrNotProvided(selectedStudent.urban_request)}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        Program Type
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {textOrNotProvided(selectedStudent.program_type)}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        Placement Status
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {textOrNotProvided(selectedStudent.placement_status)}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 py-2">
+                      <dt className="text-[11px] uppercase tracking-[0.16em] text-stone-500">
+                        English Score
+                      </dt>
+                      <dd className="text-sm font-medium text-stone-800 text-right">
+                        {textOrNotProvided(selectedStudent.english_score)}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <a
+                  href={`/StudentProfile?id=${selectedStudent.app_id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-md border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-800 transition hover:border-stone-500 sm:w-auto"
+                >
+                  Open Full Profile
+                </a>
+                <Button
+                  onClick={() => setSelectedStudent(null)}
+                  className="h-10 w-full bg-stone-900 text-white shadow-[0_10px_26px_-16px_rgba(28,20,14,0.8)] transition hover:bg-stone-800 sm:w-auto sm:px-8"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

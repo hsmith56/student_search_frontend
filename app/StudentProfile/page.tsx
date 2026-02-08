@@ -148,7 +148,7 @@ export default function StudentProfilePage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!studentId || authLoading || !isAuthenticated) {
+    if (!studentId) {
       setLoading(false);
       return;
     }
@@ -165,6 +165,11 @@ export default function StudentProfilePage() {
     })
       .then(async (res) => {
         if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            setStudent(null);
+            setError(null);
+            return;
+          }
           throw new Error(`Status ${res.status}`);
         }
         const data = (await res.json()) as StudentData;
@@ -185,7 +190,7 @@ export default function StudentProfilePage() {
       });
 
     return () => controller.abort();
-  }, [authLoading, isAuthenticated, studentId]);
+  }, [studentId]);
 
   if (!studentId) {
     return (
@@ -197,7 +202,7 @@ export default function StudentProfilePage() {
     );
   }
 
-  if (loading || authLoading) {
+  if (loading || (authLoading && !student)) {
     return (
       <div className="min-h-screen bg-[#f4eee4] grid place-items-center text-stone-700">
         <div className="animate-pulse text-lg tracking-[0.2em] uppercase">
