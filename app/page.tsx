@@ -50,6 +50,8 @@ import {
 } from "lucide-react";
 
 const API_URL = "/api";
+const ORDER_BY_STORAGE_KEY = "studentSearch.orderBy";
+const DESCENDING_STORAGE_KEY = "studentSearch.descending";
 
 export default function SearchInterface() {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
@@ -82,11 +84,23 @@ export default function SearchInterface() {
     return window.innerWidth >= 768 ? "compact" : "card";
   });
   const [totalResults, setTotalResults] = useState<number>(0);
-  const [orderBy, setOrderBy] = useState<string>("adjusted_age");
-  const [descending, setDescending] = useState<boolean>(true);
+  const [orderBy, setOrderBy] = useState<string>(() => {
+    if (typeof window === "undefined") return "adjusted_age";
+    return localStorage.getItem(ORDER_BY_STORAGE_KEY) || "adjusted_age";
+  });
+  const [descending, setDescending] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const stored = localStorage.getItem(DESCENDING_STORAGE_KEY);
+    if (stored === null) return true;
+    return stored === "true";
+  });
 
   const [isQuickStatsExpanded, setIsQuickStatsExpanded] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(true);
 
   type Filters = {
@@ -289,10 +303,16 @@ export default function SearchInterface() {
         .then((data) => {
           setUpdateTime(data[0]);
           console.log(data);
-        })
+      })
         .catch(() => setUpdateTime(""));
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ORDER_BY_STORAGE_KEY, orderBy);
+    localStorage.setItem(DESCENDING_STORAGE_KEY, String(descending));
+  }, [orderBy, descending]);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -362,7 +382,7 @@ export default function SearchInterface() {
   const fetchStudentsWithDefaults = async () => {
     try {
       const response = await fetch(
-        `${API_URL}/students/search?page=1&page_size=15`,
+        `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -430,6 +450,48 @@ export default function SearchInterface() {
     }
   };
 
+  const sortStudentsLocally = (
+    list: any[],
+    field: string,
+    isDescending: boolean
+  ) => {
+    const getSortValue = (student: any) => {
+      switch (field) {
+        case "first_name":
+          return student.first_name ?? "";
+        case "country":
+          return student.country ?? "";
+        case "gpa":
+          return Number(student.gpa);
+        case "adjusted_age":
+          return Number(student.adjusted_age);
+        case "placement_status":
+          return student.placement_status ?? "";
+        default:
+          return student?.[field] ?? "";
+      }
+    };
+
+    return [...list].sort((a, b) => {
+      const av = getSortValue(a);
+      const bv = getSortValue(b);
+
+      let comparison = 0;
+      if (typeof av === "number" && typeof bv === "number") {
+        const an = Number.isNaN(av) ? Number.NEGATIVE_INFINITY : av;
+        const bn = Number.isNaN(bv) ? Number.NEGATIVE_INFINITY : bv;
+        comparison = an - bn;
+      } else {
+        comparison = String(av).localeCompare(String(bv), undefined, {
+          sensitivity: "base",
+          numeric: true,
+        });
+      }
+
+      return isDescending ? -comparison : comparison;
+    });
+  };
+
   const toggleSort = (field: string) => {
     let newDescending = true;
     if (orderBy === field) {
@@ -442,6 +504,11 @@ export default function SearchInterface() {
       newDescending = true;
     }
     setCurrentPage(1);
+    if (showFavoritesOnly) {
+      setStudents((prev) => sortStudentsLocally(prev, field, newDescending));
+      return;
+    }
+
     // fetch page 1 with new sort immediately (pass values so fetch uses them)
     fetchStudents(1, field, newDescending);
   };
@@ -457,7 +524,7 @@ export default function SearchInterface() {
 
     try {
       const response = await fetch(
-        `${API_URL}/students/search?page=1&page_size=15`,
+        `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -562,7 +629,7 @@ export default function SearchInterface() {
 
         if (response.ok) {
           const data = await response.json();
-          setStudents(data || []);
+          setStudents(sortStudentsLocally(data || [], orderBy, descending));
           const favoritedIds = new Set<string>(
             (data || []).map((s: any) => String(s.pax_id.toString()))
           );
@@ -576,6 +643,52 @@ export default function SearchInterface() {
         console.error("Error fetching favorites:", error);
       }
     })();
+  };
+
+  const submitFeedback = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedComment = feedbackComment.trim();
+    if (!trimmedComment) {
+      setFeedbackError("Please enter feedback before submitting.");
+      setFeedbackSuccess(null);
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    setFeedbackError(null);
+    setFeedbackSuccess(null);
+
+    try {
+      const response = await fetch(`${API_URL}/feedback/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          comment: trimmedComment,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit feedback");
+      }
+
+      setFeedbackComment("");
+      setFeedbackSuccess("Feedback submitted. Thank you.");
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      setFeedbackError("Unable to submit feedback right now. Please try again.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const openFeedbackDialog = () => {
+    setIsFeedbackOpen(true);
+    setFeedbackError(null);
+    setFeedbackSuccess(null);
   };
 
   const displayedStudents = students;
@@ -729,21 +842,12 @@ export default function SearchInterface() {
                   <p className="text-xs text-slate-600 mb-3 leading-relaxed">
                     Let me know if something doesn't work or can be improved 😊
                   </p>
-                  <Button onClick={() =>
-                      setIsFeedbackOpen(!isFeedbackOpen)
-                    }
-                  className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md">
+                  <Button
+                    onClick={openFeedbackDialog}
+                    className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md"
+                  >
                     Send feedback
                   </Button>
-                  <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
-                    <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-200px mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <DialogHeader>
-            <DialogTitle className="text-slate-900 text-xl font-bold flex items-center gap-2 text-blue-600">
-              Provide Feedback
-            </DialogTitle>
-          </DialogHeader>
-          </DialogContent>
-                  </Dialog>
                 </div>
               </div>
             </aside>
@@ -828,6 +932,12 @@ export default function SearchInterface() {
                         </div>
                         <Heart className="w-8 h-8 text-purple-600" />
                       </div>
+                      <Button
+                        onClick={openFeedbackDialog}
+                        className="w-full h-9 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-sm font-medium shadow-sm"
+                      >
+                        Send feedback
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1246,6 +1356,9 @@ export default function SearchInterface() {
                               </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                              Interests
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               <div
                                 className="flex items-center gap-2 cursor-pointer select-none"
                                 onClick={() => toggleSort("gpa")}
@@ -1324,6 +1437,19 @@ export default function SearchInterface() {
                               </td>
                               <td className="px-4 py-3 text-sm text-slate-700">
                                 {student.country}
+                              </td>
+                              <td
+                                className="px-4 py-3 text-xs text-slate-700 whitespace-normal"
+                                title={
+                                  Array.isArray(student.selected_interests)
+                                    ? student.selected_interests.join(", ")
+                                    : ""
+                                }
+                              >
+                                {Array.isArray(student.selected_interests) &&
+                                student.selected_interests.length > 0
+                                  ? student.selected_interests.join(", ")
+                                  : "-"}
                               </td>
                               <td className="px-4 py-3">
                                 <span className="inline-flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-md font-semibold text-xs border border-blue-200/60">
@@ -1446,6 +1572,50 @@ export default function SearchInterface() {
         </div>
         <Footer />
       </div>
+
+      <Dialog
+        open={isFeedbackOpen}
+        onOpenChange={(open) => {
+          setIsFeedbackOpen(open);
+          if (!open) {
+            setFeedbackError(null);
+            setFeedbackSuccess(null);
+          }
+        }}
+      >
+        <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 w-[92vw] max-w-lg mx-auto rounded-xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-slate-900 text-xl font-bold flex items-center gap-2 text-blue-600">
+              Provide Feedback
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitFeedback} className="space-y-3">
+            <textarea
+              value={feedbackComment}
+              onChange={(e) => setFeedbackComment(e.target.value)}
+              placeholder="Tell us what could be improved..."
+              className="w-full min-h-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-500 resize-y"
+            />
+            {feedbackError && (
+              <p className="text-xs font-medium text-red-600">
+                {feedbackError}
+              </p>
+            )}
+            {feedbackSuccess && (
+              <p className="text-xs font-medium text-green-700">
+                {feedbackSuccess}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={isSubmittingFeedback}
+              className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm disabled:opacity-60"
+            >
+              {isSubmittingFeedback ? "Submitting..." : "Submit feedback"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="bg-slate-100/95 backdrop-blur-xl border border-slate-300 max-w-[95vw] sm:w-[92vw] sm:max-w-[1200px] mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
