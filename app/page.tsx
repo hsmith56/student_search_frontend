@@ -135,6 +135,12 @@ export default function SearchInterface() {
   const [unassignedNow, setUnassignedNow] = useState<number>(0);
   const [availableNow, setAvailableNow] = useState<number>(0);
   const [alreadyPlaced, set_alreadyPlaced] = useState<number>(0);
+  const FilterCheckbox = (props: React.ComponentProps<typeof Checkbox>) => (
+    <Checkbox
+      className="size-5 border-slate-500 bg-white shadow-sm data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white focus-visible:ring-blue-300/70"
+      {...props}
+    />
+  );
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -1442,7 +1448,7 @@ export default function SearchInterface() {
       </div>
 
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <DialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 max-w-200px mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <DialogContent className="bg-slate-100/95 backdrop-blur-xl border border-slate-300 max-w-[95vw] sm:w-[92vw] sm:max-w-[1200px] mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <DialogHeader>
             <DialogTitle className="text-slate-900 text-xl font-bold flex items-center gap-2">
               <SlidersHorizontal className="w-5 h-5 text-blue-600" />
@@ -1451,7 +1457,7 @@ export default function SearchInterface() {
           </DialogHeader>
 
           <div className="space-y-2">
-            <div className="bg-slate-50/50 rounded-lg p-2 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600" />
                 Status
@@ -1464,7 +1470,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsStatusOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-200 hover:bg-slate-50"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.statusOptions.length > 0
@@ -1477,7 +1483,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-lg p-2 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-blue-600" />
                 Location & Demographics
@@ -1493,7 +1499,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, country_of_origin: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1515,7 +1521,7 @@ export default function SearchInterface() {
                     value={filters.state}
                     onValueChange={(v) => setFilters({ ...filters, state: v })}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
 
@@ -1535,7 +1541,7 @@ export default function SearchInterface() {
                   </label>
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
-                      <Checkbox
+                      <FilterCheckbox
                         id="male"
                         checked={filters.gender_male}
                         onCheckedChange={(checked) =>
@@ -1550,7 +1556,7 @@ export default function SearchInterface() {
                       </label>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Checkbox
+                      <FilterCheckbox
                         id="female"
                         checked={filters.gender_female}
                         onCheckedChange={(checked) =>
@@ -1569,7 +1575,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-lg p-2 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-blue-600" />
                 Academic Information
@@ -1583,7 +1589,7 @@ export default function SearchInterface() {
                     value={filters.gpa}
                     onValueChange={(v) => setFilters({ ...filters, gpa: v })}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1606,7 +1612,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, adjusted_age: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1630,7 +1636,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, interests: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
 
@@ -1646,7 +1652,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-lg p-4 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" />
                 Program Details
@@ -1675,7 +1681,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, pets_in_home: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1696,7 +1702,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, early_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1714,7 +1720,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsprogram_typeOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-200 hover:bg-slate-50"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.program_types.length > 0
@@ -1727,7 +1733,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-lg p-4 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Award className="w-4 h-4 text-blue-600" />
                 Placement & Scholarship
@@ -1743,7 +1749,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, double_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1764,7 +1770,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, single_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1782,7 +1788,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsScholarshipOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-200 hover:bg-slate-50"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.grants_options.length > 0
@@ -1795,7 +1801,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-50/50 rounded-lg p-4 border border-slate-200/60">
+            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
               <h3 className="text-sm font-bold text-slate-900 mb-3">
                 Additional Preferences
               </h3>
@@ -1810,7 +1816,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, religiousPractice: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
                       <SelectValue placeholder="all" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1827,7 +1833,7 @@ export default function SearchInterface() {
                     Video Available
                   </label>
                   <div className="flex items-center gap-2 mt-2">
-                    <Checkbox
+                    <FilterCheckbox
                       id="has-video"
                       checked={filters.hasVideo}
                       onCheckedChange={(checked) =>
@@ -1878,7 +1884,7 @@ export default function SearchInterface() {
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="10-month-jan"
                 checked={filters.program_types.includes("10-month-jan")}
                 onCheckedChange={() => toggleprogram_type("10-month-jan")}
@@ -1891,7 +1897,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="10-month-aug"
                 checked={filters.program_types.includes("10-month-aug")}
                 onCheckedChange={() => toggleprogram_type("10-month-aug")}
@@ -1904,7 +1910,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="5-month-jan"
                 checked={filters.program_types.includes("5-month-jan")}
                 onCheckedChange={() => toggleprogram_type("5-month-jan")}
@@ -1917,7 +1923,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="5-month-aug"
                 checked={filters.program_types.includes("5-month-aug")}
                 onCheckedChange={() => toggleprogram_type("5-month-aug")}
@@ -1950,7 +1956,7 @@ export default function SearchInterface() {
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="grant"
                 checked={filters.grants_options.includes("grant")}
                 onCheckedChange={() => toggleScholarship("grant")}
@@ -1963,7 +1969,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="cbe"
                 checked={filters.grants_options.includes("cbe")}
                 onCheckedChange={() => toggleScholarship("cbe")}
@@ -1976,7 +1982,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="cbx"
                 checked={filters.grants_options.includes("cbx")}
                 onCheckedChange={() => toggleScholarship("cbx")}
@@ -1989,7 +1995,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="cbg"
                 checked={filters.grants_options.includes("cbg")}
                 onCheckedChange={() => toggleScholarship("cbg")}
@@ -2002,7 +2008,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="fao"
                 checked={filters.grants_options.includes("fao")}
                 onCheckedChange={() => toggleScholarship("fao")}
@@ -2015,7 +2021,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="flx"
                 checked={filters.grants_options.includes("flx")}
                 onCheckedChange={() => toggleScholarship("flx")}
@@ -2028,7 +2034,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="yes"
                 checked={filters.grants_options.includes("yes")}
                 onCheckedChange={() => toggleScholarship("yes")}
@@ -2223,7 +2229,7 @@ export default function SearchInterface() {
           </DialogHeader>
           <div className="space-y-1 mt-1">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="status-all"
                 checked={filters.statusOptions.includes("All")}
                 onCheckedChange={() => toggleStatus("All")}
@@ -2236,7 +2242,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="status-allocated"
                 checked={filters.statusOptions.includes("Allocated")}
                 onCheckedChange={() => toggleStatus("Allocated")}
@@ -2249,7 +2255,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="status-placed"
                 checked={filters.statusOptions.includes("Placed")}
                 onCheckedChange={() => toggleStatus("Placed")}
@@ -2262,7 +2268,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="status-pending"
                 checked={filters.statusOptions.includes("Pending")}
                 onCheckedChange={() => toggleStatus("Pending")}
@@ -2275,7 +2281,7 @@ export default function SearchInterface() {
               </label>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <Checkbox
+              <FilterCheckbox
                 id="status-unassigned"
                 checked={filters.statusOptions.includes("Unassigned")}
                 onCheckedChange={() => toggleStatus("Unassigned")}
