@@ -454,6 +454,20 @@ export default function SearchInterface() {
     }
   };
 
+  const handleFindStudents = () => {
+    setShowFavoritesOnly(false);
+    setCurrentPage(1);
+    fetchStudents(1);
+  };
+
+  const handleSearchInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    handleFindStudents();
+  };
+
   const sortStudentsLocally = (
     list: any[],
     field: string,
@@ -899,6 +913,7 @@ export default function SearchInterface() {
                         placeholder="Free Text Search"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={handleSearchInputKeyDown}
                         className="pl-9 h-10 text-slate-700 bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
                       />
                     </div>
@@ -908,6 +923,7 @@ export default function SearchInterface() {
                         placeholder="usahsId Search"
                         value={usahsIdQuery}
                         onChange={(e) => setUsahsIdQuery(e.target.value)}
+                        onKeyDown={handleSearchInputKeyDown}
                         className="pl-9 h-10 text-slate-700 bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
                       />
                     </div>
@@ -917,6 +933,7 @@ export default function SearchInterface() {
                         placeholder="Photo Search"
                         value={photoQuery}
                         onChange={(e) => setPhotoQuery(e.target.value)}
+                        onKeyDown={handleSearchInputKeyDown}
                         className="pl-9 h-10 text-slate-700 bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
                       />
                     </div>
@@ -931,11 +948,7 @@ export default function SearchInterface() {
                       Filters
                     </Button>
                     <Button
-                      onClick={() => {
-                        setShowFavoritesOnly(false);
-                        setCurrentPage(1);
-                        fetchStudents(1);
-                      }}
+                      onClick={handleFindStudents}
                       className="flex-1 h-10 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md shadow-orange-600/25 hover:shadow-lg hover:shadow-orange-600/30 transition-all duration-200 font-semibold whitespace-nowrap"
                     >
                       Find Students
