@@ -58,6 +58,7 @@ export default function SearchInterface() {
 
   const [query, setQuery] = useState("");
   const [updateTime, setUpdateTime] = useState("");
+  const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
   const [usahsIdQuery, setUsahsIdQuery] = useState("");
   const [photoQuery, setPhotoQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -153,6 +154,22 @@ export default function SearchInterface() {
       {...props}
     />
   );
+
+  const fetchLastUpdateTime = async () => {
+    try {
+      const response = await fetch(`${API_URL}/misc/last_update_time`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      const data = await response.json();
+      setUpdateTime(data?.[0] ?? "");
+    } catch {
+      setUpdateTime("");
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -290,20 +307,9 @@ export default function SearchInterface() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetch(`${API_URL}/misc/last_update_time`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setUpdateTime(data[0]);
-          console.log(data);
-      })
-        .catch(() => setUpdateTime(""));
+      fetchLastUpdateTime();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -729,6 +735,29 @@ export default function SearchInterface() {
     }
   };
 
+  const handleUpdateDatabase = async () => {
+    if (isUpdatingDatabase) return;
+    setIsUpdatingDatabase(true);
+
+    try {
+      const response = await fetch(`${API_URL}/students/update_db`, {
+        method: "GET",
+        headers: getHeaders(),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update DB: ${response.status}`);
+      }
+
+      await fetchLastUpdateTime();
+    } catch (error) {
+      console.error("Error updating student DB:", error);
+    } finally {
+      setIsUpdatingDatabase(false);
+    }
+  };
+
   const quickStatsCards = [
     {
       label: "Available Now",
@@ -779,7 +808,13 @@ export default function SearchInterface() {
       </div>
 
       <div className="relative z-10">
-        <Header firstName={firstName} onLogout={logout} updateTime={updateTime} />
+        <Header
+          firstName={firstName}
+          onLogout={logout}
+          updateTime={updateTime}
+          onUpdateDatabase={handleUpdateDatabase}
+          isUpdatingDatabase={isUpdatingDatabase}
+        />
 
         <div className="w-full px-4 sm:px-6 lg:px-8 2xl:px-10 py-5">
           <div className="mx-auto w-full max-w-[1900px]">
@@ -1512,9 +1547,9 @@ export default function SearchInterface() {
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="bg-slate-100/90 border border-slate-300/90 max-w-[95vw] sm:w-[92vw] sm:max-w-[1200px] mx-auto rounded-2xl shadow-[0_24px_50px_-30px_rgba(15,23,42,0.8)] max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="space-y-3">
-            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+            <div className="rounded-xl border border-sky-200/90 bg-gradient-to-br from-sky-50/90 to-white p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
               <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-slate-700" />
+                <CheckCircle2 className="w-4 h-4 text-sky-700" />
                 Status
               </h3>
               <div className="grid grid-cols-1 gap-3">
@@ -1630,9 +1665,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+            <div className="rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 to-white p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
               <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-slate-700" />
+                <GraduationCap className="w-4 h-4 text-amber-700" />
                 Academic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1707,9 +1742,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+            <div className="rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 to-white p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
               <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-700" />
+                <Calendar className="w-4 h-4 text-emerald-700" />
                 Program Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1788,9 +1823,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+            <div className="rounded-xl border border-rose-200/90 bg-gradient-to-br from-rose-50/90 to-white p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
               <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4 text-slate-700" />
+                <Award className="w-4 h-4 text-rose-700" />
                 Placement & Scholarship
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1856,7 +1891,7 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+            <div className="rounded-xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/90 to-white p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
               <h3 className="text-sm font-semibold text-slate-900 mb-3">
                 Additional Preferences
               </h3>
