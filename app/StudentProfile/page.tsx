@@ -1,27 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/auth-context";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  User,
-  GraduationCap,
-  MapPin,
+  BadgeCheck,
+  BookOpen,
+  Globe2,
   Heart,
-  MessageSquare,
-  AlertCircle,
+  MapPinned,
+  MessageCircleMore,
+  Sparkles,
   Video,
-  Home,
 } from "lucide-react";
+import { Cormorant_Garamond, Public_Sans } from "next/font/google";
+import { useAuth } from "@/contexts/auth-context";
 
 interface StudentData {
   first_name: string;
@@ -64,39 +56,104 @@ interface StudentData {
 
 const API_URL = "/api";
 
-const getStatusRingColor = (status: string) => {
-  if (!status) return "border-slate-300";
+const displayFont = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
 
-  const statusLower = status.toLowerCase();
-  if (statusLower.includes("pending")) return "border-yellow-200 bg-yellow-50";
-  if (statusLower.includes("placed"))
-    return "border-green-500 rounded-md bg-green-100";
-  if (statusLower === "allocated") return "border-blue-500 bg-blue-100";
-  if (statusLower === "unassigned") return "border-slate-500 bg-slate-300 ";
+const bodyFont = Public_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
-  return "border-slate-300";
-};
+function cleanList(items: string[] | undefined): string[] {
+  if (!items?.length) {
+    return [];
+  }
+
+  return items.filter((item) => item && item.trim() !== "");
+}
+
+function boolText(value: boolean): string {
+  return value ? "Yes" : "No";
+}
+
+function textOrDash(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) {
+    return "Not provided";
+  }
+  const text = String(value).trim();
+  return text ? text : "Not provided";
+}
+
+function statusTone(status: string) {
+  const tone = status.toLowerCase();
+  if (tone.includes("placed")) {
+    return "bg-emerald-100 text-emerald-900 border-emerald-300";
+  }
+  if (tone.includes("pending")) {
+    return "bg-amber-100 text-amber-900 border-amber-300";
+  }
+  if (tone.includes("allocated")) {
+    return "bg-sky-100 text-sky-900 border-sky-300";
+  }
+  if (tone.includes("unassigned")) {
+    return "bg-slate-200 text-slate-800 border-slate-400";
+  }
+  return "bg-stone-200 text-stone-900 border-stone-400";
+}
+
+function StatTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <article className={`rounded-2xl border p-4 ${accent}`}>
+      <p className="text-[11px] uppercase tracking-[0.2em]">{label}</p>
+      <p className="mt-1 text-xl font-bold">{value}</p>
+    </article>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-stone-200/80 py-2 last:border-b-0">
+      <dt className="text-xs tracking-[0.16em] uppercase text-stone-500">
+        {label}
+      </dt>
+      <dd className="text-sm font-medium text-stone-800 text-right">{value}</dd>
+    </div>
+  );
+}
 
 export default function StudentProfilePage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const studentId = searchParams?.get("id") ?? undefined;
+  const studentId = searchParams?.get("id") ?? "";
 
   const [student, setStudent] = useState<StudentData | null>(null);
-  const [loading, setLoading] = useState<boolean>(!!studentId);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!studentId) return;
+    if (!studentId || authLoading || !isAuthenticated) {
+      setLoading(false);
+      return;
+    }
 
-    let mounted = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
@@ -104,430 +161,320 @@ export default function StudentProfilePage() {
       method: "GET",
       headers: { accept: "application/json" },
       credentials: "include",
+      signal: controller.signal,
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const data = await res.json();
-        if (mounted) setStudent(data);
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
+        const data = (await res.json()) as StudentData;
+        setStudent(data);
       })
       .catch((err) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error("Error fetching student data:", err);
-        if (mounted) setError(String(err));
+        setError(String(err));
+        setStudent(null);
       })
       .finally(() => {
-        if (mounted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
 
-    return () => {
-      mounted = false;
-    };
-  }, [studentId]);
+    return () => controller.abort();
+  }, [authLoading, isAuthenticated, studentId]);
 
   if (!studentId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              Missing Student ID
-            </CardTitle>
-            <CardDescription>
-              Please provide a student ID in the URL.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-[#f4eee4] text-stone-900 grid place-items-center px-6">
+        <div className="max-w-lg rounded-2xl border border-stone-300 bg-white/80 p-8 shadow-xl">
+          Include a student ID in the URL. Example: `/StudentProfile?id=12345`
+        </div>
       </div>
     );
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f4eee4] grid place-items-center text-stone-700">
+        <div className="animate-pulse text-lg tracking-[0.2em] uppercase">
+          Loading profile
+        </div>
       </div>
     );
   }
 
   if (error || !student) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              Student Not Found
-            </CardTitle>
-            <CardDescription>
-              {error
-                ? `Unable to load student data: ${error}`
-                : `Unable to load student data for ID: ${studentId}`}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-[#f4eee4] grid place-items-center px-6">
+        <div className="max-w-lg rounded-2xl border border-red-200 bg-red-50 p-8 text-red-900 shadow-xl">
+          {error ?? `Unable to load student data for ID ${studentId}.`}
+        </div>
       </div>
     );
   }
 
+  const selectedInterests = cleanList(student.selected_interests);
+  const additionalInterests = cleanList(student.free_text_interests);
+  const healthNotes = cleanList(student.health_comments);
+  const states = cleanList(student.states);
+  const topPillClass =
+    "inline-flex h-9 w-[12.5rem] items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold uppercase tracking-[0.16em]";
+
   return (
-    // <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
-    <div className="min-h-screen bg-gray-200">
-      <div className="container mx-auto px-4 py-8 max-w-90%">
-        {/* Header Section */}
-        <div className="mb-2">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
-                <User className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
-                  {student.first_name}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Student ID: {student.usahsid}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center flex-wrap gap-2 mt-1">
-            <Badge
-              variant="outline"
-              className={`text-xs ${getStatusRingColor(
-                student.placement_status
-              )}`}
-            >
-              {student.placement_status}
-            </Badge>
-            {student.early_placement && (
-              <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">
-                Early Placement
-              </Badge>
-            )}
-            {student.media_link && (
-              <Badge
-                variant="outline"
-                className="text-xs border-slate-300 bg-white"
+    <div className={`${bodyFont.className} min-h-screen bg-[#f4eee4] text-stone-900`}>
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-32 -left-20 h-72 w-72 rounded-full bg-[#eac49b]/35 blur-3xl" />
+        <div className="absolute top-16 right-0 h-64 w-64 rounded-full bg-[#b8d1d6]/35 blur-3xl" />
+      </div>
+
+      <main className="relative mx-auto w-full max-w-[92rem] px-4 pb-12 pt-8 md:px-8">
+        <section className="rounded-3xl border border-stone-300/90 bg-[#fffdf9]/90 p-6 shadow-[0_16px_50px_rgba(60,42,26,0.12)] md:p-10">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div>
+              <h1
+                className={`${displayFont.className} text-4xl text-stone-900 md:text-6xl`}
               >
+                {student.first_name}
+              </h1>
+              <p className="mt-2 text-sm text-stone-600">
+                USAHS ID {textOrDash(student.usahsid)}
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-2">
+              <span
+                className={`${topPillClass} ${statusTone(student.placement_status)}`}
+              >
+                <BadgeCheck className="h-4 w-4" />
+                {textOrDash(student.placement_status)}
+              </span>
+              {student.early_placement && (
+                <span
+                  className={`${topPillClass} border-orange-500 bg-orange-400 text-stone-100`}
+                >
+                  Early placement
+                </span>
+              )}
+              {student.media_link && (
                 <a
                   href={student.media_link}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 underline text-xs flex items-center gap-2"
+                  rel="noreferrer"
+                  className={`${topPillClass} border-stone-900 bg-stone-900 text-stone-100 transition hover:border-stone-700 hover:bg-stone-700`}
                 >
-                  <Video className="w-4 h-4 text-pink-600" />
-                  View Media
+                  <Video className="h-4 w-4" />
+                  Open media
                 </a>
-              </Badge>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Basic Information */}
-          <Card className="shadow-sm border border-slate-300">
-            <CardHeader className="border-l-4 border-blue-500 pl-4 bg-gradient-to-r from-blue-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-600 mt-2" />
-                Basic Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="divide-y divide-slate-100">
-              <div className="py-1">
-                <InfoRow label="Application ID" value={student.app_id} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="PAX ID" value={student.pax_id} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="Gender" value={student.gender_desc} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="Age" value={student.adjusted_age} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="Country" value={student.country} />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <StatTile
+              label="Program"
+              value={textOrDash(student.program_type)}
+              accent="border-blue-200 bg-blue-50 text-blue-900"
+            />
+            <StatTile
+              label="GPA"
+              value={textOrDash(student.gpa)}
+              accent="border-indigo-200 bg-indigo-50 text-indigo-900"
+            />
+            <StatTile
+              label="English"
+              value={textOrDash(student.english_score)}
+              accent="border-amber-200 bg-amber-50 text-amber-900"
+            />
+            <StatTile
+              label="Age"
+              value={textOrDash(student.adjusted_age)}
+              accent="border-violet-200 bg-violet-50 text-violet-900"
+            />
+            <StatTile
+              label="Applying Grade"
+              value={textOrDash(student.applying_to_grade)}
+              accent="border-rose-200 bg-rose-50 text-rose-900"
+            />
+          </div>
+        </section>
 
-          {/* Academic Profile */}
-          <Card className="shadow-sm border border-slate-300">
-            <CardHeader className="border-l-4 border-green-500 pl-4 bg-gradient-to-r from-green-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-green-600 mt-2" />
-                Academic Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="divide-y divide-slate-100">
-              <div className="py-1">
-                <InfoRow label="GPA" value={student.gpa} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="English Score" value={student.english_score} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="Current Grade" value={student.current_grade} />
-              </div>
-              <div className="py-1">
-                <InfoRow
-                  label="Applying to Grade"
-                  value={student.applying_to_grade}
-                />
-              </div>
-              {student.favorite_subjects && (
-                <div className="py-1">
-                  <InfoRow
-                    label="Favorite Subjects"
-                    value={student.favorite_subjects}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Placement Details */}
-          <Card className="shadow-sm border border-slate-300">
-            <CardHeader className="border-l-4 border-purple-500 pl-4 bg-gradient-to-r from-purple-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-purple-600 mt-2" />
-                Placement Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="divide-y divide-slate-100">
-              <div className="py-1">
-                <InfoRow label="Program Type" value={student.program_type} />
-              </div>
-              <div className="py-1">
-                <InfoRow label="Urban Request" value={student.urban_request} />
-              </div>
-              <div className="py-1">
-                <InfoRow
-                  label="Single Placement"
-                  value={student.single_placement ? "Yes" : "No"}
-                />
-              </div>
-              <div className="py-1">
-                <InfoRow
-                  label="Double Placement"
-                  value={student.double_placement ? "Yes" : "No"}
-                />
-              </div>
-              {student.states && student.states.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-slate-700 mb-2">
-                    Preferred States:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {student.states.map((state, index) => (
-                      <Badge key={index} variant="outline">
-                        {state}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {student.local_coordinator && (
-                <InfoRow
-                  label="Local Coordinator"
-                  value={student.local_coordinator}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Interests & Activities */}
-          <Card>
-            <CardHeader className="border-l-4 border-red-500 pl-4 bg-gradient-to-r from-red-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="w-5 h-5 text-red-600 mt-2" />
-                Interests & Activities
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {student.selected_interests &&
-                student.selected_interests.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700 mb-2">
-                      Selected Interests:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {student.selected_interests.map((interest, index) => (
-                        <Badge key={index} variant="secondary">
-                          {interest}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              {student.free_text_interests &&
-                student.free_text_interests.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700 mb-2">
-                      Additional Interests:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {student.free_text_interests.map((interest, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="whitespace-normal break-words"
-                        >
-                          {interest}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-
-          {/* Personal Background */}
-          <Card>
-            <CardHeader className="border-l-4 border-indigo-500 pl-4 bg-gradient-to-r from-indigo-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <Home className="w-5 h-5 text-indigo-600 mt-2" />
-                Personal Background
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {student.religion && (
-                <InfoRow label="Religion" value={student.religion} />
-              )}
-              {student.religious_frequency !== undefined && (
-                <InfoRow
-                  label="Religious Frequency"
-                  value={student.religious_frequency}
-                />
-              )}
-              {student.family_description && (
-                <div>
-                  <p className="text-sm font-semibold text-slate-700 mb-1">
-                    Family Description:
-                  </p>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {student.family_description}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Health & Dietary */}
-          <Card>
-            <CardHeader className="border-l-4 border-amber-500 pl-4 bg-gradient-to-r from-amber-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-amber-600 mt-2" />
-                Health & Dietary Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {student.allergy_comments && (
-                <InfoRow label="Allergies" value={student.allergy_comments} />
-              )}
-              {student.dietary_restrictions && (
-                <InfoRow
-                  label="Dietary Restrictions"
-                  value={student.dietary_restrictions}
-                />
-              )}
-              {student.health_comments &&
-                student.health_comments.filter((c) => c && c.trim() !== "")
-                  .length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700 mb-2">
-                      Health Comments:
-                    </p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {student.health_comments
-                        .filter((comment) => comment && comment.trim() !== "")
-                        .map((comment, index) => (
-                          <li key={index} className="text-sm text-slate-600">
-                            {comment}
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
+        <section className="mt-6 grid gap-5 lg:grid-cols-12">
+          <article className="rounded-3xl border border-stone-300 bg-white/85 p-6 lg:col-span-4">
+            <h2 className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-600">
+              <Globe2 className="h-4 w-4" />
+              Identity
+            </h2>
+            <dl>
+              <InfoRow label="Gender" value={textOrDash(student.gender_desc)} />
+              <InfoRow label="Age" value={textOrDash(student.adjusted_age)} />
               <InfoRow
-                label="Can Live with Pets"
-                value={student.live_with_pets ? "Yes" : "No"}
+                label="Program"
+                value={textOrDash(student.program_type)}
               />
-            </CardContent>
-          </Card>
+              <InfoRow
+                label="City Preference"
+                value={textOrDash(student.urban_request)}
+              />
+              <InfoRow
+                label="Live with pets"
+                value={boolText(student.live_with_pets)}
+              />
+            </dl>
+          </article>
 
-          {/* Messages */}
-          <Card className="lg:col-span-3">
-            <CardHeader className="border-l-4 border-cyan-500 pl-4 bg-gradient-to-r from-cyan-50 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-cyan-600 mt-2" />
-                Messages & Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {student.intro_message && (
-                <MessageSection
-                  title="Introduction Message"
-                  content={student.intro_message}
-                />
-              )}
-              {student.message_to_host_family && (
-                <MessageSection
-                  title="Message to Host Family"
-                  content={student.message_to_host_family}
-                />
-              )}
-              {student.message_from_natural_family && (
-                <MessageSection
-                  title="Message from Natural Family"
-                  content={student.message_from_natural_family}
-                />
-              )}
-              {student.photo_comments && (
-                <MessageSection
-                  title="Photo Comments"
-                  content={student.photo_comments}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <article className="rounded-3xl border border-stone-300 bg-white/85 p-6 lg:col-span-4">
+            <h2 className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-600">
+              <BookOpen className="h-4 w-4" />
+              Academics
+            </h2>
+            <dl>
+              <InfoRow
+                label="Current Grade"
+                value={textOrDash(student.current_grade)}
+              />
+              <InfoRow
+                label="Favorite Subjects"
+                value={textOrDash(student.favorite_subjects)}
+              />
+              <InfoRow
+                label="Religious Frequency"
+                value={textOrDash(student.religious_frequency)}
+              />
+              <InfoRow
+                label="Allergies"
+                value={textOrDash(student.allergy_comments)}
+              />
+              <InfoRow
+                label="Dietary Notes"
+                value={textOrDash(student.dietary_restrictions)}
+              />
+            </dl>
+          </article>
 
-          {/* Media */}
-        </div>
-      </div>
+          <article className="rounded-3xl border border-stone-300 bg-white/85 p-6 lg:col-span-4">
+            <h2 className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-600">
+              <MapPinned className="h-4 w-4" />
+              Placement
+            </h2>
+            <dl>
+              <InfoRow
+                label="Single Placement"
+                value={boolText(student.single_placement)}
+              />
+              <InfoRow
+                label="Double Placement"
+                value={boolText(student.double_placement)}
+              />
+              <InfoRow
+                label="Coordinator"
+                value={textOrDash(student.local_coordinator)}
+              />
+            </dl>
+            {states.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-stone-500">
+                  Preferred states
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {states.map((state) => (
+                    <span
+                      key={state}
+                      className="rounded-full border border-stone-300 bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"
+                    >
+                      {state}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </article>
+
+          <article className="rounded-3xl border border-stone-300 bg-white/85 p-6 lg:col-span-12">
+            <h2 className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-600">
+              <Heart className="h-4 w-4" />
+              Interests
+            </h2>
+            <ChipGroup items={selectedInterests} />
+            {additionalInterests.length > 0 && (
+              <>
+                <p className="mt-4 text-xs uppercase tracking-[0.16em] text-stone-500">
+                  Additional
+                </p>
+                <ChipGroup items={additionalInterests} />
+              </>
+            )}
+          </article>
+
+          <article className="rounded-3xl border border-stone-300 bg-white/85 p-6 lg:col-span-12">
+            <h2 className="mb-4 flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-600">
+              <MessageCircleMore className="h-4 w-4" />
+              Personal Notes
+            </h2>
+            <MessageBlock title="Introduction" text={student.intro_message} />
+            <MessageBlock
+              title="Message to Host Family"
+              text={student.message_to_host_family}
+            />
+            <MessageBlock
+              title="Message from Natural Family"
+              text={student.message_from_natural_family}
+            />
+            <MessageBlock title="Family Description" text={student.family_description} />
+            <MessageBlock title="Photo Comments" text={student.photo_comments} />
+            {healthNotes.length > 0 && (
+              <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                  Health Comments
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-stone-700">
+                  {healthNotes.map((note) => (
+                    <li key={note} className="flex items-start gap-2">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-500" />
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </article>
+        </section>
+      </main>
     </div>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number | boolean;
-}) {
+function ChipGroup({ items }: { items: string[] }) {
+  if (!items.length) {
+    return <p className="text-sm text-stone-500">Not provided.</p>;
+  }
+
   return (
-    <div className="flex justify-between items-start gap-4">
-      <span className="text-sm font-semibold text-slate-700 min-w-fit">
-        {label}:
-      </span>
-      <span className="text-sm text-slate-600 text-right">{String(value)}</span>
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <span
+          key={item}
+          className="rounded-full border border-stone-300 bg-stone-100 px-3 py-1 text-sm text-stone-800"
+        >
+          {item}
+        </span>
+      ))}
     </div>
   );
 }
 
-function MessageSection({
-  title,
-  content,
-}: {
-  title: string;
-  content: string;
-}) {
+function MessageBlock({ title, text }: { title: string; text: string }) {
+  const cleaned = text?.trim();
+  if (!cleaned) {
+    return null;
+  }
+
   return (
-    <div>
-      <p className="text-sm font-semibold text-slate-700 mb-2">{title}:</p>
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-        <p className="text-sm text-slate-600 leading-relaxed">{content}</p>
-      </div>
+    <div className="mt-3 rounded-2xl border border-stone-200 bg-stone-50/80 p-4">
+      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{title}</p>
+      <p className="mt-2 text-sm leading-relaxed text-stone-800">{cleaned}</p>
     </div>
   );
 }
