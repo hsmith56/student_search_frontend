@@ -1510,18 +1510,11 @@ export default function SearchInterface() {
       </Dialog>
 
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <DialogContent className="bg-slate-100/95 backdrop-blur-xl border border-slate-300 max-w-[95vw] sm:w-[92vw] sm:max-w-[1200px] mx-auto rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <DialogHeader>
-            <DialogTitle className="text-slate-900 text-xl font-bold flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5 text-blue-600" />
-              Filter Students
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-blue-600" />
+        <DialogContent className="bg-slate-100/90 border border-slate-300/90 max-w-[95vw] sm:w-[92vw] sm:max-w-[1200px] mx-auto rounded-2xl shadow-[0_24px_50px_-30px_rgba(15,23,42,0.8)] max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="space-y-3">
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-slate-700" />
                 Status
               </h3>
               <div className="grid grid-cols-1 gap-3">
@@ -1532,7 +1525,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsStatusOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.statusOptions.length > 0
@@ -1545,9 +1538,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-blue-600" />
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-slate-700" />
                 Location & Demographics
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1561,7 +1554,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, country_of_origin: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1583,7 +1576,7 @@ export default function SearchInterface() {
                     value={filters.state}
                     onValueChange={(v) => setFilters({ ...filters, state: v })}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
 
@@ -1637,9 +1630,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-200/60 rounded-lg p-2 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-blue-600" />
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-slate-700" />
                 Academic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1651,7 +1644,7 @@ export default function SearchInterface() {
                     value={filters.gpa}
                     onValueChange={(v) => setFilters({ ...filters, gpa: v })}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1674,7 +1667,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, adjusted_age: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1698,7 +1691,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, interests: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
 
@@ -1714,9 +1707,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-600" />
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-slate-700" />
                 Program Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1743,7 +1736,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, pets_in_home: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1764,7 +1757,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, early_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1782,7 +1775,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsprogram_typeOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.program_types.length > 0
@@ -1795,9 +1788,9 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4 text-blue-600" />
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <Award className="w-4 h-4 text-slate-700" />
                 Placement & Scholarship
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1811,7 +1804,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, double_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1832,7 +1825,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, single_placement: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1850,7 +1843,7 @@ export default function SearchInterface() {
                   <Button
                     variant="outline"
                     onClick={() => setIsScholarshipOpen(true)}
-                    className="w-full h-9 justify-between text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500 hover:bg-white"
+                    className="w-full h-9 justify-between text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400 hover:bg-white"
                   >
                     <span className="text-slate-700">
                       {filters.grants_options.length > 0
@@ -1863,8 +1856,8 @@ export default function SearchInterface() {
               </div>
             </div>
 
-            <div className="bg-slate-200/60 rounded-lg p-4 border border-slate-300/80">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">
+            <div className="rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">
                 Additional Preferences
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1878,7 +1871,7 @@ export default function SearchInterface() {
                       setFilters({ ...filters, religiousPractice: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white border-slate-400 shadow-sm hover:border-slate-500">
+                    <SelectTrigger className="h-9 text-sm bg-white border-slate-300 shadow-sm hover:border-slate-400">
                       <SelectValue placeholder="all" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1914,11 +1907,11 @@ export default function SearchInterface() {
             </div>
           </div>
 
-          <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200">
+          <div className="flex gap-3 mt-4 pt-4 border-t border-slate-300/80">
             <Button
               variant="outline"
               onClick={() => setIsFilterOpen(false)}
-              className="flex-1 h-10 border-slate-300 hover:bg-slate-50 text-slate-700 font-medium"
+              className="flex-1 h-10 border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50"
             >
               Cancel
             </Button>
@@ -1929,7 +1922,7 @@ export default function SearchInterface() {
                 fetchStudents(1);
                 setIsFilterOpen(false);
               }}
-              className="flex-1 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/25 font-semibold"
+              className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white shadow-sm font-semibold"
             >
               Apply Filters
             </Button>
