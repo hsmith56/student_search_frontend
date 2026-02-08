@@ -1,0 +1,234 @@
+import { Award, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import type { StudentRecord } from "@/features/student-search/types";
+import {
+  animationStyle,
+  formatGender,
+  getStatusBadgeClass,
+} from "@/features/student-search/utils";
+
+type DesktopCompactResultsProps = {
+  students: StudentRecord[];
+  shouldAnimateResults: boolean;
+  resultsAnimationKey: number;
+  favoritedStudents: Set<string>;
+  orderBy: string;
+  descending: boolean;
+  onToggleSort: (field: string) => void;
+  onSelectStudent: (student: StudentRecord) => void;
+  onFavorite: (paxId: string, event?: React.MouseEvent) => void;
+  onUnfavorite: (paxId: string, event?: React.MouseEvent) => void;
+};
+
+const SORT_HEADERS = [
+  { key: "first_name", label: "Name" },
+  { key: "country", label: "Country" },
+  { key: "gpa", label: "GPA" },
+  { key: "adjusted_age", label: "Grade/Age" },
+  { key: "placement_status", label: "Status" },
+];
+
+export function DesktopCompactResults({
+  students,
+  shouldAnimateResults,
+  resultsAnimationKey,
+  favoritedStudents,
+  orderBy,
+  descending,
+  onToggleSort,
+  onSelectStudent,
+  onFavorite,
+  onUnfavorite,
+}: DesktopCompactResultsProps) {
+  return (
+    <div
+      key={`desktop-results-${resultsAnimationKey}`}
+      className={`bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg shadow-slate-900/5 mb-8 overflow-hidden ${
+        shouldAnimateResults ? "results-refresh-container" : ""
+      }`}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1360px]">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <SortableHeader
+                  label="Name"
+                  isActive={orderBy === "first_name"}
+                  descending={descending}
+                  onClick={() => onToggleSort("first_name")}
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Gender
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <SortableHeader
+                  label="Country"
+                  isActive={orderBy === "country"}
+                  descending={descending}
+                  onClick={() => onToggleSort("country")}
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Interests
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <SortableHeader
+                  label="GPA"
+                  isActive={orderBy === "gpa"}
+                  descending={descending}
+                  onClick={() => onToggleSort("gpa")}
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <SortableHeader
+                  label="Grade/Age"
+                  isActive={orderBy === "adjusted_age"}
+                  descending={descending}
+                  onClick={() => onToggleSort("adjusted_age")}
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                English
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Program
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <SortableHeader
+                  label="Status"
+                  isActive={orderBy === "placement_status"}
+                  descending={descending}
+                  onClick={() => onToggleSort("placement_status")}
+                />
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {students.map((student, index) => (
+              <tr
+                key={student.pax_id.toString()}
+                onClick={() => onSelectStudent(student)}
+                style={animationStyle(shouldAnimateResults, index)}
+                className={`hover:bg-blue-50/50 cursor-pointer transition-colors duration-150 ${
+                  shouldAnimateResults ? "results-refresh-item" : ""
+                }`}
+              >
+                <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                  {String(student.first_name ?? "-")}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
+                  {formatGender(student.gender_desc)}
+                </td>
+                <td className="px-4 py-3 text-xs font-mono text-slate-500">
+                  {String(student.usahsid ?? "")}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
+                  {String(student.country ?? "-")}
+                </td>
+                <td
+                  className="px-4 py-3 text-xs text-slate-700 whitespace-normal"
+                  title={
+                    Array.isArray(student.selected_interests)
+                      ? student.selected_interests.join(", ")
+                      : ""
+                  }
+                >
+                  {Array.isArray(student.selected_interests) &&
+                  student.selected_interests.length > 0
+                    ? student.selected_interests.join(", ")
+                    : "-"}
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-md font-semibold text-xs border border-blue-200/60">
+                    <Award className="w-3 h-3" />
+                    {String(student.gpa ?? "-")}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
+                  {String(student.applying_to_grade ?? "-")} /{" "}
+                  {String(student.adjusted_age ?? "-")}
+                </td>
+                <td className="px-4 py-3 text-sm font-semibold text-blue-600">
+                  {String(student.english_score ?? "-")}
+                </td>
+                <td
+                  className="px-4 py-3 text-xs text-slate-700 max-w-[150px] truncate"
+                  title={String(student.program_type ?? "")}
+                >
+                  {String(student.program_type ?? "-")}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-block px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeClass(
+                      student.placement_status as string | undefined
+                    )}`}
+                  >
+                    {String(student.placement_status ?? "-")}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      favoritedStudents.has(student.pax_id.toString())
+                        ? onUnfavorite(student.pax_id.toString(), event)
+                        : onFavorite(student.pax_id.toString(), event);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-slate-100 transition-all duration-200"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${
+                        favoritedStudents.has(student.pax_id.toString())
+                          ? "fill-pink-500 text-pink-500"
+                          : "text-slate-400 hover:text-pink-500"
+                      } transition-colors duration-200`}
+                    />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+type SortableHeaderProps = {
+  label: string;
+  isActive: boolean;
+  descending: boolean;
+  onClick: () => void;
+};
+
+function SortableHeader({
+  label,
+  isActive,
+  descending,
+  onClick,
+}: SortableHeaderProps) {
+  return (
+    <div
+      className="flex items-center gap-2 cursor-pointer select-none"
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      {isActive && (
+        <span className="text-slate-400">
+          {descending ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronUp className="w-3.5 h-3.5" />
+          )}
+        </span>
+      )}
+    </div>
+  );
+}
