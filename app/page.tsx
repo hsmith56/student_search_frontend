@@ -37,7 +37,6 @@ import {
   ChevronRight,
   Users,
   UserCheck as UserLock,
-  TrendingUp,
   CheckCircle2,
   Camera,
   ChevronLeft,
@@ -95,7 +94,6 @@ export default function SearchInterface() {
     return stored === "true";
   });
 
-  const [isQuickStatsExpanded, setIsQuickStatsExpanded] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -706,6 +704,17 @@ export default function SearchInterface() {
     return "border-slate-300";
   };
 
+  const formatGender = (genderValue: unknown) => {
+    const rawValue = Array.isArray(genderValue) ? genderValue[0] : genderValue;
+    const normalized = String(rawValue ?? "").trim().toLowerCase();
+
+    if (!normalized) return "-";
+    if (normalized.startsWith("m")) return "Male";
+    if (normalized.startsWith("f")) return "Female";
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+
   const fetchLoggedInUser = async () => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
@@ -720,6 +729,47 @@ export default function SearchInterface() {
     }
   };
 
+  const quickStatsCards = [
+    {
+      label: "Available Now",
+      value: availableNow,
+      icon: Users,
+      iconClass: "text-sky-700",
+      cardClass: "border-sky-200/80 bg-white/95 hover:border-sky-300/90",
+      onClick: () => fetchStudentsByStatus(["Allocated"]),
+    },
+    {
+      label: "Unassigned",
+      value: unassignedNow,
+      icon: UserLock,
+      iconClass: "text-slate-600",
+      cardClass: "border-slate-300/80 bg-white/95 hover:border-slate-400/90",
+      onClick: () => fetchStudentsByStatus(["Unassigned"]),
+    },
+    {
+      label: "Students Placed",
+      value: alreadyPlaced,
+      icon: CheckCircle2,
+      iconClass: "text-emerald-700",
+      cardClass: "border-emerald-200/80 bg-white/95 hover:border-emerald-300/90",
+      onClick: () => fetchStudentsByStatus(["Placed", "Pending"]),
+    },
+    {
+      label: "My Favorites",
+      value: favoritedStudents.size,
+      icon: Heart,
+      iconClass: "text-rose-700",
+      cardClass: "border-rose-200/80 bg-white/95 hover:border-rose-300/90",
+      onClick: showFavorites,
+    },
+  ];
+
+  const searchTips = [
+    "Photo search looks for keywords in the photo comment section.",
+    "Click the heart on a profile card to add it to favorites.",
+    "Select any student card to open detailed profile information.",
+  ];
+
   return (
     <div className="min-h-screen bg-gray-200 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -731,219 +781,56 @@ export default function SearchInterface() {
       <div className="relative z-10">
         <Header firstName={firstName} onLogout={logout} updateTime={updateTime} />
 
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
-          <div className="flex gap-5">
-            <aside className="hidden xl:block w-72 flex-shrink-0">
-              <div className="sticky top-[80px] space-y-4">
-                <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
-                  <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                    Quick Stats
-                  </h3>
-                  <div className="space-y-3">
-                    <div
-                      onClick={() => fetchStudentsByStatus(["Allocated"])}
-                      className="flex items-center justify-between p-3 bg-gradient-to-br from-blue-200 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200 "
-                    >
-                      <div>
-                        <p className="text-xs text-slate-600 font-medium">
-                          Available Now
-                        </p>
-                        <p className="text-2xl font-bold text-slate-900">
-                          {" "}
-                          {availableNow}{" "}
-                        </p>
-                      </div>
-                      <Users className="w-8 h-8 text-blue-600" />
+        <div className="w-full px-4 sm:px-6 lg:px-8 2xl:px-10 py-5">
+          <div className="mx-auto w-full max-w-[1900px]">
+            <section className="mb-4">
+              <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+                {quickStatsCards.map((card) => (
+                  <button
+                    key={card.label}
+                    type="button"
+                    onClick={card.onClick}
+                    className={`group min-h-[148px] rounded-xl border p-4 text-left shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_-20px_rgba(15,23,42,0.85)] ${card.cardClass}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        {card.label}
+                      </p>
+                      <card.icon className={`h-[18px] w-[18px] ${card.iconClass}`} />
                     </div>
-                    <div
-                      onClick={() => fetchStudentsByStatus(["Unassigned"])}
-                      className="flex items-center justify-between p-3 bg-gradient-to-br from-slate-300 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-600 font-medium">
-                          Unassigned
-                        </p>
-                        <p className="text-2xl font-bold text-slate-900">
-                          {" "}
-                          {unassignedNow}{" "}
-                        </p>
-                      </div>
-                      <UserLock className="w-8 h-8 text-slate-600" />
-                    </div>
-                    <div
-                      onClick={() =>
-                        fetchStudentsByStatus(["Placed", "Pending"])
-                      }
-                      className="flex items-center justify-between p-3 bg-gradient-to-br from-green-200 to-white-50 rounded-lg border border-green-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-600 font-medium">
-                          Students Placed
-                        </p>
-                        <p className="text-2xl font-bold text-slate-900">
-                          {alreadyPlaced}
-                        </p>
-                      </div>
-                      <CheckCircle2 className="w-8 h-8 text-green-600" />
-                    </div>
-                    <div
-                      onClick={showFavorites}
-                      className="flex items-center justify-between p-3 bg-gradient-to-br from-pink-200 to-white-50 rounded-lg border border-pink-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-600 font-medium">
-                          My Favorites
-                        </p>
-                        <p className="text-2xl font-bold text-slate-900">
-                          {favoritedStudents.size}
-                        </p>
-                      </div>
-                      <Heart className="w-8 h-8 text-purple-600" />
-                    </div>
-                  </div>
-                </div>
+                    <p className="mt-7 text-[2rem] font-semibold leading-none text-slate-900">
+                      {card.value}
+                    </p>
+                    <p className="mt-5 text-[11px] font-medium text-slate-500 group-hover:text-slate-700">
+                      View list
+                    </p>
+                  </button>
+                ))}
 
-                <div className="bg-gradient-to-br from-blue-500 via-white-600 to-blue-600 rounded-xl p-5 shadow-lg shadow-blue-900/20 text-white">
-                  <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                    <Star className="w-4 h-4" />
-                    Search Tips
+                <div className="flex min-h-[148px] flex-col rounded-xl border border-slate-300/90 bg-white/95 p-4 shadow-[0_5px_14px_-12px_rgba(15,23,42,0.75)]">
+                  <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Star className="h-4 w-4 text-slate-700" />
+                    Tips & Feedback
                   </h3>
-                  <ul className="space-y-2 text-xs leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-200 mt-0.5">•</span>
-                      <span>
-                        Photo search looks for keywords in the photo comment
-                        section
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-200 mt-0.5">•</span>
-                      <span>
-                        Click the heart on a profile card to add it to your
-                        favorites.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-200 mt-0.5">•</span>
-                      <span>
-                        Click on a student card for detailed information. On a
-                        card, click the students USAHSID to open the snippet
-                        view.
-                      </span>
-                    </li>
+                  <ul className="space-y-1.5 text-xs leading-relaxed text-slate-700">
+                    {searchTips.slice(0, 2).map((tip) => (
+                      <li key={tip} className="flex items-start gap-2">
+                        <span className="mt-[7px] block h-1 w-1 flex-shrink-0 rounded-full bg-slate-500" />
+                        <span>{tip}</span>
+                      </li>
+                    ))}
                   </ul>
-                </div>
-
-                <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl p-5 shadow-lg shadow-slate-900/10">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3">
-                    Have a suggestion or feedback?
-                  </h3>
-                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-                    Let me know if something doesn't work or can be improved 😊
-                  </p>
                   <Button
                     onClick={openFeedbackDialog}
-                    className="w-full h-9 bg-gradient-to-r from-blue-500 via-white-600 to-indigo-400  hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium shadow-md"
+                    className="mt-auto h-9 w-full bg-slate-900 text-sm text-white hover:bg-slate-800"
                   >
-                    Send feedback
+                    Open feedback form
                   </Button>
                 </div>
               </div>
-            </aside>
+            </section>
 
-            <div className="flex-1 min-w-0">
-              <div className="xl:hidden mb-3">
-                <div className="bg-white/95 backdrop-blur-sm border border-slate-300 rounded-xl shadow-lg shadow-slate-900/5 overflow-hidden">
-                  <button
-                    onClick={() =>
-                      setIsQuickStatsExpanded(!isQuickStatsExpanded)
-                    }
-                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors"
-                  >
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-blue-600" />
-                      Quick Stats
-                    </h3>
-                    {isQuickStatsExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-slate-400" />
-                    )}
-                  </button>
-
-                  {isQuickStatsExpanded && (
-                    <div className="p-4 pt-0 space-y-3 border-t border-slate-200">
-                      <div
-                        onClick={() => fetchStudentsByStatus(["Allocated"])}
-                        className="flex items-center mt-2 justify-between p-3 bg-gradient-to-br from-blue-200 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                      >
-                        <div>
-                          <p className="text-xs text-slate-600 font-medium">
-                            Available Now
-                          </p>
-                          <p className="text-2xl font-bold text-slate-900">
-                            {availableNow}
-                          </p>
-                        </div>
-                        <Users className="w-8 h-8 text-blue-600" />
-                      </div>
-                      <div
-                        onClick={() => fetchStudentsByStatus(["Unassigned"])}
-                        className="flex items-center justify-between p-3 bg-gradient-to-br from-slate-300 to-white-50 rounded-lg border border-black-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                      >
-                        <div>
-                          <p className="text-xs text-slate-600 font-medium">
-                            Unassigned
-                          </p>
-                          <p className="text-2xl font-bold text-slate-900">
-                            {unassignedNow}
-                          </p>
-                        </div>
-                        <UserLock className="w-8 h-8 text-slate-600" />
-                      </div>
-                      <div
-                        onClick={() =>
-                          fetchStudentsByStatus(["Placed", "Pending"])
-                        }
-                        className="flex items-center justify-between p-3 bg-gradient-to-br from-green-200 to-white-50 rounded-lg border border-green-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                      >
-                        <div>
-                          <p className="text-xs text-slate-600 font-medium">
-                            Students Placed
-                          </p>
-                          <p className="text-2xl font-bold text-slate-900">
-                            {alreadyPlaced}
-                          </p>
-                        </div>
-                        <CheckCircle2 className="w-8 h-8 text-green-600" />
-                      </div>
-                      <div
-                        onClick={showFavorites}
-                        className="flex items-center justify-between p-3 bg-gradient-to-br from-pink-200 to-white-50 rounded-lg border border-pink-200/60 cursor-pointer hover:shadow-md transition-all duration-200"
-                      >
-                        <div>
-                          <p className="text-xs text-slate-600 font-medium">
-                            My Favorites
-                          </p>
-                          <p className="text-2xl font-bold text-slate-900">
-                            {favoritedStudents.size}
-                          </p>
-                        </div>
-                        <Heart className="w-8 h-8 text-purple-600" />
-                      </div>
-                      <Button
-                        onClick={openFeedbackDialog}
-                        className="w-full h-9 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-sm font-medium shadow-sm"
-                      >
-                        Send feedback
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="sticky top-[60px] bg-white/90 backdrop-blur-xl z-40 rounded-xl shadow-lg shadow-slate-900/5 border border-black-200/60 mb-3 overflow-hidden">
+            <div className="sticky top-[60px] bg-white/90 backdrop-blur-xl z-40 rounded-xl shadow-lg shadow-slate-900/5 border border-black-200/60 mb-3 overflow-hidden">
                 <button
                   onClick={() =>
                     setIsSearchFiltersExpanded(!isSearchFiltersExpanded)
@@ -1100,7 +987,7 @@ export default function SearchInterface() {
                       <div className="flex justify-between items-start border-b border-slate-200 pb-3 mb-3 pr-8 bg-pink">
                         <div className="flex-1">
                           <h2 className="text-slate-900 font-semibold text-base tracking-tight group-hover:text-blue-700 transition-colors duration-200">
-                            {student.first_name} - {student.gender_desc[0]}
+                            {student.first_name} - {formatGender(student.gender_desc)}
                           </h2>
                           <p className="text-xs text-slate-500 font-mono mt-0.5">
                             {student.usahsid.toString()}
@@ -1230,7 +1117,7 @@ export default function SearchInterface() {
 
                         <div className="mb-3 pr-8">
                           <h3 className="text-lg font-bold text-slate-900">
-                            {student.first_name} - {student.gender_desc[0]}
+                            {student.first_name} - {formatGender(student.gender_desc)}
                           </h3>
                           <p className="text-xs text-slate-500 font-mono">
                             {student.usahsid.toString()}
@@ -1315,7 +1202,7 @@ export default function SearchInterface() {
                   {/* Desktop table view */}
                   <div className="hidden md:block bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg shadow-slate-900/5 mb-8 overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full min-w-[1360px]">
                         <thead className="bg-slate-50 border-b border-slate-200">
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
@@ -1334,6 +1221,9 @@ export default function SearchInterface() {
                                   </span>
                                 )}
                               </div>
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                              Gender
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               ID
@@ -1430,7 +1320,10 @@ export default function SearchInterface() {
                               className="hover:bg-blue-50/50 cursor-pointer transition-colors duration-150"
                             >
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                                {student.first_name} - {student.gender_desc[0]}
+                                {student.first_name}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-700">
+                                {formatGender(student.gender_desc)}
                               </td>
                               <td className="px-4 py-3 text-xs font-mono text-slate-500">
                                 {student.usahsid.toString()}
@@ -1569,7 +1462,6 @@ export default function SearchInterface() {
               )}
             </div>
           </div>
-        </div>
         <Footer />
       </div>
 
@@ -2243,7 +2135,7 @@ export default function SearchInterface() {
                     rel="noreferrer"
                     className="underline underline-offset-2"
                   >
-                    {selectedStudent.first_name} - {selectedStudent.gender_desc[0]}
+                    {selectedStudent.first_name}
                   </a>
                 </DialogTitle>
                 <div className="flex items-center gap-2">
