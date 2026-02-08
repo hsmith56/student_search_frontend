@@ -101,6 +101,7 @@ export default function SearchInterface() {
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [isSearchFiltersExpanded, setIsSearchFiltersExpanded] = useState(true);
+  const [resultsAnimationKey, setResultsAnimationKey] = useState(0);
 
   type Filters = {
     country_of_origin: string;
@@ -468,6 +469,10 @@ export default function SearchInterface() {
     handleFindStudents();
   };
 
+  const animateResultsRefresh = () => {
+    setResultsAnimationKey((prev) => prev + 1);
+  };
+
   const sortStudentsLocally = (
     list: any[],
     field: string,
@@ -564,6 +569,7 @@ export default function SearchInterface() {
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
       setTotalResults(data.total_results || data.results?.length || 0);
+      animateResultsRefresh();
     } catch (error) {
       console.error("Error:", error);
       setStudents([]);
@@ -656,6 +662,7 @@ export default function SearchInterface() {
           setCurrentPage(1);
           setTotalPages(1);
           setTotalResults(data?.length || 0);
+          animateResultsRefresh();
         }
       } catch (error) {
         console.error("Error fetching favorites:", error);
@@ -710,6 +717,7 @@ export default function SearchInterface() {
   };
 
   const displayedStudents = students;
+  const shouldAnimateResults = resultsAnimationKey > 0;
 
   const getStatusRingColor = (status: string) => {
     if (!status) return "border-slate-300";
@@ -1004,16 +1012,28 @@ export default function SearchInterface() {
               </div>
 
               {viewMode === "card" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8 ">
-                  {displayedStudents.map((student) => (
+                <div
+                  key={`card-results-${resultsAnimationKey}`}
+                  className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8 ${
+                    shouldAnimateResults ? "results-refresh-container" : ""
+                  }`}
+                >
+                  {displayedStudents.map((student, index) => (
                     <div
                       key={student.pax_id.toString()}
                       onClick={() => {
                         setSelectedStudent(student);
                       }}
+                      style={
+                        shouldAnimateResults
+                          ? ({ "--results-item-index": index } as React.CSSProperties)
+                          : undefined
+                      }
                       className={`group cursor-pointer border-2 ${getStatusRingColor(
                         student.placement_status
-                      )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative`}
+                      )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative ${
+                        shouldAnimateResults ? "results-refresh-item" : ""
+                      }`}
                     >
                       <button
                         onClick={(e) =>
@@ -1134,16 +1154,28 @@ export default function SearchInterface() {
                 /* Mobile-friendly card layout for compact view, table for desktop */
                 <>
                   {/* Mobile card view */}
-                  <div className="md:hidden space-y-3 mb-8">
-                    {displayedStudents.map((student) => (
+                  <div
+                    key={`mobile-results-${resultsAnimationKey}`}
+                    className={`md:hidden space-y-3 mb-8 ${
+                      shouldAnimateResults ? "results-refresh-container" : ""
+                    }`}
+                  >
+                    {displayedStudents.map((student, index) => (
                       <div
                         key={student.pax_id.toString()}
                         onClick={() => {
                           setSelectedStudent(student);
                         }}
+                        style={
+                          shouldAnimateResults
+                            ? ({ "--results-item-index": index } as React.CSSProperties)
+                            : undefined
+                        }
                         className={`bg-white/95 backdrop-blur-sm border-2 ${getStatusRingColor(
                           student.placement_status
-                        )} rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer relative`}
+                        )} rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer relative ${
+                          shouldAnimateResults ? "results-refresh-item" : ""
+                        }`}
                       >
                         <button
                           onClick={(e) => {
@@ -1248,7 +1280,12 @@ export default function SearchInterface() {
                   </div>
 
                   {/* Desktop table view */}
-                  <div className="hidden md:block bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg shadow-slate-900/5 mb-8 overflow-hidden">
+                  <div
+                    key={`desktop-results-${resultsAnimationKey}`}
+                    className={`hidden md:block bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg shadow-slate-900/5 mb-8 overflow-hidden ${
+                      shouldAnimateResults ? "results-refresh-container" : ""
+                    }`}
+                  >
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[1360px]">
                         <thead className="bg-slate-50 border-b border-slate-200">
@@ -1359,13 +1396,20 @@ export default function SearchInterface() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
-                          {displayedStudents.map((student) => (
+                          {displayedStudents.map((student, index) => (
                             <tr
                               key={student.pax_id.toString()}
                               onClick={() => {
                                 setSelectedStudent(student);
                               }}
-                              className="hover:bg-blue-50/50 cursor-pointer transition-colors duration-150"
+                              style={
+                                shouldAnimateResults
+                                  ? ({ "--results-item-index": index } as React.CSSProperties)
+                                  : undefined
+                              }
+                              className={`hover:bg-blue-50/50 cursor-pointer transition-colors duration-150 ${
+                                shouldAnimateResults ? "results-refresh-item" : ""
+                              }`}
                             >
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">
                                 {student.first_name}

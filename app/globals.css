@@ -156,3 +156,43 @@
 .compact-grid {
   gap: 0.25rem !important;
 }
+
+@keyframes resultsContainerIn {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes resultsItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.results-refresh-container {
+  animation: resultsContainerIn 220ms ease-out;
+}
+
+.results-refresh-item {
+  opacity: 0;
+  transform: translateY(10px) scale(0.995);
+  animation: resultsItemIn 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--results-item-index, 0) * 26ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-refresh-container,
+  .results-refresh-item {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
