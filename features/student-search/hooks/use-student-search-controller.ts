@@ -11,10 +11,19 @@ import {
 import { sortStudentsLocally } from "@/features/student-search/utils";
 import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import { useStudentSearchPreferences } from "@/features/student-search/hooks/use-student-search-preferences";
+import {
+  getCachedValue,
+  invalidateClientCache,
+  invalidateClientCacheByPrefix,
+} from "@/lib/client-cache";
 
 type UseStudentSearchControllerArgs = {
   isAuthenticated: boolean;
 };
+
+const CACHE_TTL_SHORT_MS = 30_000;
+const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
+const CACHE_TTL_LONG_MS = 24 * 60 * 60_000;
 
 export function useStudentSearchController({
   isAuthenticated,
@@ -67,15 +76,26 @@ export function useStudentSearchController({
 
   const fetchLastUpdateTime = async () => {
     try {
-      const response = await fetch(`${API_URL}/misc/last_update_time`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      const data = await getCachedValue<unknown[]>(
+        "misc:last_update_time",
+        async () => {
+          const response = await fetch(`${API_URL}/misc/last_update_time`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch last update time: ${response.status}`);
+          }
+
+          return (await response.json()) as unknown[];
         },
-        credentials: "include",
-      });
-      const data = await response.json();
-      setUpdateTime(data?.[0] ?? "");
+        CACHE_TTL_SHORT_MS
+      );
+      setUpdateTime(Array.isArray(data) ? (data?.[0] as string) ?? "" : "");
     } catch {
       setUpdateTime("");
     }
@@ -160,20 +180,44 @@ export function useStudentSearchController({
     }));
 
     try {
-      const response = await fetch(
-        `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
-        {
-          method: "POST",
-          headers: getHeaders(),
-          credentials: "include",
-          body: JSON.stringify({
-            ...filters,
-            statusOptions: status,
-          }),
-        }
-      );
+      const statusKey = status.map((value) => value.toLowerCase()).join(",");
+      const cacheKey = `students:status:${statusKey}:order:${orderBy}:descending:${descending}:filters:${JSON.stringify(
+        filters
+      )}`;
+      const data = await getCachedValue<{
+        results?: StudentRecord[];
+        page?: number;
+        total_pages?: number;
+        total_results?: number;
+      }>(
+        cacheKey,
+        async () => {
+          const response = await fetch(
+            `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
+            {
+              method: "POST",
+              headers: getHeaders(),
+              credentials: "include",
+              body: JSON.stringify({
+                ...filters,
+                statusOptions: status,
+              }),
+            }
+          );
 
-      const data = await response.json();
+          if (!response.ok) {
+            throw new Error(`Failed to fetch students by status: ${response.status}`);
+          }
+
+          return (await response.json()) as {
+            results?: StudentRecord[];
+            page?: number;
+            total_pages?: number;
+            total_results?: number;
+          };
+        },
+        CACHE_TTL_SHORT_MS
+      );
       setStudents(data.results || []);
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
@@ -187,12 +231,23 @@ export function useStudentSearchController({
 
   const fetchLoggedInUser = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: getHeaders(),
-        credentials: "include",
-      });
-      const data = await response.json();
-      setFirstName(data.first_name);
+      const data = await getCachedValue<{ first_name?: string }>(
+        "auth:me",
+        async () => {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: getHeaders(),
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch auth user: ${response.status}`);
+          }
+
+          return (await response.json()) as { first_name?: string };
+        },
+        CACHE_TTL_MEDIUM_MS
+      );
+      setFirstName(data.first_name ?? "");
     } catch (error) {
       console.error("Error:", error);
     }
@@ -318,6 +373,7 @@ export function useStudentSearchController({
 
       if (response.ok) {
         setFavoritedStudents((prev) => new Set(prev).add(paxId.toString()));
+        invalidateClientCache("user:favorites");
       }
     } catch (error) {
       console.error("Error favoriting student:", error);
@@ -345,6 +401,7 @@ export function useStudentSearchController({
           next.delete(paxId.toString());
           return next;
         });
+        invalidateClientCache("user:favorites");
       }
     } catch (error) {
       console.error("Error unfavoriting student:", error);
@@ -354,27 +411,36 @@ export function useStudentSearchController({
   const showFavorites = () => {
     (async () => {
       try {
-        const response = await fetch(`${API_URL}/user/favorites`, {
-          method: "GET",
-          headers: { accept: "application/json" },
-          credentials: "include",
-        });
+        const data = await getCachedValue<StudentRecord[]>(
+          "user:favorites",
+          async () => {
+            const response = await fetch(`${API_URL}/user/favorites`, {
+              method: "GET",
+              headers: { accept: "application/json" },
+              credentials: "include",
+            });
 
-        if (response.ok) {
-          const data = await response.json();
-          setStudents(sortStudentsLocally(data || [], orderBy, descending));
-          const favoritedIds = new Set<string>(
-            (data || []).map((student: StudentRecord) =>
-              String(student.pax_id.toString())
-            )
-          );
-          setFavoritedStudents(favoritedIds);
-          setShowFavoritesOnly(true);
-          setCurrentPage(1);
-          setTotalPages(1);
-          setTotalResults(data?.length || 0);
-          animateResultsRefresh();
-        }
+            if (!response.ok) {
+              throw new Error(`Failed to fetch favorites: ${response.status}`);
+            }
+
+            return (await response.json()) as StudentRecord[];
+          },
+          CACHE_TTL_SHORT_MS
+        );
+
+        setStudents(sortStudentsLocally(data || [], orderBy, descending));
+        const favoritedIds = new Set<string>(
+          (data || []).map((student: StudentRecord) =>
+            String(student.pax_id.toString())
+          )
+        );
+        setFavoritedStudents(favoritedIds);
+        setShowFavoritesOnly(true);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setTotalResults(data?.length || 0);
+        animateResultsRefresh();
       } catch (error) {
         console.error("Error fetching favorites:", error);
       }
@@ -395,6 +461,10 @@ export function useStudentSearchController({
       if (!response.ok) {
         throw new Error(`Failed to update DB: ${response.status}`);
       }
+
+      invalidateClientCacheByPrefix("misc:");
+      invalidateClientCacheByPrefix("students:status:");
+      invalidateClientCache("newsFeed:list");
 
       await fetchLastUpdateTime();
     } catch (error) {
@@ -434,19 +504,27 @@ export function useStudentSearchController({
 
     const fetchFavorites = async () => {
       try {
-        const response = await fetch(`${API_URL}/user/favorites`, {
-          method: "GET",
-          headers: { accept: "application/json" },
-          credentials: "include",
-        });
+        const data = await getCachedValue<StudentRecord[]>(
+          "user:favorites",
+          async () => {
+            const response = await fetch(`${API_URL}/user/favorites`, {
+              method: "GET",
+              headers: { accept: "application/json" },
+              credentials: "include",
+            });
 
-        if (response.ok) {
-          const data = await response.json();
-          const favoritedIds = new Set<string>(
-            data.map((student: StudentRecord) => String(student.pax_id))
-          );
-          setFavoritedStudents(favoritedIds);
-        }
+            if (!response.ok) {
+              throw new Error(`Failed to fetch favorites: ${response.status}`);
+            }
+
+            return (await response.json()) as StudentRecord[];
+          },
+          CACHE_TTL_SHORT_MS
+        );
+        const favoritedIds = new Set<string>(
+          data.map((student: StudentRecord) => String(student.pax_id))
+        );
+        setFavoritedStudents(favoritedIds);
       } catch (error) {
         console.error("Error fetching favorites:", error);
       }
@@ -458,19 +536,34 @@ export function useStudentSearchController({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetch(`${API_URL}/misc/countries`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    getCachedValue<unknown>(
+      "misc:countries",
+      async () => {
+        const response = await fetch(`${API_URL}/misc/countries`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch countries: ${response.status}`);
+        }
+
+        return (await response.json()) as unknown;
       },
-      credentials: "include",
-    })
-      .then((res) => res.json())
+      CACHE_TTL_LONG_MS
+    )
       .then((data) => {
         if (Array.isArray(data)) {
-          setCountries(data);
-        } else if (Array.isArray(data.countries)) {
-          setCountries(data.countries);
+          setCountries(data as string[]);
+        } else if (
+          typeof data === "object" &&
+          data !== null &&
+          Array.isArray((data as { countries?: unknown[] }).countries)
+        ) {
+          setCountries((data as { countries: string[] }).countries);
         } else {
           setCountries([]);
         }
@@ -481,16 +574,27 @@ export function useStudentSearchController({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetch(`${API_URL}/misc/available_now`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    getCachedValue<unknown[]>(
+      "misc:available_now",
+      async () => {
+        const response = await fetch(`${API_URL}/misc/available_now`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch available_now: ${response.status}`);
+        }
+
+        return (await response.json()) as unknown[];
       },
-      credentials: "include",
-    })
-      .then((res) => res.json())
+      CACHE_TTL_SHORT_MS
+    )
       .then((data) => {
-        setAvailableNow(data[0]);
+        setAvailableNow(Number(data?.[0] ?? 0));
       })
       .catch(() => setAvailableNow(0));
   }, [isAuthenticated]);
@@ -498,16 +602,27 @@ export function useStudentSearchController({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetch(`${API_URL}/misc/unassigned_now`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    getCachedValue<unknown[]>(
+      "misc:unassigned_now",
+      async () => {
+        const response = await fetch(`${API_URL}/misc/unassigned_now`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch unassigned_now: ${response.status}`);
+        }
+
+        return (await response.json()) as unknown[];
       },
-      credentials: "include",
-    })
-      .then((res) => res.json())
+      CACHE_TTL_SHORT_MS
+    )
       .then((data) => {
-        setUnassignedNow(data[0]);
+        setUnassignedNow(Number(data?.[0] ?? 0));
       })
       .catch(() => setUnassignedNow(0));
   }, [isAuthenticated]);
@@ -515,16 +630,27 @@ export function useStudentSearchController({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetch(`${API_URL}/misc/placed`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    getCachedValue<unknown>(
+      "misc:placed",
+      async () => {
+        const response = await fetch(`${API_URL}/misc/placed`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch placed count: ${response.status}`);
+        }
+
+        return (await response.json()) as unknown;
       },
-      credentials: "include",
-    })
-      .then((res) => res.json())
+      CACHE_TTL_SHORT_MS
+    )
       .then((data) => {
-        setAlreadyPlaced(data);
+        setAlreadyPlaced(Number(data ?? 0));
       })
       .catch(() => setAlreadyPlaced(0));
   }, [isAuthenticated]);

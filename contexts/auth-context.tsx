@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { clearClientCache } from "@/lib/client-cache";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -104,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         console.log("Login successful, checking auth status...");
+        clearClientCache();
         await new Promise((resolve) => setTimeout(resolve, 100));
         const authVerified = await checkAuth();
 
@@ -204,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
+      clearClientCache();
       setIsAuthenticated(false);
       setUsername(null);
       router.push("/login");
