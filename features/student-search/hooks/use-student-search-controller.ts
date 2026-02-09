@@ -387,7 +387,7 @@ export function useStudentSearchController({
 
     try {
       const response = await fetch(`${API_URL}/students/update_db`, {
-        method: "GET",
+        method: "POST",
         headers: getHeaders(),
         credentials: "include",
       });
