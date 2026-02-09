@@ -1,6 +1,10 @@
 "use client"
 
-import { GraduationCap, Users, LogOut, RefreshCw } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { GraduationCap, Search, BarChart3, Bell, Users, LogOut, RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useNotifications } from "@/contexts/notifications-context"
 
 interface HeaderProps {
   firstName: string
@@ -17,6 +21,15 @@ export default function Header({
   onUpdateDatabase,
   isUpdatingDatabase = false,
 }: HeaderProps) {
+  const pathname = usePathname()
+  const { unreadCount, markAllAsRead } = useNotifications()
+
+  const navItems = [
+    { href: "/", label: "Search", icon: Search },
+    // { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+    { href: "/newsFeed", label: "News Feed", icon: Bell, clearOnClick: true },
+  ]
+
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
@@ -49,21 +62,42 @@ export default function Header({
               <p className="text-[11px] text-slate-500 font-medium">Tool to search student profiles for improved match making</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <a className="hover:text-blue-600 transition-colors duration-200 flex items-center gap-1.5">
+          <div className="hidden md:flex items-center gap-4 text-sm font-medium text-slate-600">
+            <nav className="flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 p-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname?.startsWith(item.href)
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={item.clearOnClick ? markAllAsRead : undefined}
+                    className={cn(
+                      "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                      isActive
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                    {item.href === "/newsFeed" && unreadCount > 0 ? (
+                      <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-red-600/30">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    ) : null}
+                  </Link>
+                )
+              })}
+            </nav>
+            <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               Hello, {firstName}!
-            </a>
-            {/* <a href="#" className="hover:text-blue-600 transition-colors duration-200 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5" />
-                  Programs
-                </a>
-                <a href="#" className="hover:text-blue-600 transition-colors duration-200">
-                  About
-                </a>
-                <a href="#" className="hover:text-blue-600 transition-colors duration-200">
-                  Contact
-                </a> */}
+            </div>
             <button
               onClick={onLogout}
               className="hover:text-red-600 transition-colors duration-200 flex items-center gap-1.5"

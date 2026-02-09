@@ -1,0 +1,517 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import {
+  Bell,
+  Clock3,
+  RadioTower,
+  RefreshCw,
+  UserRoundCheck,
+} from "lucide-react";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { useAuth } from "@/contexts/auth-context";
+import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
+import { StudentDetailsDialog } from "@/features/student-search/components/dialogs/student-details-dialog";
+import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
+import type { StudentRecord } from "@/features/student-search/types";
+
+const API_URL = "/api";
+
+type NewsFeedEvent = {
+  event_id?: number;
+  student_id?: number;
+  first_name?: string;
+  event_type?: string;
+  event_at?: string;
+  placement_state?: string;
+  coordinator_id?: string | number | null;
+  manager_id?: string | number | null;
+  status_from?: string;
+  status_to?: string;
+};
+
+type NewsFeedEnvelope = {
+  type?: string;
+  event?: NewsFeedEvent;
+};
+
+type NewsFeedItem = {
+  id: string;
+  eventId: number | null;
+  studentId: number | null;
+  firstName: string | null;
+  eventType: string;
+  eventAt: string;
+  receivedAt: string;
+  statusFrom: string | null;
+  statusTo: string | null;
+  placementState: string | null;
+};
+
+function safeString(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized || null;
+}
+
+function safeNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function parseEventTimeForSort(value: string): number {
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function normalizeNewsFeedPayload(payload: unknown): NewsFeedItem[] {
+  const candidateItems: unknown[] = Array.isArray(payload)
+    ? payload
+    : typeof payload === "object" &&
+        payload !== null &&
+        Array.isArray((payload as { results?: unknown[] }).results)
+      ? (payload as { results: unknown[] }).results
+      : typeof payload === "object" && payload !== null
+        ? [payload]
+      : [];
+
+  const normalizedItems = candidateItems
+    .map<NewsFeedItem | null>((item, index) => {
+      if (typeof item !== "object" || item === null) {
+        return null;
+      }
+
+      const envelope = item as NewsFeedEnvelope;
+      const event = envelope.event ?? (item as NewsFeedEvent);
+
+      const eventId = safeNumber(event.event_id);
+      const studentId = safeNumber(event.student_id);
+      const eventAt = safeString(event.event_at) ?? new Date().toISOString();
+
+      return {
+        id:
+          eventId !== null
+            ? `evt-${eventId}`
+            : `api-${eventAt}-${studentId ?? "unknown"}-${index}`,
+        eventId,
+        studentId,
+        firstName: safeString(event.first_name),
+        eventType:
+          safeString(envelope.type) ??
+          safeString(event.event_type) ??
+          "status_changed",
+        eventAt,
+        receivedAt: eventAt,
+        statusFrom: safeString(event.status_from),
+        statusTo: safeString(event.status_to),
+        placementState: safeString(event.placement_state),
+      };
+    })
+    .filter((item): item is NewsFeedItem => item !== null);
+
+  return normalizedItems.sort(
+    (itemA, itemB) =>
+      parseEventTimeForSort(itemB.eventAt) - parseEventTimeForSort(itemA.eventAt)
+  );
+}
+
+function formatEventTime(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Unknown time";
+
+  return parsed.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export default function NewsFeedPage() {
+  const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
+  useAuthRedirect({ authLoading, isAuthenticated });
+
+  const [firstName, setFirstName] = useState("");
+  const [updateTime, setUpdateTime] = useState("");
+  const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
+  const [feedItems, setFeedItems] = useState<NewsFeedItem[]>([]);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+  const [isRefreshingFeed, setIsRefreshingFeed] = useState(false);
+  const [feedError, setFeedError] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
+  const [loadingStudentId, setLoadingStudentId] = useState<number | null>(null);
+  const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set());
+  const selectedStudentMediaLink = useSelectedStudentMedia(selectedStudent);
+
+  const fetchNewsFeed = useCallback(async (manualRefresh = false) => {
+    if (manualRefresh) {
+      setIsRefreshingFeed(true);
+    } else {
+      setIsLoadingFeed(true);
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/news_feed`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch news feed: ${response.status}`);
+      }
+
+      const payload: unknown = await response.json();
+      const normalized = normalizeNewsFeedPayload(payload);
+
+      setFeedItems(normalized);
+      setFeedError(null);
+    } catch (error) {
+      console.error("Failed to fetch news feed:", error);
+      setFeedError("Unable to load news feed right now.");
+      setFeedItems([]);
+    } finally {
+      setIsLoadingFeed(false);
+      setIsRefreshingFeed(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetch(`${API_URL}/auth/me`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.first_name) {
+          setFirstName(data.first_name);
+        }
+      })
+      .catch(() => {
+        setFirstName("");
+      });
+
+    fetch(`${API_URL}/misc/last_update_time`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setUpdateTime(data[0] ?? "");
+        }
+      })
+      .catch(() => {
+        setUpdateTime("");
+      });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetchNewsFeed(false);
+  }, [fetchNewsFeed, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetch(`${API_URL}/user/favorites`, {
+      method: "GET",
+      headers: { accept: "application/json" },
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: unknown) => {
+        if (!Array.isArray(data)) {
+          setFavoritedStudents(new Set());
+          return;
+        }
+
+        const favoritedIds = new Set<string>(
+          data
+            .map((student) => {
+              if (typeof student !== "object" || student === null) return null;
+              const record = student as StudentRecord;
+              if (record.pax_id === undefined || record.pax_id === null) return null;
+              return String(record.pax_id);
+            })
+            .filter((value): value is string => Boolean(value))
+        );
+        setFavoritedStudents(favoritedIds);
+      })
+      .catch(() => {
+        setFavoritedStudents(new Set());
+      });
+  }, [isAuthenticated]);
+
+  const handleUpdateDatabase = async () => {
+    if (isUpdatingDatabase) return;
+    setIsUpdatingDatabase(true);
+
+    try {
+      const response = await fetch(`${API_URL}/students/update_db`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update DB: ${response.status}`);
+      }
+
+      const updateTimeResponse = await fetch(`${API_URL}/misc/last_update_time`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (updateTimeResponse.ok) {
+        const payload = (await updateTimeResponse.json()) as unknown;
+        if (Array.isArray(payload) && payload.length > 0) {
+          setUpdateTime(String(payload[0]));
+        }
+      }
+    } catch (error) {
+      console.error("Error updating student DB:", error);
+    } finally {
+      setIsUpdatingDatabase(false);
+    }
+  };
+
+  const handleSelectStudent = useCallback(async (studentId: number | null) => {
+    if (!studentId) return;
+    setLoadingStudentId(studentId);
+
+    try {
+      const response = await fetch(`${API_URL}/students/full/${studentId}`, {
+        method: "GET",
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch student ${studentId}: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as StudentRecord;
+      const normalizedStudent: StudentRecord = {
+        ...payload,
+        app_id: payload.app_id ?? studentId,
+        pax_id: payload.pax_id ?? studentId,
+      };
+      setSelectedStudent(normalizedStudent);
+    } catch (error) {
+      console.error("Failed to fetch selected student:", error);
+    } finally {
+      setLoadingStudentId(null);
+    }
+  }, []);
+
+  const handleFavorite = useCallback(async (paxId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/user/favorites?pax_id=${paxId}`, {
+        method: "PATCH",
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setFavoritedStudents((previous) => new Set(previous).add(paxId));
+      }
+    } catch (error) {
+      console.error("Error favoriting student:", error);
+    }
+  }, []);
+
+  const handleUnfavorite = useCallback(async (paxId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/user/favorites?pax_id=${paxId}`, {
+        method: "DELETE",
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setFavoritedStudents((previous) => {
+          const next = new Set(previous);
+          next.delete(paxId);
+          return next;
+        });
+      }
+    } catch (error) {
+      console.error("Error unfavoriting student:", error);
+    }
+  }, []);
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+          <p className="mt-4 text-slate-600 font-medium">Loading news feed...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-24 top-6 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
+        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-300/20 blur-3xl" />
+      </div>
+
+      <div className="relative z-10">
+        <Header
+          firstName={firstName}
+          onLogout={logout}
+          updateTime={updateTime}
+          onUpdateDatabase={handleUpdateDatabase}
+          isUpdatingDatabase={isUpdatingDatabase}
+        />
+
+        <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
+          <section className="rounded-3xl border border-blue-200/80 bg-white/90 p-6 shadow-[0_16px_40px_rgba(30,64,175,0.12)] backdrop-blur-md">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+                  <RadioTower className="h-3.5 w-3.5" />
+                  Real-Time Updates
+                </p>
+                <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                  News Feed
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Placement change events loaded from `/api/news_feed`.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void fetchNewsFeed(true)}
+                  disabled={isRefreshingFeed}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${isRefreshingFeed ? "animate-spin" : ""}`}
+                  />
+                  {isRefreshingFeed ? "Refreshing" : "Refresh Feed"}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-5 space-y-3">
+            {feedError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-sm font-semibold text-red-700">
+                {feedError}
+              </div>
+            ) : null}
+
+            {isLoadingFeed ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`skeleton-${index}`}
+                  className="w-full rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_8px_20px_rgba(15,23,42,0.08)] animate-pulse"
+                >
+                  <div className="h-4 w-2/5 rounded bg-slate-200" />
+                  <div className="mt-2 h-3 w-4/5 rounded bg-slate-200" />
+                  <div className="mt-4 h-3 w-1/2 rounded bg-slate-200" />
+                </div>
+              ))
+            ) : feedItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/85 px-6 py-10 text-center">
+                <Bell className="mx-auto mb-3 h-8 w-8 text-slate-400" />
+                <p className="text-lg font-semibold text-slate-800">No alerts yet</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  `/api/news_feed` did not return any events.
+                </p>
+              </div>
+            ) : (
+              feedItems.map((alert, index) => (
+                <button
+                  key={alert.id}
+                  type="button"
+                  onClick={() => void handleSelectStudent(alert.studentId)}
+                  disabled={loadingStudentId === alert.studentId}
+                  className="w-full rounded-2xl border border-slate-200 bg-white/95 p-4 text-left shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)] disabled:cursor-wait disabled:opacity-70"
+                  style={{ animationDelay: `${index * 35}ms` }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="inline-flex items-center gap-2 text-sm font-bold text-slate-900">
+                        <UserRoundCheck className="h-4 w-4 text-blue-600" />
+                        {alert.firstName ?? `Student #${alert.studentId ?? "Unknown"}`} moved to{" "}
+                        {alert.statusTo ?? "Allocated"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {alert.eventType} | Event ID {alert.eventId ?? "N/A"} |{" "}
+                        {alert.statusFrom ?? "Unknown"} to {alert.statusTo ?? alert.placementState ?? "Allocated"}
+                      </p>
+                    </div>
+
+                    {loadingStudentId === alert.studentId ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                        Loading profile...
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                        Open Student
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      Event: {formatEventTime(alert.eventAt)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Received: {formatEventTime(alert.receivedAt)}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </section>
+        </main>
+
+        <Footer />
+      </div>
+
+      <StudentDetailsDialog
+        selectedStudent={selectedStudent}
+        selectedStudentMediaLink={selectedStudentMediaLink}
+        favoritedStudents={favoritedStudents}
+        onFavorite={(paxId) => {
+          void handleFavorite(paxId);
+        }}
+        onUnfavorite={(paxId) => {
+          void handleUnfavorite(paxId);
+        }}
+        onClose={() => setSelectedStudent(null)}
+      />
+    </div>
+  );
+}
