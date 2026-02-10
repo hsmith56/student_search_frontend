@@ -39,7 +39,7 @@ export function CardResultsGrid({
           style={animationStyle(shouldAnimateResults, index)}
           className={`group cursor-pointer border-2 ${getStatusRingColor(
             student.placement_status as string | undefined
-          )} rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-200 relative ${
+          )} rounded-xl bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_6px_16px_rgba(0,53,84,0.14)] transition-all duration-200 hover:shadow-[0_12px_24px_rgba(0,53,84,0.2)] relative ${
             shouldAnimateResults ? "results-refresh-item" : ""
           }`}
         >
@@ -49,92 +49,92 @@ export function CardResultsGrid({
                 ? onUnfavorite(student.pax_id.toString(), event)
                 : onFavorite(student.pax_id.toString(), event)
             }
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-white hover:scale-110 transition-all duration-200 shadow-sm"
+            className="absolute top-3 right-3 z-10 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] p-1.5 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-[var(--brand-surface-elevated)]"
           >
             <Heart
               className={`w-4 h-4 ${
                 favoritedStudents.has(student.pax_id.toString())
-                  ? "fill-pink-500 text-pink-500"
-                  : "text-slate-400 hover:text-pink-500"
+                  ? "fill-[var(--brand-danger)] text-[var(--brand-danger)]"
+                  : "text-[var(--brand-muted)] hover:text-[var(--brand-danger)]"
               } transition-colors duration-200`}
             />
           </button>
 
-          <div className="flex justify-between items-start border-b border-slate-200 pb-3 mb-3 pr-8">
+          <div className="mb-3 flex items-start justify-between border-b border-[var(--brand-border-soft)] pb-3 pr-8">
             <div className="flex-1">
-              <h2 className="text-slate-900 font-semibold text-base tracking-tight group-hover:text-blue-700 transition-colors duration-200">
+              <h2 className="text-base font-semibold tracking-tight text-[var(--brand-ink)] transition-colors duration-200 group-hover:text-[var(--brand-primary)]">
                 {student.first_name} - {formatGender(student.gender_desc)}
               </h2>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">
+              <p className="mt-0.5 font-mono text-xs text-[var(--brand-muted)]">
                 {String(student.usahsid ?? "")}
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1.5 rounded-lg font-semibold text-sm border border-blue-200/60 shadow-sm">
+            <div className="flex items-center gap-1 rounded-lg border border-[rgba(0,94,184,0.28)] bg-gradient-to-br from-[rgba(0,94,184,0.08)] to-[rgba(60,159,192,0.08)] px-2.5 py-1.5 text-sm font-semibold text-[var(--brand-primary-deep)] shadow-sm">
               <Award className="w-3.5 h-3.5" />
               {String(student.gpa ?? "-")}
             </div>
           </div>
 
-          <div className="space-y-1 text-sm text-slate-600 mb-3">
+          <div className="mb-3 space-y-1 text-sm text-[var(--brand-muted)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-medium text-slate-500">Country</span>
+                <MapPin className="h-3.5 w-3.5 text-[var(--brand-muted)]" />
+                <span className="text-xs font-medium text-[var(--brand-muted)]">Country</span>
               </div>
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-[var(--brand-body)]">
                 {String(student.country ?? "-")}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">
                 Grade / Age
               </span>
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-[var(--brand-body)]">
                 {String(student.applying_to_grade ?? "-")} /{" "}
                 {String(student.adjusted_age ?? "-")}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">English</span>
-              <span className="font-semibold text-blue-600">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">English</span>
+              <span className="font-semibold text-[var(--brand-primary)]">
                 {String(student.english_score ?? "-")}
               </span>
             </div>
             <div className="flex items-start justify-between pt-1">
               <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                <span className="text-xs font-medium text-slate-500">Program</span>
+                <Calendar className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--brand-muted)]" />
+                <span className="text-xs font-medium text-[var(--brand-muted)]">Program</span>
               </div>
-              <span className="font-medium text-slate-700 text-xs text-right leading-tight max-w-[180px]">
+              <span className="max-w-[180px] text-right text-xs font-medium leading-tight text-[var(--brand-body)]">
                 {String(student.program_type ?? "-")}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">
                 Application Status
               </span>
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-[var(--brand-body)]">
                 {String(student.placement_status ?? "-")}
               </span>
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-3">
-            <p className="text-slate-700 text-xs font-semibold mb-2 flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-slate-400" />
+          <div className="border-t border-[var(--brand-border-soft)] pt-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-body)]">
+              <Star className="h-3.5 w-3.5 text-[var(--brand-muted)]" />
               Interests
             </p>
             <div className="flex flex-wrap gap-1.5">
               {(student.selected_interests ?? []).slice(0, 4).map((interest) => (
                 <span
                   key={interest}
-                  className="bg-gradient-to-br from-slate-50 to-blue-50/50 text-slate-700 text-[11px] px-2 py-1 rounded-md border border-slate-200/60 font-medium hover:border-blue-300 transition-colors duration-200"
+                  className="rounded-md border border-[var(--brand-border-soft)] bg-gradient-to-br from-[rgba(246,247,248,0.95)] to-[rgba(0,94,184,0.06)] px-2 py-1 text-[11px] font-medium text-[var(--brand-body)] transition-colors duration-200 hover:border-[rgba(0,94,184,0.35)]"
                 >
                   {interest}
                 </span>
               ))}
               {(student.selected_interests ?? []).length > 4 && (
-                <span className="bg-slate-100 text-slate-600 text-[11px] px-2 py-1 rounded-md font-semibold">
+                <span className="rounded-md bg-[rgba(0,53,84,0.08)] px-2 py-1 text-[11px] font-semibold text-[var(--brand-muted)]">
                   +{(student.selected_interests ?? []).length - 4}
                 </span>
               )}

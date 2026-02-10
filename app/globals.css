@@ -76,6 +76,27 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Brand palette sourced from color_palette.png and login screen */
+  --brand-primary: #005eb8;
+  --brand-primary-deep: #003554;
+  --brand-secondary: #3c9fc0;
+  --brand-accent: #ff5700;
+  --brand-highlight: #ffc23e;
+  --brand-success: #00903f;
+  --brand-success-deep: #005e3f;
+  --brand-danger: #c91229;
+  --brand-ink: #221f21;
+  --brand-body: #2e3841;
+  --brand-muted: #727d83;
+  --brand-border: #bbc0c3;
+  --brand-border-soft: rgba(187, 192, 195, 0.56);
+  --brand-surface: #f6f7f8;
+  --brand-surface-elevated: #fdfeff;
+  --brand-surface-muted: #ecf2f6;
+  --brand-shell-bg: rgba(253, 254, 255, 0.88);
+  --brand-shadow-soft: 0 10px 26px rgba(0, 53, 84, 0.1);
+  --brand-shadow-card: 0 14px 30px rgba(0, 53, 84, 0.12);
 }
 
 .dark {
@@ -123,6 +144,24 @@
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.brand-page-gradient {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(60, 159, 192, 0.16), transparent 45%),
+    radial-gradient(circle at 84% 88%, rgba(255, 87, 0, 0.13), transparent 48%),
+    linear-gradient(
+      148deg,
+      var(--brand-surface-muted) 0%,
+      var(--brand-surface) 58%,
+      var(--brand-surface-elevated) 100%
+    );
+}
+
+.brand-surface-panel {
+  background-color: rgba(253, 254, 255, 0.92);
+  border: 1px solid var(--brand-border-soft);
+  box-shadow: var(--brand-shadow-soft);
 }
 
 /* Compact dialog styles for filter popups */

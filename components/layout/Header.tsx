@@ -7,10 +7,12 @@ import {
   Search,
   Bell,
   MessageSquareText,
+  LayoutDashboard,
   Users,
   LogOut,
   RefreshCw,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 
@@ -26,6 +28,14 @@ interface HeaderProps {
   onViewChange?: (view: HeaderView) => void
 }
 
+type HeaderNavItem = {
+  href: string
+  label: string
+  icon: LucideIcon
+  view?: HeaderView
+  clearOnClick?: boolean
+}
+
 export default function Header({
   firstName,
   onLogout,
@@ -38,34 +48,50 @@ export default function Header({
   const pathname = usePathname()
   const { unreadCount, markAllAsRead } = useNotifications()
 
-  const navItems = [
-    { view: "search" as const, href: "/", label: "Search", icon: Search },
-    {
-      view: "newsFeed" as const,
-      href: "/newsFeed",
-      label: "News Feed",
-      icon: Bell,
-      clearOnClick: true,
-    },
-    {
-      view: "feedback" as const,
-      href: "/feedback",
-      label: "Feedback",
-      icon: MessageSquareText,
-    },
-  ]
+  const navItems: HeaderNavItem[] = onViewChange
+    ? [
+        { view: "search" as const, href: "/", label: "Search", icon: Search },
+        {
+          view: "newsFeed" as const,
+          href: "/newsFeed",
+          label: "News Feed",
+          icon: Bell,
+          clearOnClick: true,
+        },
+        {
+          view: "feedback" as const,
+          href: "/feedback",
+          label: "Feedback",
+          icon: MessageSquareText,
+        },
+      ]
+    : [
+        { href: "/", label: "Search", icon: Search },
+        {
+          href: "/newsFeed",
+          label: "News Feed",
+          icon: Bell,
+          clearOnClick: true,
+        },
+        {
+          href: "/feedback",
+          label: "Feedback",
+          icon: MessageSquareText,
+        },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      ]
 
   return (
-    <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-[var(--brand-border-soft)] bg-[var(--brand-shell-bg)] backdrop-blur-xl shadow-[0_8px_20px_rgba(0,53,84,0.08)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-600/20">
+            <div className="rounded-xl bg-gradient-to-br from-[var(--brand-primary-deep)] via-[var(--brand-primary)] to-[var(--brand-secondary)] p-2 shadow-lg shadow-[rgba(0,94,184,0.28)]">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                <h1 className="text-lg font-bold tracking-tight text-[var(--brand-ink)]">
                   Last Updated - {updateTime}
                 </h1>
                 {onUpdateDatabase ? (
@@ -73,7 +99,7 @@ export default function Header({
                     type="button"
                     onClick={onUpdateDatabase}
                     disabled={isUpdatingDatabase}
-                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center gap-1 rounded-md border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-2 py-1 text-xs font-semibold text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[var(--brand-surface)] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <RefreshCw
                       className={`h-3.5 w-3.5 ${
@@ -84,11 +110,11 @@ export default function Header({
                   </button>
                 ) : null}
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Tool to search student profiles for improved match making</p>
+              <p className="text-[11px] font-medium text-[var(--brand-muted)]">Tool to search student profiles for improved match making</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-4 text-sm font-medium text-slate-600">
-            <nav className="flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 p-1">
+          <div className="hidden md:flex items-center gap-4 text-sm font-medium text-[var(--brand-body)]">
+            <nav className="flex items-center gap-1 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-1">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = onViewChange
@@ -98,27 +124,33 @@ export default function Header({
                     : pathname?.startsWith(item.href)
 
                 if (onViewChange) {
+                  const view = item.view
+
+                  if (!view) {
+                    return null
+                  }
+
                   return (
                     <button
-                      key={item.view}
+                      key={view}
                       type="button"
                       onClick={() => {
                         if (item.clearOnClick) {
                           markAllAsRead()
                         }
-                        onViewChange(item.view)
+                        onViewChange(view)
                       }}
                       className={cn(
                         "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                         isActive
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                          ? "bg-[var(--brand-primary)] text-white shadow-sm"
+                          : "text-[var(--brand-body)] hover:bg-[rgba(0,94,184,0.1)] hover:text-[var(--brand-ink)]"
                       )}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       {item.label}
                       {item.view === "newsFeed" && unreadCount > 0 ? (
-                        <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-red-600/30">
+                        <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       ) : null}
@@ -134,14 +166,14 @@ export default function Header({
                     className={cn(
                       "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                       isActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        ? "bg-[var(--brand-primary)] text-white shadow-sm"
+                        : "text-[var(--brand-body)] hover:bg-[rgba(0,94,184,0.1)] hover:text-[var(--brand-ink)]"
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {item.label}
                     {item.view === "newsFeed" && unreadCount > 0 ? (
-                      <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-red-600/30">
+                      <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     ) : null}
@@ -155,7 +187,7 @@ export default function Header({
             </div>
             <button
               onClick={onLogout}
-              className="hover:text-red-600 transition-colors duration-200 flex items-center gap-1.5"
+              className="flex items-center gap-1.5 transition-colors duration-200 hover:text-[var(--brand-danger)]"
             >
               <LogOut className="w-3.5 h-3.5" />
               Logout

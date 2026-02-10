@@ -38,9 +38,9 @@ export function MobileCompactResults({
           key={student.pax_id.toString()}
           onClick={() => onSelectStudent(student)}
           style={animationStyle(shouldAnimateResults, index)}
-          className={`bg-white/95 backdrop-blur-sm border-2 ${getStatusRingColor(
+          className={`border-2 ${getStatusRingColor(
             student.placement_status as string | undefined
-          )} rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer relative ${
+          )} relative cursor-pointer rounded-xl bg-[rgba(253,254,255,0.95)] p-4 shadow-md shadow-[rgba(0,53,84,0.12)] transition-all duration-200 hover:shadow-lg hover:shadow-[rgba(0,53,84,0.16)] backdrop-blur-sm ${
             shouldAnimateResults ? "results-refresh-item" : ""
           }`}
         >
@@ -51,66 +51,66 @@ export function MobileCompactResults({
                 ? onUnfavorite(student.pax_id.toString(), event)
                 : onFavorite(student.pax_id.toString(), event);
             }}
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-white hover:scale-110 transition-all duration-200 shadow-sm"
+            className="absolute top-3 right-3 z-10 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] p-1.5 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-[var(--brand-surface-elevated)]"
           >
             <Heart
               className={`w-4 h-4 ${
                 favoritedStudents.has(student.pax_id.toString())
-                  ? "fill-pink-500 text-pink-500"
-                  : "text-slate-400 hover:text-pink-500"
+                  ? "fill-[var(--brand-danger)] text-[var(--brand-danger)]"
+                  : "text-[var(--brand-muted)] hover:text-[var(--brand-danger)]"
               } transition-colors duration-200`}
             />
           </button>
 
           <div className="mb-3 pr-8">
-            <h3 className="text-lg font-bold text-slate-900">
+            <h3 className="text-lg font-bold text-[var(--brand-ink)]">
               {student.first_name} - {formatGender(student.gender_desc)}
             </h3>
-            <p className="text-xs text-slate-500 font-mono">
+            <p className="font-mono text-xs text-[var(--brand-muted)]">
               {String(student.usahsid ?? "")}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">Country</span>
-              <span className="font-semibold text-slate-700 text-sm">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">Country</span>
+              <span className="text-sm font-semibold text-[var(--brand-body)]">
                 {String(student.country ?? "-")}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">GPA</span>
-              <span className="font-semibold text-blue-600 text-sm flex items-center gap-1">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">GPA</span>
+              <span className="flex items-center gap-1 text-sm font-semibold text-[var(--brand-primary)]">
                 <Award className="w-3.5 h-3.5" />
                 {String(student.gpa ?? "-")}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">
                 Grade / Age
               </span>
-              <span className="font-semibold text-slate-700 text-sm">
+              <span className="text-sm font-semibold text-[var(--brand-body)]">
                 {String(student.applying_to_grade ?? "-")} /{" "}
                 {String(student.adjusted_age ?? "-")}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">English</span>
-              <span className="font-semibold text-blue-600 text-sm">
+              <span className="text-xs font-medium text-[var(--brand-muted)]">English</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">
                 {String(student.english_score ?? "-")}
               </span>
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-3 space-y-2">
+          <div className="space-y-2 border-t border-[var(--brand-border-soft)] pt-3">
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500 mb-1">Program</span>
-              <span className="font-medium text-slate-700 text-xs leading-tight">
+              <span className="mb-1 text-xs font-medium text-[var(--brand-muted)]">Program</span>
+              <span className="text-xs font-medium leading-tight text-[var(--brand-body)]">
                 {String(student.program_type ?? "-")}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">Status</span>
+              <span className="text-xs font-medium text-[var(--brand-muted)]">Status</span>
               <span
                 className={`inline-block px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeClass(
                   student.placement_status as string | undefined

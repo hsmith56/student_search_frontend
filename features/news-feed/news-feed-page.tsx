@@ -441,10 +441,10 @@ export default function NewsFeedPage({
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 flex items-center justify-center">
+      <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="mt-4 text-slate-600 font-medium">Loading news feed...</p>
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
+          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading news feed...</p>
         </div>
       </div>
     );
@@ -452,12 +452,12 @@ export default function NewsFeedPage({
 
   return (
     <div
-      className={`${embedded ? "bg-[#f4f6fb]" : "min-h-screen bg-[#f4f6fb]"} text-slate-900`}
+      className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
     >
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-24 top-6 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-300/20 blur-3xl" />
+        <div className="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[rgba(60,159,192,0.24)] blur-3xl" />
+        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-[rgba(0,94,184,0.17)] blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[rgba(255,87,0,0.13)] blur-3xl" />
       </div>
 
       <div className="relative z-10">
@@ -474,17 +474,17 @@ export default function NewsFeedPage({
         )}
 
         <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
-          <section className="rounded-3xl border border-blue-200/80 bg-white/90 p-6 shadow-[0_16px_40px_rgba(30,64,175,0.12)] backdrop-blur-md">
+          <section className="rounded-3xl border border-[rgba(0,94,184,0.3)] bg-[rgba(253,254,255,0.9)] p-6 shadow-[0_16px_40px_rgba(0,53,84,0.14)] backdrop-blur-md">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[rgba(0,94,184,0.3)] bg-[rgba(0,94,184,0.09)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-primary-deep)]">
                   <RadioTower className="h-3.5 w-3.5" />
                   Real-Time Updates
                 </p>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                <h1 className="text-3xl font-black tracking-tight text-[var(--brand-ink)]">
                   News Feed
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-[var(--brand-body)]">
                   Placement change events loaded from `/api/news_feed`.
                 </p>
               </div>
@@ -494,7 +494,7 @@ export default function NewsFeedPage({
                   type="button"
                   onClick={() => void fetchNewsFeed(true)}
                   disabled={isRefreshingFeed}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <RefreshCw
                     className={`h-3.5 w-3.5 ${isRefreshingFeed ? "animate-spin" : ""}`}
@@ -507,7 +507,7 @@ export default function NewsFeedPage({
 
           <section className="mt-5 space-y-3">
             {feedError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-sm font-semibold text-red-700">
+              <div className="rounded-2xl border border-[rgba(201,18,41,0.42)] bg-[rgba(201,18,41,0.09)] px-6 py-5 text-sm font-semibold text-[var(--brand-danger)]">
                 {feedError}
               </div>
             ) : null}
@@ -516,18 +516,18 @@ export default function NewsFeedPage({
               Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`skeleton-${index}`}
-                  className="w-full rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_8px_20px_rgba(15,23,42,0.08)] animate-pulse"
+                  className="w-full animate-pulse rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_8px_20px_rgba(0,53,84,0.09)]"
                 >
-                  <div className="h-4 w-2/5 rounded bg-slate-200" />
-                  <div className="mt-2 h-3 w-4/5 rounded bg-slate-200" />
-                  <div className="mt-4 h-3 w-1/2 rounded bg-slate-200" />
+                  <div className="h-4 w-2/5 rounded bg-[rgba(187,192,195,0.45)]" />
+                  <div className="mt-2 h-3 w-4/5 rounded bg-[rgba(187,192,195,0.45)]" />
+                  <div className="mt-4 h-3 w-1/2 rounded bg-[rgba(187,192,195,0.45)]" />
                 </div>
               ))
             ) : feedItems.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/85 px-6 py-10 text-center">
-                <Bell className="mx-auto mb-3 h-8 w-8 text-slate-400" />
-                <p className="text-lg font-semibold text-slate-800">No alerts yet</p>
-                <p className="mt-1 text-sm text-slate-600">
+              <div className="rounded-2xl border border-dashed border-[var(--brand-border)] bg-[rgba(253,254,255,0.88)] px-6 py-10 text-center">
+                <Bell className="mx-auto mb-3 h-8 w-8 text-[var(--brand-muted)]" />
+                <p className="text-lg font-semibold text-[var(--brand-ink)]">No alerts yet</p>
+                <p className="mt-1 text-sm text-[var(--brand-body)]">
                   `/api/news_feed` did not return any events.
                 </p>
               </div>
@@ -538,34 +538,34 @@ export default function NewsFeedPage({
                   type="button"
                   onClick={() => void handleSelectStudent(alert.studentId)}
                   disabled={loadingStudentId === alert.studentId}
-                  className="w-full rounded-2xl border border-slate-200 bg-white/95 p-4 text-left shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,23,42,0.12)] disabled:cursor-wait disabled:opacity-70"
+                  className="w-full rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 text-left shadow-[0_8px_20px_rgba(0,53,84,0.09)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,53,84,0.14)] disabled:cursor-wait disabled:opacity-70"
                   style={{ animationDelay: `${index * 35}ms` }}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="inline-flex items-center gap-2 text-sm font-bold text-slate-900">
-                        <UserRoundCheck className="h-4 w-4 text-blue-600" />
+                      <p className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
+                        <UserRoundCheck className="h-4 w-4 text-[var(--brand-primary)]" />
                         {alert.firstName ?? `Student #${alert.studentId ?? "Unknown"}`} moved to{" "}
                         {alert.statusTo ?? "Allocated"}
                       </p>
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-[var(--brand-body)]">
                         {alert.eventType} | Event ID {alert.eventId ?? "N/A"} |{" "}
                         {alert.statusFrom ?? "Unknown"} to {alert.statusTo ?? alert.placementState ?? "Allocated"}
                       </p>
                     </div>
 
                     {loadingStudentId === alert.studentId ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(255,194,62,0.62)] bg-[rgba(255,194,62,0.2)] px-2.5 py-1 text-[11px] font-semibold text-[#8a6200]">
                         Loading profile...
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.11)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-primary-deep)]">
                         Open Student
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--brand-muted)]">
                     <span className="inline-flex items-center gap-1">
                       <Clock3 className="h-3.5 w-3.5" />
                       Event: {formatEventTime(alert.eventAt)}

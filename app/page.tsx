@@ -108,10 +108,10 @@ export default function HomePage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 flex items-center justify-center">
+      <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="mt-4 text-slate-600 font-medium">Loading...</p>
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
+          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading...</p>
         </div>
       </div>
     );
@@ -138,7 +138,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="brand-page-gradient min-h-screen">
       <Header
         firstName={firstName}
         onLogout={logout}

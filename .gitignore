@@ -42,3 +42,7 @@ next-env.d.ts
 .vscode
 
 dashboard
+!app/dashboard/
+!app/dashboard/**
+!features/dashboard/
+!features/dashboard/**

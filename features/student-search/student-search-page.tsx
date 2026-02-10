@@ -39,10 +39,10 @@ export default function StudentSearchPage({
 
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 flex items-center justify-center">
+      <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="mt-4 text-slate-600 font-medium">Loading...</p>
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
+          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading...</p>
         </div>
       </div>
     );
@@ -53,39 +53,43 @@ export default function StudentSearchPage({
       label: "Available Now",
       value: controller.availableNow,
       icon: Users,
-      iconClass: "text-sky-700",
-      cardClass: "border-sky-200/80 bg-white/95 hover:border-sky-300/90",
+      iconClass: "text-[var(--brand-primary)]",
+      cardClass:
+        "border-[rgba(0,94,184,0.32)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(0,94,184,0.5)]",
       onClick: () => controller.fetchStudentsByStatus(["Allocated"]),
     },
     {
       label: "Unassigned",
       value: controller.unassignedNow,
       icon: UserLock,
-      iconClass: "text-slate-600",
-      cardClass: "border-slate-300/80 bg-white/95 hover:border-slate-400/90",
+      iconClass: "text-[var(--brand-body)]",
+      cardClass:
+        "border-[rgba(114,125,131,0.4)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(114,125,131,0.62)]",
       onClick: () => controller.fetchStudentsByStatus(["Unassigned"]),
     },
     {
       label: "Students Placed",
       value: controller.alreadyPlaced,
       icon: CheckCircle2,
-      iconClass: "text-emerald-700",
-      cardClass: "border-emerald-200/80 bg-white/95 hover:border-emerald-300/90",
+      iconClass: "text-[var(--brand-success-deep)]",
+      cardClass:
+        "border-[rgba(0,144,63,0.35)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(0,144,63,0.56)]",
       onClick: () => controller.fetchStudentsByStatus(["Placed", "Pending"]),
     },
     {
       label: "My Favorites",
       value: controller.favoritedStudents.size,
       icon: Heart,
-      iconClass: "text-rose-700",
-      cardClass: "border-rose-200/80 bg-white/95 hover:border-rose-300/90",
+      iconClass: "text-[var(--brand-accent)]",
+      cardClass:
+        "border-[rgba(255,87,0,0.35)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(255,87,0,0.56)]",
       onClick: controller.showFavorites,
     },
   ];
 
   return (
     <div
-      className={`${embedded ? "bg-gray-200" : "min-h-screen bg-gray-200"} relative overflow-hidden`}
+      className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} relative overflow-hidden`}
     >
       <div className="relative z-10">
         {!embedded && (
