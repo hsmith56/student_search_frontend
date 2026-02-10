@@ -66,12 +66,16 @@ const bodyFont = Public_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-function cleanList(items: string[] | undefined): string[] {
-  if (!items?.length) {
+function cleanList(
+  items: Array<string | null | undefined> | undefined | null,
+): string[] {
+  if (!Array.isArray(items) || items.length === 0) {
     return [];
   }
 
-  return items.filter((item) => item && item.trim() !== "");
+  return items
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item !== "");
 }
 
 function boolText(value: boolean): string {
@@ -319,13 +323,14 @@ export default function StudentProfilePage() {
                 label="Program"
                 value={textOrDash(student.program_type)}
               />
+              
               <InfoRow
-                label="City Preference"
-                value={textOrDash(student.urban_request)}
+                label="Religion"
+                value={textOrDash(student.religion)}
               />
               <InfoRow
-                label="Live with pets"
-                value={boolText(student.live_with_pets)}
+                label="Religious Frequency"
+                value={textOrDash(student.religious_frequency)}
               />
             </dl>
           </article>
@@ -345,10 +350,6 @@ export default function StudentProfilePage() {
                 value={textOrDash(student.favorite_subjects)}
               />
               <InfoRow
-                label="Religious Frequency"
-                value={textOrDash(student.religious_frequency)}
-              />
-              <InfoRow
                 label="Allergies"
                 value={textOrDash(student.allergy_comments)}
               />
@@ -356,6 +357,9 @@ export default function StudentProfilePage() {
                 label="Dietary Notes"
                 value={textOrDash(student.dietary_restrictions)}
               />
+              {healthNotes.length > 0 && (
+                <InfoRow label="Medical Notes" value={healthNotes.join(", ")} />
+              )}
             </dl>
           </article>
 
@@ -374,8 +378,12 @@ export default function StudentProfilePage() {
                 value={boolText(student.double_placement)}
               />
               <InfoRow
-                label="Coordinator"
-                value={textOrDash(student.local_coordinator)}
+                label="City Preference"
+                value={textOrDash(student.urban_request)}
+              />
+              <InfoRow
+                label="Live with pets"
+                value={boolText(student.live_with_pets)}
               />
             </dl>
             {states.length > 0 && (
@@ -408,7 +416,7 @@ export default function StudentProfilePage() {
                 <p className="mt-4 text-xs uppercase tracking-[0.16em] text-stone-500">
                   Additional
                 </p>
-                <ChipGroup items={additionalInterests} />
+                <TextAreaGroup items={additionalInterests} />
               </>
             )}
           </article>
@@ -480,6 +488,25 @@ function MessageBlock({ title, text }: { title: string; text: string }) {
     <div className="mt-3 rounded-2xl border border-stone-200 bg-stone-50/80 p-4">
       <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{title}</p>
       <p className="mt-2 text-sm leading-relaxed text-stone-800">{cleaned}</p>
+    </div>
+  );
+}
+
+function TextAreaGroup({ items }: { items: string[] }) {
+  if (!items.length) {
+    return <p className="text-sm text-stone-500">Not provided.</p>;
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {items.map((item, index) => (
+        <div
+          key={`${item}-${index}`}
+          className="rounded-2xl border border-stone-200 bg-stone-50/80 p-4"
+        >
+          <p className="text-sm leading-relaxed text-stone-800">{item}</p>
+        </div>
+      ))}
     </div>
   );
 }
