@@ -1,37 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Student Search Frontend
 
-## Getting Started
+Next.js frontend for:
+- student search and filtering
+- student profile dialog/details
+- dashboard analytics mockup
+- news feed events
+- auth/login/register and favorites
 
-First, run the development server:
+## Tech Stack
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Recharts
 
+## Main Routes
+- `/` - Student Search
+- `/dashboard` - Dashboard view
+- `/newsFeed` - News Feed
+- `/feedback` - Feedback board
+- `/StudentProfile` - Full student profile page
+- `/login` - Login/Register
+
+## Prerequisites (New Machine)
+1. Install Node.js 20+ (Node 22 LTS recommended).
+2. Install npm (comes with Node).
+3. Have backend services running and reachable from the frontend under:
+   - `/api/*`
+   - `/notifications/ws/placements` (WebSocket)
+4. If backend is not same-origin, set up a reverse proxy (recommended) so frontend can still call `/api` and `/notifications/ws/placements`.
+
+Important: this frontend currently calls API as `/api` (relative path), so without proxying you will get 404/502 or auth/cookie issues.
+
+## Clone and Run
 ```bash
-npx shadcn@latest add button card input select checkbox switch dialog badge
+git clone <your-repo-url>
+cd Student_Search/Frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
+- `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
+```bash
+# start local dev server
+npm run dev
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# production build
+npm run build
 
-## Learn More
+# run production server after build
+npm run start
 
-To learn more about Next.js, take a look at the following resources:
+# lint (first run may prompt ESLint setup if not configured yet)
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Reverse Proxy Notes (Nginx Example)
+If frontend is served by Next.js and backend is separate, proxy paths like this:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```nginx
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
 
-## Deploy on Vercel
+server {
+  listen 443 ssl;
+  server_name <host>;
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  location /api/ {
+    proxy_pass http://127.0.0.1:8000;
+  }
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+  location /notifications/ws/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_read_timeout 3600s;
+  }
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+  }
+}
+```
+
+## Optional Environment Variable
+- `NEXT_PUBLIC_NOTIFICATIONS_WS_URL`
+  - Optional override for websocket URL.
+  - If not set, frontend defaults to:
+    - `ws://<current-host>/notifications/ws/placements` (HTTP)
+    - `wss://<current-host>/notifications/ws/placements` (HTTPS)
+
+## Development Notes
+- Auth uses cookies; login must succeed before websocket notifications can connect.
+- Client-side caching is used for repeated route switches between `/` and `/newsFeed` to reduce duplicate fetches.
