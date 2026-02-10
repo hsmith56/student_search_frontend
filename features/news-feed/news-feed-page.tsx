@@ -20,6 +20,7 @@ import {
   invalidateClientCache,
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
+import type { HeaderView } from "@/components/layout/Header";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -147,7 +148,17 @@ function formatEventTime(value: string): string {
   });
 }
 
-export default function NewsFeedPage() {
+type NewsFeedPageProps = {
+  activeView?: HeaderView;
+  onViewChange?: (view: HeaderView) => void;
+  embedded?: boolean;
+};
+
+export default function NewsFeedPage({
+  activeView,
+  onViewChange,
+  embedded = false,
+}: NewsFeedPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
@@ -440,7 +451,9 @@ export default function NewsFeedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
+    <div
+      className={`${embedded ? "bg-[#f4f6fb]" : "min-h-screen bg-[#f4f6fb]"} text-slate-900`}
+    >
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-24 top-6 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
         <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
@@ -448,13 +461,17 @@ export default function NewsFeedPage() {
       </div>
 
       <div className="relative z-10">
-        <Header
-          firstName={firstName}
-          onLogout={logout}
-          updateTime={updateTime}
-          onUpdateDatabase={handleUpdateDatabase}
-          isUpdatingDatabase={isUpdatingDatabase}
-        />
+        {!embedded && (
+          <Header
+            firstName={firstName}
+            onLogout={logout}
+            updateTime={updateTime}
+            onUpdateDatabase={handleUpdateDatabase}
+            isUpdatingDatabase={isUpdatingDatabase}
+            activeView={activeView}
+            onViewChange={onViewChange}
+          />
+        )}
 
         <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
           <section className="rounded-3xl border border-blue-200/80 bg-white/90 p-6 shadow-[0_16px_40px_rgba(30,64,175,0.12)] backdrop-blur-md">
@@ -564,7 +581,7 @@ export default function NewsFeedPage() {
           </section>
         </main>
 
-        <Footer />
+        {!embedded && <Footer />}
       </div>
 
       <StudentDetailsDialog

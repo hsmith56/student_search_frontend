@@ -17,8 +17,19 @@ import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-fo
 import { useIsMobile } from "@/features/student-search/hooks/use-is-mobile";
 import { useStudentSearchController } from "@/features/student-search/hooks/use-student-search-controller";
 import type { QuickStatsCard } from "@/features/student-search/types";
+import type { HeaderView } from "@/components/layout/Header";
 
-export default function StudentSearchPage() {
+type StudentSearchPageProps = {
+  activeView?: HeaderView;
+  onViewChange?: (view: HeaderView) => void;
+  embedded?: boolean;
+};
+
+export default function StudentSearchPage({
+  activeView,
+  onViewChange,
+  embedded = false,
+}: StudentSearchPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
@@ -73,15 +84,21 @@ export default function StudentSearchPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-200 relative overflow-hidden">
+    <div
+      className={`${embedded ? "bg-gray-200" : "min-h-screen bg-gray-200"} relative overflow-hidden`}
+    >
       <div className="relative z-10">
-        <Header
-          firstName={controller.firstName}
-          onLogout={logout}
-          updateTime={controller.updateTime}
-          onUpdateDatabase={controller.handleUpdateDatabase}
-          isUpdatingDatabase={controller.isUpdatingDatabase}
-        />
+        {!embedded && (
+          <Header
+            firstName={controller.firstName}
+            onLogout={logout}
+            updateTime={controller.updateTime}
+            onUpdateDatabase={controller.handleUpdateDatabase}
+            isUpdatingDatabase={controller.isUpdatingDatabase}
+            activeView={activeView}
+            onViewChange={onViewChange}
+          />
+        )}
 
         <div className="w-full px-4 sm:px-6 lg:px-8 2xl:px-10 py-5">
           <div className="mx-auto w-full max-w-[1900px]">
@@ -134,7 +151,7 @@ export default function StudentSearchPage() {
           </div>
         </div>
 
-        <Footer />
+        {!embedded && <Footer />}
       </div>
 
       <FeedbackDialog

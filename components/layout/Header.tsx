@@ -2,9 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Search, BarChart3, Bell, Users, LogOut, RefreshCw } from "lucide-react"
+import {
+  GraduationCap,
+  Search,
+  Bell,
+  MessageSquareText,
+  Users,
+  LogOut,
+  RefreshCw,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
+
+export type HeaderView = "search" | "newsFeed" | "feedback"
 
 interface HeaderProps {
   firstName: string
@@ -12,6 +22,8 @@ interface HeaderProps {
   updateTime: string
   onUpdateDatabase?: () => void
   isUpdatingDatabase?: boolean
+  activeView?: HeaderView
+  onViewChange?: (view: HeaderView) => void
 }
 
 export default function Header({
@@ -20,14 +32,27 @@ export default function Header({
   updateTime,
   onUpdateDatabase,
   isUpdatingDatabase = false,
+  activeView,
+  onViewChange,
 }: HeaderProps) {
   const pathname = usePathname()
   const { unreadCount, markAllAsRead } = useNotifications()
 
   const navItems = [
-    { href: "/", label: "Search", icon: Search },
-    // { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-    { href: "/newsFeed", label: "News Feed", icon: Bell, clearOnClick: true },
+    { view: "search" as const, href: "/", label: "Search", icon: Search },
+    {
+      view: "newsFeed" as const,
+      href: "/newsFeed",
+      label: "News Feed",
+      icon: Bell,
+      clearOnClick: true,
+    },
+    {
+      view: "feedback" as const,
+      href: "/feedback",
+      label: "Feedback",
+      icon: MessageSquareText,
+    },
   ]
 
   return (
@@ -66,10 +91,40 @@ export default function Header({
             <nav className="flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 p-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive =
-                  item.href === "/"
+                const isActive = onViewChange
+                  ? activeView === item.view
+                  : item.href === "/"
                     ? pathname === "/"
                     : pathname?.startsWith(item.href)
+
+                if (onViewChange) {
+                  return (
+                    <button
+                      key={item.view}
+                      type="button"
+                      onClick={() => {
+                        if (item.clearOnClick) {
+                          markAllAsRead()
+                        }
+                        onViewChange(item.view)
+                      }}
+                      className={cn(
+                        "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                        isActive
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {item.label}
+                      {item.view === "newsFeed" && unreadCount > 0 ? (
+                        <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-red-600/30">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                }
 
                 return (
                   <Link
@@ -85,7 +140,7 @@ export default function Header({
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {item.label}
-                    {item.href === "/newsFeed" && unreadCount > 0 ? (
+                    {item.view === "newsFeed" && unreadCount > 0 ? (
                       <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-red-600/30">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
