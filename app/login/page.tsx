@@ -251,7 +251,7 @@ export default function LoginPage() {
 
         {/* Additional Info */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-500">&copy; 2025 Student Exchange Portal. All rights reserved.</p>
+          <p className="text-xs text-slate-500">&copy; 2026 Student Exchange Portal. All rights reserved.</p>
         </div>
       </div>
     </div>

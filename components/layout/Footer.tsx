@@ -73,7 +73,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-200 mt-1 pt-1 text-center text-xs text-slate-500 font-medium">
-          <p>&copy; 2025 Exchange Profile Search. All rights reserved.</p>
+          <p>&copy; 2026 Exchange Profile Search. All rights reserved.</p>
         </div>
       </div>
     </footer>

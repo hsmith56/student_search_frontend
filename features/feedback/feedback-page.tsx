@@ -223,14 +223,11 @@ export default function FeedbackPage({
             <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-5 text-white">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.22em] font-semibold text-blue-100">
-                    Internal Review Stream
-                  </p>
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-1">
                     Feedback Board
                   </h1>
                   <p className="text-sm text-blue-50/90 mt-1">
-                    All submitted comments in one place.
+                    Let me know if anything needs fixing or updating and I will do my best to address it.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
