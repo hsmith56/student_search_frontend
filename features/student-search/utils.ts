@@ -22,7 +22,7 @@ export const getStatusBadgeClass = (status?: string) => {
   if (statusLower.includes("pending")) {
     return "bg-yellow-100 text-yellow-700 border border-yellow-300";
   }
-  if (statusLower.includes("placed")) {
+  if (statusLower.includes("placed") || statusLower.includes("accepted")) {
     return "bg-green-100 text-green-700 border border-green-300";
   }
 
