@@ -2,7 +2,10 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import { API_URL } from "@/features/student-search/constants";
+import {
+  API_URL,
+  RESULTS_PER_PAGE_STORAGE_KEY,
+} from "@/features/student-search/constants";
 import {
   defaultFilters,
   type Filters,
@@ -47,6 +50,12 @@ export function useStudentSearchController({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
+  const [resultsPerPage, setResultsPerPage] = useState<number>(() => {
+    if (typeof window === "undefined") return 15;
+    const stored = Number(localStorage.getItem(RESULTS_PER_PAGE_STORAGE_KEY) ?? "15");
+    if ([15, 20, 25, 50].includes(stored)) return stored;
+    return 15;
+  });
 
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(
     new Set()
@@ -104,18 +113,20 @@ export function useStudentSearchController({
   const fetchStudents = async (
     page = 1,
     orderByParam?: string,
-    descendingParam?: boolean
+    descendingParam?: boolean,
+    resultsPerPageParam?: number
   ) => {
     const sortBy = orderByParam ?? orderBy;
     const sortDesc =
       typeof descendingParam === "boolean" ? descendingParam : descending;
+    const pageSize = resultsPerPageParam ?? resultsPerPage;
     try {
       const statusValue = filters.statusOptions.includes("All")
         ? "allocated"
         : filters.statusOptions.map((status) => status.toLowerCase()).join(",");
 
       const response = await fetch(
-        `${API_URL}/students/search?page=${page}&page_size=15&order_by=${sortBy}&descending=${sortDesc}`,
+        `${API_URL}/students/search?page=${page}&page_size=${pageSize}&order_by=${sortBy}&descending=${sortDesc}`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -143,7 +154,7 @@ export function useStudentSearchController({
   const fetchStudentsWithDefaults = async () => {
     try {
       const response = await fetch(
-        `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
+        `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -181,7 +192,7 @@ export function useStudentSearchController({
 
     try {
       const statusKey = status.map((value) => value.toLowerCase()).join(",");
-      const cacheKey = `students:status:${statusKey}:order:${orderBy}:descending:${descending}:filters:${JSON.stringify(
+      const cacheKey = `students:status:${statusKey}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
         filters
       )}`;
       const data = await getCachedValue<{
@@ -193,7 +204,7 @@ export function useStudentSearchController({
         cacheKey,
         async () => {
           const response = await fetch(
-            `${API_URL}/students/search?page=1&page_size=15&order_by=${orderBy}&descending=${descending}`,
+            `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
             {
               method: "POST",
               headers: getHeaders(),
@@ -227,6 +238,17 @@ export function useStudentSearchController({
       console.error("Error:", error);
       setStudents([]);
     }
+  };
+
+  const handleResultsPerPageChange = (value: number) => {
+    setResultsPerPage(value);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(RESULTS_PER_PAGE_STORAGE_KEY, String(value));
+    }
+
+    setCurrentPage(1);
+    setShowFavoritesOnly(false);
+    fetchStudents(1, undefined, undefined, value);
   };
 
   const fetchLoggedInUser = async () => {
@@ -708,6 +730,8 @@ export function useStudentSearchController({
     currentPage,
     totalPages,
     showFavoritesOnly,
+    resultsPerPage,
+    handleResultsPerPageChange,
     goToPreviousPage,
     goToNextPage,
     isSearchFiltersExpanded,

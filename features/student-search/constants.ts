@@ -1,6 +1,7 @@
 export const API_URL = "/api";
 export const ORDER_BY_STORAGE_KEY = "studentSearch.orderBy";
 export const DESCENDING_STORAGE_KEY = "studentSearch.descending";
+export const RESULTS_PER_PAGE_STORAGE_KEY = "studentSearch.resultsPerPage";
 
 export const SEARCH_TIPS = [
   "Photo search looks for keywords in the photo comment section.",

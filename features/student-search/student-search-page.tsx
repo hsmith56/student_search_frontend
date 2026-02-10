@@ -145,6 +145,8 @@ export default function StudentSearchPage({
               currentPage={controller.currentPage}
               totalPages={controller.totalPages}
               showFavoritesOnly={controller.showFavoritesOnly}
+              resultsPerPage={controller.resultsPerPage}
+              onResultsPerPageChange={controller.handleResultsPerPageChange}
               onPreviousPage={controller.goToPreviousPage}
               onNextPage={controller.goToNextPage}
             />
