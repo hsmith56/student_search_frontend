@@ -19,14 +19,6 @@ type DesktopCompactResultsProps = {
   onUnfavorite: (paxId: string, event?: React.MouseEvent) => void;
 };
 
-const SORT_HEADERS = [
-  { key: "first_name", label: "Name" },
-  { key: "country", label: "Country" },
-  { key: "gpa", label: "GPA" },
-  { key: "adjusted_age", label: "Grade/Age" },
-  { key: "placement_status", label: "Status" },
-];
-
 export function DesktopCompactResults({
   students,
   shouldAnimateResults,
@@ -39,6 +31,11 @@ export function DesktopCompactResults({
   onFavorite,
   onUnfavorite,
 }: DesktopCompactResultsProps) {
+  const headerCellClass =
+    "px-2.5 md:px-3 py-2.5 text-left text-[11px] font-semibold text-slate-700 uppercase tracking-wide";
+  const bodyCellClass =
+    "px-2.5 md:px-3 py-2.5 text-[13px] leading-5 font-normal text-slate-700";
+
   return (
     <div
       key={`desktop-results-${resultsAnimationKey}`}
@@ -47,10 +44,23 @@ export function DesktopCompactResults({
       }`}
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1360px]">
+        <table className="w-full min-w-[1120px] table-fixed">
+          <colgroup>
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "26%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "4%" }} />
+          </colgroup>
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 <SortableHeader
                   label="Name"
                   isActive={orderBy === "first_name"}
@@ -58,13 +68,13 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("first_name")}
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 Gender
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 ID
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 <SortableHeader
                   label="Country"
                   isActive={orderBy === "country"}
@@ -72,10 +82,10 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("country")}
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 Interests
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 <SortableHeader
                   label="GPA"
                   isActive={orderBy === "gpa"}
@@ -83,7 +93,7 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("gpa")}
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 <SortableHeader
                   label="Grade/Age"
                   isActive={orderBy === "adjusted_age"}
@@ -91,13 +101,13 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("adjusted_age")}
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 English
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 Program
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className={headerCellClass}>
                 <SortableHeader
                   label="Status"
                   isActive={orderBy === "placement_status"}
@@ -105,7 +115,7 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("placement_status")}
                 />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <th className="px-2.5 md:px-3 py-2.5 text-center text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -120,20 +130,20 @@ export function DesktopCompactResults({
                   shouldAnimateResults ? "results-refresh-item" : ""
                 }`}
               >
-                <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                <td className={bodyCellClass}>
                   {String(student.first_name ?? "-")}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
+                <td className={bodyCellClass}>
                   {formatGender(student.gender_desc)}
                 </td>
-                <td className="px-4 py-3 text-xs font-mono text-slate-500">
+                <td className="px-2.5 md:px-3 py-2.5 text-[12px] font-mono text-slate-500">
                   {String(student.usahsid ?? "")}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
+                <td className={bodyCellClass}>
                   {String(student.country ?? "-")}
                 </td>
                 <td
-                  className="px-4 py-3 text-xs text-slate-700 whitespace-normal"
+                  className="px-2.5 md:px-3 py-2.5 text-[13px] leading-5 font-normal text-slate-700 whitespace-normal break-words"
                   title={
                     Array.isArray(student.selected_interests)
                       ? student.selected_interests.join(", ")
@@ -145,35 +155,35 @@ export function DesktopCompactResults({
                     ? student.selected_interests.join(", ")
                     : "-"}
                 </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-md font-semibold text-xs border border-blue-200/60">
+                <td className="px-2.5 md:px-3 py-2.5">
+                  <span className="inline-flex items-center gap-1 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700 px-2 py-1 rounded-md font-semibold text-[12px] border border-blue-200/60">
                     <Award className="w-3 h-3" />
                     {String(student.gpa ?? "-")}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
+                <td className="px-2.5 md:px-3 py-2.5 text-[13px] leading-5 font-medium text-slate-700">
                   {String(student.applying_to_grade ?? "-")} /{" "}
                   {String(student.adjusted_age ?? "-")}
                 </td>
-                <td className="px-4 py-3 text-sm font-semibold text-blue-600">
+                <td className={bodyCellClass}>
                   {String(student.english_score ?? "-")}
                 </td>
                 <td
-                  className="px-4 py-3 text-xs text-slate-700 max-w-[150px] truncate"
+                  className="px-2.5 md:px-3 py-2.5 text-[13px] leading-5 font-normal text-slate-700 truncate"
                   title={String(student.program_type ?? "")}
                 >
                   {String(student.program_type ?? "-")}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2.5 md:px-3 py-2.5">
                   <span
-                    className={`inline-block px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeClass(
+                    className={`inline-block px-2 py-1 rounded-md text-[12px] font-medium ${getStatusBadgeClass(
                       student.placement_status as string | undefined
                     )}`}
                   >
                     {String(student.placement_status ?? "-")}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-2.5 md:px-3 py-2.5 text-center">
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
@@ -216,7 +226,7 @@ function SortableHeader({
 }: SortableHeaderProps) {
   return (
     <div
-      className="flex items-center gap-2 cursor-pointer select-none"
+      className="flex items-center gap-1.5 cursor-pointer select-none"
       onClick={onClick}
     >
       <span>{label}</span>
