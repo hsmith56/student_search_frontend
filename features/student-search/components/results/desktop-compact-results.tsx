@@ -46,11 +46,11 @@ export function DesktopCompactResults({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1120px] table-fixed">
           <colgroup>
-            <col style={{ width: "12%" }} />
+            <col style={{ width: "9%" }} />
             <col style={{ width: "6%" }} />
             <col style={{ width: "8%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "26%" }} />
+            <col style={{ width: "29%" }} />
             <col style={{ width: "7%" }} />
             <col style={{ width: "8%" }} />
             <col style={{ width: "6%" }} />
@@ -130,7 +130,10 @@ export function DesktopCompactResults({
                   shouldAnimateResults ? "results-refresh-item" : ""
                 }`}
               >
-                <td className={bodyCellClass}>
+                <td
+                  className="px-2 md:px-2.5 py-2.5 text-[13px] leading-5 font-normal text-slate-700 truncate"
+                  title={String(student.first_name ?? "-")}
+                >
                   {String(student.first_name ?? "-")}
                 </td>
                 <td className={bodyCellClass}>
@@ -176,7 +179,7 @@ export function DesktopCompactResults({
                 </td>
                 <td className="px-2.5 md:px-3 py-2.5">
                   <span
-                    className={`inline-block px-2 py-1 rounded-md text-[12px] font-medium ${getStatusBadgeClass(
+                    className={`inline-block whitespace-nowrap px-2 py-1 rounded-md text-[12px] font-medium ${getStatusBadgeClass(
                       student.placement_status as string | undefined
                     )}`}
                   >
