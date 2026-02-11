@@ -160,7 +160,6 @@ export default function LoginOnePage() {
 
         <section className="login-one-panel">
           <div className="login-one-panel-head">
-            <p className="login-one-tag">Hsmithtech.com</p>
             <h2>{mode === "login" ? "Welcome back" : "Create account"}</h2>
             <p>
               {mode === "login"
@@ -303,6 +302,7 @@ export default function LoginOnePage() {
           --one-panel: #f6f7f8;
           --one-ink: #0e2537;
           --one-muted: #5a7081;
+          --one-type-scale: 0.9;
           min-height: 100vh;
           min-height: 100svh;
           min-height: 100dvh;
@@ -333,7 +333,7 @@ export default function LoginOnePage() {
           color: #fff2f4;
           box-shadow: 0 10px 22px rgba(73, 8, 24, 0.38);
           padding: 0.55rem 0.72rem;
-          font-size: 0.82rem;
+          font-size: calc(0.82rem * var(--one-type-scale));
           line-height: 1.3;
           font-weight: 700;
           text-align: center;
@@ -403,7 +403,7 @@ export default function LoginOnePage() {
           background: rgba(255, 255, 255, 0.14);
           border: 1px solid rgba(255, 255, 255, 0.2);
           padding: 0.35rem 0.72rem;
-          font-size: 0.86rem;
+          font-size: calc(0.86rem * var(--one-type-scale));
           font-weight: 700;
           display: inline-flex;
           align-items: center;
@@ -423,7 +423,11 @@ export default function LoginOnePage() {
           margin: 1.2rem 0 0.75rem;
           max-width: 15ch;
           font-family: var(--font-login-one-serif), serif;
-          font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+          font-size: clamp(
+            calc(1.7rem * var(--one-type-scale)),
+            calc(3.2vw * var(--one-type-scale)),
+            calc(2.5rem * var(--one-type-scale))
+          );
           line-height: 1.12;
           letter-spacing: -0.02em;
           text-wrap: balance;
@@ -436,7 +440,11 @@ export default function LoginOnePage() {
         .login-one-copy {
           color: rgba(235, 244, 255, 0.9);
           max-width: 37ch;
-          font-size: clamp(0.9rem, 1vw, 1.02rem);
+          font-size: clamp(
+            calc(0.9rem * var(--one-type-scale)),
+            calc(1vw * var(--one-type-scale)),
+            calc(1.02rem * var(--one-type-scale))
+          );
           line-height: 1.52;
           margin-bottom: 1.2rem;
         }
@@ -460,14 +468,14 @@ export default function LoginOnePage() {
 
         .login-one-highlight-card h2 {
           margin: 0;
-          font-size: 0.85rem;
+          font-size: calc(0.85rem * var(--one-type-scale));
           font-weight: 750;
           color: #f0f8ff;
         }
 
         .login-one-highlight-card p {
           margin: 0.2rem 0 0;
-          font-size: 0.77rem;
+          font-size: calc(0.77rem * var(--one-type-scale));
           line-height: 1.32;
           color: rgba(216, 235, 249, 0.85);
         }
@@ -475,7 +483,7 @@ export default function LoginOnePage() {
         .login-one-panel {
           background: var(--one-panel);
           color: var(--one-ink);
-          padding: clamp(1.2rem, 2.2vw, 1.9rem);
+          padding: clamp(0.2rem, 1.2vw, 0.9rem);
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
@@ -503,7 +511,7 @@ export default function LoginOnePage() {
 
         .login-one-tag {
           margin: 0;
-          font-size: 0.65rem;
+          font-size: calc(0.65rem * var(--one-type-scale));
           letter-spacing: 0.15em;
           text-transform: uppercase;
           font-weight: 800;
@@ -513,7 +521,11 @@ export default function LoginOnePage() {
         .login-one-panel-head h2 {
           margin: 0.34rem 0 0.3rem;
           font-family: var(--font-login-one-serif), serif;
-          font-size: clamp(1.45rem, 2.3vw, 1.95rem);
+          font-size: clamp(
+            calc(1.45rem * var(--one-type-scale)),
+            calc(2.3vw * var(--one-type-scale)),
+            calc(1.95rem * var(--one-type-scale))
+          );
           letter-spacing: -0.02em;
           color: #102d43;
           transition: color 220ms ease;
@@ -524,7 +536,7 @@ export default function LoginOnePage() {
           color: var(--one-muted);
           line-height: 1.42;
           max-width: 32ch;
-          font-size: 0.89rem;
+          font-size: calc(0.89rem * var(--one-type-scale));
         }
 
         .login-one-switch {
@@ -561,7 +573,7 @@ export default function LoginOnePage() {
           background: transparent;
           border-radius: 0.5rem;
           padding: 0.4rem 0.5rem;
-          font-size: 0.83rem;
+          font-size: calc(0.83rem * var(--one-type-scale));
           position: relative;
           z-index: 1;
           font-weight: 700;
@@ -612,7 +624,7 @@ export default function LoginOnePage() {
 
         .login-one-form label {
           margin-top: 0.5rem;
-          font-size: 0.77rem;
+          font-size: calc(0.77rem * var(--one-type-scale));
           font-weight: 750;
           color: #123247;
         }
@@ -648,7 +660,7 @@ export default function LoginOnePage() {
           background: transparent;
           width: 100%;
           color: #102b3f;
-          font-size: 0.88rem;
+          font-size: calc(0.88rem * var(--one-type-scale));
           line-height: 1.25;
         }
 
@@ -660,7 +672,7 @@ export default function LoginOnePage() {
           margin-top: 0.3rem;
           border-radius: 0.58rem;
           padding: 0.45rem 0.55rem;
-          font-size: 0.78rem;
+          font-size: calc(0.78rem * var(--one-type-scale));
           font-weight: 600;
         }
 
@@ -677,7 +689,7 @@ export default function LoginOnePage() {
           background: linear-gradient(90deg, var(--one-action) 0%, #ff7b1a 100%);
           color: #fff;
           padding: 0.68rem 0.8rem;
-          font-size: 0.88rem;
+          font-size: calc(0.88rem * var(--one-type-scale));
           font-weight: 760;
           letter-spacing: 0.01em;
           display: inline-flex;
@@ -713,7 +725,7 @@ export default function LoginOnePage() {
         .login-one-note {
           margin: 0.8rem 0 0;
           color: #4e6778;
-          font-size: 0.76rem;
+          font-size: calc(0.76rem * var(--one-type-scale));
           line-height: 1.35;
         }
 
@@ -782,11 +794,15 @@ export default function LoginOnePage() {
 
           .login-one-title {
             margin-top: 0.78rem;
-            font-size: clamp(1.45rem, 8vw, 2.05rem);
+            font-size: clamp(
+              calc(1.45rem * var(--one-type-scale)),
+              calc(8vw * var(--one-type-scale)),
+              calc(2.05rem * var(--one-type-scale))
+            );
           }
 
           .login-one-copy {
-            font-size: 0.86rem;
+            font-size: calc(0.86rem * var(--one-type-scale));
           }
 
           .login-one-switch,
