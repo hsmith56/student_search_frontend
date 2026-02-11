@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Merriweather } from "next/font/google";
-import { ArrowRight, KeyRound, Lock, ShieldCheck, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, KeyRound, Lock, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
 const heroSerif = Merriweather({
@@ -24,6 +24,8 @@ export default function LoginOnePage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [verifyPassword, setVerifyPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showVerifyPassword, setShowVerifyPassword] = useState(false);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,6 +64,8 @@ export default function LoginOnePage() {
     setSuccess("");
     setPassword("");
     setVerifyPassword("");
+    setShowPassword(false);
+    setShowVerifyPassword(false);
     setCode("");
   };
 
@@ -92,6 +96,8 @@ export default function LoginOnePage() {
         setFirstName("");
         setPassword("");
         setVerifyPassword("");
+        setShowPassword(false);
+        setShowVerifyPassword(false);
         setCode("");
       } else {
         setError(result.error || "Failed to create account. Please try again.");
@@ -230,7 +236,7 @@ export default function LoginOnePage() {
               <Lock size={18} aria-hidden />
               <input
                 id="login-one-password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter your password"
@@ -238,6 +244,16 @@ export default function LoginOnePage() {
                 disabled={isLoading}
                 required
               />
+              <button
+                type="button"
+                className="login-one-visibility-toggle"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+              </button>
             </div>
 
             <div className={`login-one-register-block ${mode === "register" ? "is-open" : ""}`}>
@@ -246,7 +262,7 @@ export default function LoginOnePage() {
                 <Lock size={18} aria-hidden />
                 <input
                   id="login-one-verify-password"
-                  type="password"
+                  type={showVerifyPassword ? "text" : "password"}
                   value={verifyPassword}
                   onChange={(event) => setVerifyPassword(event.target.value)}
                   placeholder="Re-enter your password"
@@ -254,6 +270,16 @@ export default function LoginOnePage() {
                   disabled={mode !== "register" || isLoading}
                   required={mode === "register"}
                 />
+                <button
+                  type="button"
+                  className="login-one-visibility-toggle"
+                  aria-label={showVerifyPassword ? "Hide verify password" : "Show verify password"}
+                  aria-pressed={showVerifyPassword}
+                  onClick={() => setShowVerifyPassword((current) => !current)}
+                  disabled={mode !== "register" || isLoading}
+                >
+                  {showVerifyPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+                </button>
               </div>
 
               <label htmlFor="login-one-code">Sign Up Code</label>
@@ -277,7 +303,7 @@ export default function LoginOnePage() {
               </p>
             ) : null}
 
-            <button type="submit" disabled={isLoading}>
+            <button className="login-one-submit" type="submit" disabled={isLoading}>
               {isLoading
                 ? mode === "login"
                   ? "Signing in..."
@@ -506,7 +532,6 @@ export default function LoginOnePage() {
 
         .login-one-panel-head {
           margin-bottom: 0.85rem;
-          animation: oneFade 220ms ease-out;
         }
 
         .login-one-tag {
@@ -528,7 +553,6 @@ export default function LoginOnePage() {
           );
           letter-spacing: -0.02em;
           color: #102d43;
-          transition: color 220ms ease;
         }
 
         .login-one-panel-head p {
@@ -579,7 +603,6 @@ export default function LoginOnePage() {
           font-weight: 700;
           color: #25465d;
           cursor: pointer;
-          transition: color 200ms ease;
         }
 
         .login-one-switch button.is-active {
@@ -598,28 +621,15 @@ export default function LoginOnePage() {
           max-width: 25rem;
           min-height: clamp(22rem, 46vh, 27rem);
           align-content: start;
-          animation: oneFadeUp 240ms ease-out;
         }
 
         .login-one-register-block {
-          display: grid;
+          display: none;
           gap: 0.5rem;
-          max-height: 0;
-          opacity: 0;
-          overflow: hidden;
-          transform: translateY(-4px);
-          pointer-events: none;
-          transition:
-            max-height 180ms ease,
-            opacity 160ms ease,
-            transform 160ms ease;
         }
 
         .login-one-register-block.is-open {
-          max-height: 40rem;
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
+          display: grid;
         }
 
         .login-one-form label {
@@ -668,6 +678,38 @@ export default function LoginOnePage() {
           color: #6f8697;
         }
 
+        .login-one-visibility-toggle {
+          border: 0;
+          background: transparent;
+          color: #37566a;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.4rem;
+          padding: 0.14rem;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition:
+            background-color 180ms ease,
+            color 180ms ease,
+            opacity 180ms ease;
+        }
+
+        .login-one-visibility-toggle:hover:not(:disabled) {
+          background: rgba(0, 94, 184, 0.12);
+          color: #114364;
+        }
+
+        .login-one-visibility-toggle:disabled {
+          cursor: not-allowed;
+          opacity: 0.65;
+        }
+
+        .login-one-visibility-toggle:focus-visible {
+          outline: 2px solid rgba(0, 94, 184, 0.45);
+          outline-offset: 2px;
+        }
+
         .login-one-success {
           margin-top: 0.3rem;
           border-radius: 0.58rem;
@@ -682,7 +724,7 @@ export default function LoginOnePage() {
           color: #1e5c3d;
         }
 
-        .login-one-form button {
+        .login-one-submit {
           margin-top: 0.75rem;
           border: 0;
           border-radius: 0.68rem;
@@ -704,18 +746,18 @@ export default function LoginOnePage() {
             opacity 180ms ease;
         }
 
-        .login-one-form button:hover:not(:disabled) {
+        .login-one-submit:hover:not(:disabled) {
           transform: translateY(-0.5px);
           box-shadow: 0 9px 16px rgba(255, 95, 0, 0.28);
         }
 
-        .login-one-form button:disabled {
+        .login-one-submit:disabled {
           cursor: not-allowed;
           opacity: 0.75;
           box-shadow: none;
         }
 
-        .login-one-form button:focus-visible,
+        .login-one-submit:focus-visible,
         .login-one-note button:focus-visible,
         .login-one-switch button:focus-visible {
           outline: 3px solid rgba(0, 94, 184, 0.45);
@@ -860,33 +902,10 @@ export default function LoginOnePage() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .login-one-panel-head,
-          .login-one-form,
-          .login-one-register-block,
           .login-one-switch-indicator,
           .login-one-error-toast {
             animation: none !important;
             transition: none !important;
-          }
-        }
-
-        @keyframes oneFade {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes oneFadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
           }
         }
       `}</style>
