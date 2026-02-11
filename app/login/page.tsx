@@ -124,7 +124,7 @@ export default function LoginOnePage() {
         <aside className="login-one-hero">
           
           <h1 className="login-one-title">
-           🐝+ can...<br></br>
+           🐝+ can<br></br>
             <span>but better.</span>
           </h1>
 
