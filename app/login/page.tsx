@@ -339,10 +339,7 @@ export default function LoginOnePage() {
           box-sizing: border-box;
           overflow-x: hidden;
           overscroll-behavior: none;
-          background:
-            radial-gradient(circle at 15% 10%, rgba(58, 157, 188, 0.18), transparent 45%),
-            radial-gradient(circle at 85% 90%, rgba(255, 95, 0, 0.15), transparent 50%),
-            linear-gradient(145deg, #ecf2f6 0%, #f7f8f9 100%);
+          background: var(--brand-page-background);
           font-family: var(--font-login-one-sans), sans-serif;
         }
 
@@ -526,7 +523,6 @@ export default function LoginOnePage() {
           width: clamp(9rem, 20vw, 13rem);
           aspect-ratio: 1;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(0, 94, 184, 0.18) 0%, rgba(0, 94, 184, 0) 70%);
           pointer-events: none;
         }
 

@@ -6,6 +6,7 @@ import type { HeaderView } from "@/components/layout/Header";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
+import DashboardPage from "@/features/dashboard/dashboard-page";
 import FeedbackPage from "@/features/feedback/feedback-page";
 import NewsFeedPage from "@/features/news-feed/news-feed-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
@@ -128,6 +129,12 @@ export default function HomePage() {
   if (activeView === "newsFeed") {
     content = (
       <NewsFeedPage activeView={activeView} onViewChange={handleViewChange} embedded />
+    );
+  }
+
+  if (activeView === "dashboard") {
+    content = (
+      <DashboardPage activeView={activeView} onViewChange={handleViewChange} embedded />
     );
   }
 

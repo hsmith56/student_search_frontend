@@ -198,7 +198,7 @@ export default function StudentProfilePage() {
 
   if (!studentId) {
     return (
-      <div className="min-h-screen bg-[#f4eee4] text-stone-900 grid place-items-center px-6">
+      <div className="brand-page-gradient min-h-screen text-stone-900 grid place-items-center px-6">
         <div className="max-w-lg rounded-2xl border border-stone-300 bg-white/80 p-8 shadow-xl">
           Include a student ID in the URL. Example: `/StudentProfile?id=12345`
         </div>
@@ -208,7 +208,7 @@ export default function StudentProfilePage() {
 
   if (loading || (authLoading && !student)) {
     return (
-      <div className="min-h-screen bg-[#f4eee4] grid place-items-center text-stone-700">
+      <div className="brand-page-gradient min-h-screen grid place-items-center text-stone-700">
         <div className="animate-pulse text-lg tracking-[0.2em] uppercase">
           Loading profile
         </div>
@@ -218,7 +218,7 @@ export default function StudentProfilePage() {
 
   if (error || !student) {
     return (
-      <div className="min-h-screen bg-[#f4eee4] grid place-items-center px-6">
+      <div className="brand-page-gradient min-h-screen grid place-items-center px-6">
         <div className="max-w-lg rounded-2xl border border-red-200 bg-red-50 p-8 text-red-900 shadow-xl">
           {error ?? `Unable to load student data for ID ${studentId}.`}
         </div>
@@ -234,12 +234,7 @@ export default function StudentProfilePage() {
     "inline-flex h-9 w-[12.5rem] items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold uppercase tracking-[0.16em]";
 
   return (
-    <div className={`${bodyFont.className} min-h-screen bg-[#f4eee4] text-stone-900`}>
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-20 h-72 w-72 rounded-full bg-[#eac49b]/35 blur-3xl" />
-        <div className="absolute top-16 right-0 h-64 w-64 rounded-full bg-[#b8d1d6]/35 blur-3xl" />
-      </div>
-
+    <div className={`${bodyFont.className} brand-page-gradient min-h-screen text-stone-900`}>
       <main className="relative mx-auto w-full max-w-[92rem] px-4 pb-12 pt-8 md:px-8">
         <section className="rounded-3xl border border-stone-300/90 bg-[#fffdf9]/90 p-6 shadow-[0_16px_50px_rgba(60,42,26,0.12)] md:p-10">
           <div className="flex flex-wrap items-start justify-between gap-6">

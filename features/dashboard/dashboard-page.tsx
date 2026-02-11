@@ -17,6 +17,7 @@ import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
+import type { HeaderView } from "@/components/layout/Header";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -180,7 +181,17 @@ function MetricCard({ label, value, detail, icon: Icon }: MetricCardProps) {
   );
 }
 
-export default function DashboardPage() {
+type DashboardPageProps = {
+  activeView?: HeaderView;
+  onViewChange?: (view: HeaderView) => void;
+  embedded?: boolean;
+};
+
+export default function DashboardPage({
+  activeView,
+  onViewChange,
+  embedded = false,
+}: DashboardPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
@@ -366,15 +377,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="brand-page-gradient min-h-screen text-[var(--brand-ink)]">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-16 top-10 h-64 w-64 rounded-full bg-[rgba(60,159,192,0.2)] blur-3xl" />
-        <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-[rgba(0,94,184,0.14)] blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-64 rounded-full bg-[rgba(255,87,0,0.1)] blur-3xl" />
-      </div>
-
+    <div
+      className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
+    >
       <div className="relative z-10">
-        <Header firstName={firstName} onLogout={logout} updateTime={updateTime} />
+        {!embedded && (
+          <Header
+            firstName={firstName}
+            onLogout={logout}
+            updateTime={updateTime}
+            activeView={activeView}
+            onViewChange={onViewChange}
+          />
+        )}
 
         <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
           <section className="rounded-3xl border border-[rgba(0,94,184,0.3)] bg-[rgba(253,254,255,0.9)] p-6 shadow-[0_16px_38px_rgba(0,53,84,0.14)] backdrop-blur-md">
@@ -390,13 +405,15 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Link
-                  href="/"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  Search
-                </Link>
+                {!embedded && (
+                  <Link
+                    href="/"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Search
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => void fetchPlacementMetrics(true)}
@@ -584,9 +601,8 @@ export default function DashboardPage() {
           </section>
         </main>
 
-        <Footer />
+        {!embedded && <Footer />}
       </div>
     </div>
   );
 }
-

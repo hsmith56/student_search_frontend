@@ -454,12 +454,6 @@ export default function NewsFeedPage({
     <div
       className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
     >
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-24 top-6 h-72 w-72 rounded-full bg-[rgba(60,159,192,0.24)] blur-3xl" />
-        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-[rgba(0,94,184,0.17)] blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[rgba(255,87,0,0.13)] blur-3xl" />
-      </div>
-
       <div className="relative z-10">
         {!embedded && (
           <Header

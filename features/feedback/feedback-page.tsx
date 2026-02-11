@@ -203,10 +203,6 @@ export default function FeedbackPage({
     <div
       className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} relative overflow-hidden`}
     >
-      <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-[rgba(60,159,192,0.24)] blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 top-16 h-80 w-80 rounded-full bg-[rgba(0,94,184,0.16)] blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-[rgba(255,87,0,0.12)] blur-3xl" />
-
       <div className="relative z-10">
         {!embedded && (
           <Header

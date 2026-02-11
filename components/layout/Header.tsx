@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 
-export type HeaderView = "search" | "newsFeed" | "feedback"
+export type HeaderView = "search" | "newsFeed" | "dashboard" | "feedback"
 
 interface HeaderProps {
   firstName: string
@@ -59,6 +59,12 @@ export default function Header({
           clearOnClick: true,
         },
         {
+          view: "dashboard" as const,
+          href: "/dashboard",
+          label: "Dashboard",
+          icon: LayoutDashboard,
+        },
+        {
           view: "feedback" as const,
           href: "/feedback",
           label: "Feedback",
@@ -73,12 +79,12 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         {
           href: "/feedback",
           label: "Feedback",
           icon: MessageSquareText,
         },
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       ]
 
   return (
@@ -122,6 +128,8 @@ export default function Header({
                   : item.href === "/"
                     ? pathname === "/"
                     : pathname?.startsWith(item.href)
+                const isNewsFeedItem =
+                  item.view === "newsFeed" || item.href === "/newsFeed"
 
                 if (onViewChange) {
                   const view = item.view
@@ -149,7 +157,7 @@ export default function Header({
                     >
                       <Icon className="h-3.5 w-3.5" />
                       {item.label}
-                      {item.view === "newsFeed" && unreadCount > 0 ? (
+                      {isNewsFeedItem && unreadCount > 0 ? (
                         <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
@@ -172,7 +180,7 @@ export default function Header({
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {item.label}
-                    {item.view === "newsFeed" && unreadCount > 0 ? (
+                    {isNewsFeedItem && unreadCount > 0 ? (
                       <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
