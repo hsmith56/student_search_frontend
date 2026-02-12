@@ -132,11 +132,11 @@ export default function HomePage() {
     );
   }
 
-  if (activeView === "dashboard") {
-    content = (
-      <DashboardPage activeView={activeView} onViewChange={handleViewChange} embedded />
-    );
-  }
+  // if (activeView === "dashboard") {
+  //   content = (
+  //     <DashboardPage activeView={activeView} onViewChange={handleViewChange} embedded />
+  //   );
+  // }
 
   if (activeView === "feedback") {
     content = (

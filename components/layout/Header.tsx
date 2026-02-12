@@ -7,7 +7,7 @@ import {
   Search,
   Bell,
   MessageSquareText,
-  LayoutDashboard,
+  // LayoutDashboard,
   Users,
   LogOut,
   RefreshCw,
@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 
-export type HeaderView = "search" | "newsFeed" | "dashboard" | "feedback"
+export type HeaderView = "search" | "newsFeed" | "feedback" // | "dashboard" 
 
 interface HeaderProps {
   firstName: string
@@ -58,12 +58,12 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
-        {
-          view: "dashboard" as const,
-          href: "/dashboard",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        },
+        // {
+        //   view: "dashboard" as const,
+        //   href: "/dashboard",
+        //   label: "Dashboard",
+        //   icon: LayoutDashboard,
+        // },
         {
           view: "feedback" as const,
           href: "/feedback",
@@ -79,7 +79,7 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        // { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         {
           href: "/feedback",
           label: "Feedback",

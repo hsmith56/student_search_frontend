@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ComponentType } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -8,11 +9,7 @@ import {
   BarChart3,
   CalendarClock,
   CalendarRange,
-  Clock3,
-  Compass,
   Filter,
-  Globe2,
-  Home,
   MapPinned,
   RefreshCw,
   Sparkles,
@@ -20,16 +17,14 @@ import {
   Users,
 } from "lucide-react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart as ReBarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Line,
   LineChart,
-  Pie,
-  PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -42,29 +37,20 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
-import { getCachedValue } from "@/lib/client-cache";
+import { buildDashboardAnalytics } from "@/features/dashboard/analytics";
+import { normalizeState } from "@/features/dashboard/state-normalization";
 import type { HeaderView } from "@/components/layout/Header";
+import type {
+  DateRange,
+  PlacementMetricItem,
+  PlacementMetricRecord,
+  StateSeasonalityCell,
+} from "@/features/dashboard/types";
+import { getCachedValue } from "@/lib/client-cache";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
 const CHART_PALETTE = [
   "#005EB8",
   "#3C9FC0",
@@ -74,31 +60,12 @@ const CHART_PALETTE = [
   "#7A9BC2",
 ] as const;
 
-type DateRange = "30d" | "90d" | "12m" | "all";
-type GeoFocus = "states" | "cities";
-
 const RANGE_OPTIONS: Array<{ value: DateRange; label: string }> = [
   { value: "30d", label: "30 Days" },
   { value: "90d", label: "90 Days" },
   { value: "12m", label: "12 Months" },
   { value: "all", label: "All Time" },
 ];
-
-type PlacementMetricRecord = {
-  app_id?: number;
-  city?: string;
-  state?: string;
-  placementDate?: string;
-};
-
-type PlacementMetricItem = {
-  appId: number;
-  city: string;
-  state: string;
-  placementDateRaw: string;
-  placementDate: Date | null;
-  placementTime: number;
-};
 
 function safeString(value: unknown): string | null {
   if (typeof value !== "string" && typeof value !== "number") {
@@ -174,25 +141,6 @@ function formatDate(value: Date | null, fallbackRaw: string): string {
   });
 }
 
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function startOfDayTime(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-}
-
-function getHeatCellColor(intensity: number): string {
-  if (intensity <= 0) return "rgba(187, 192, 195, 0.28)";
-  if (intensity === 1) return "rgba(60, 159, 192, 0.35)";
-  if (intensity === 2) return "rgba(0, 94, 184, 0.4)";
-  if (intensity === 3) return "rgba(0, 144, 63, 0.42)";
-  return "rgba(255, 87, 0, 0.45)";
-}
-
 function normalizePlacementMetrics(payload: unknown): PlacementMetricItem[] {
   if (!Array.isArray(payload)) {
     return [];
@@ -207,7 +155,7 @@ function normalizePlacementMetrics(payload: unknown): PlacementMetricItem[] {
       const record = item as PlacementMetricRecord;
       const appId = safeNumber(record.app_id) ?? index;
       const city = safeString(record.city) ?? "Unknown city";
-      const state = safeString(record.state) ?? "Unknown state";
+      const state = normalizeState(record.state);
       const placementDateRaw = safeString(record.placementDate) ?? "";
       const placementDate = parsePlacementDate(placementDateRaw);
       const placementTime = placementDate ? placementDate.getTime() : 0;
@@ -232,11 +180,25 @@ function normalizePlacementMetrics(payload: unknown): PlacementMetricItem[] {
   });
 }
 
+function getRecencyColor(daysSinceLastPlacement: number): string {
+  if (daysSinceLastPlacement <= 14) return "rgba(0,144,63,0.72)";
+  if (daysSinceLastPlacement <= 30) return "rgba(255,194,62,0.78)";
+  return "rgba(255,87,0,0.76)";
+}
+
+function getSeasonalityColor(intensity: number): string {
+  if (intensity <= 0) return "rgba(187,192,195,0.32)";
+  if (intensity < 0.25) return "rgba(60,159,192,0.42)";
+  if (intensity < 0.5) return "rgba(0,94,184,0.52)";
+  if (intensity < 0.75) return "rgba(0,144,63,0.56)";
+  return "rgba(255,87,0,0.66)";
+}
+
 type MetricCardProps = {
   label: string;
   value: string | number;
   detail: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
 };
 
 function MetricCard({ label, value, detail, icon: Icon }: MetricCardProps) {
@@ -318,8 +280,7 @@ export default function DashboardPage({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>("90d");
-  const [geoFocus, setGeoFocus] = useState<GeoFocus>("states");
-  const [selectedGeo, setSelectedGeo] = useState<string | null>(null);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
 
   const fetchPlacementMetrics = useCallback(async (manualRefresh = false) => {
     if (manualRefresh) {
@@ -424,307 +385,31 @@ export default function DashboardPage({
     void fetchPlacementMetrics(false);
   }, [fetchPlacementMetrics, isAuthenticated]);
 
-  const rangeStartTime = useMemo(() => {
-    const now = Date.now();
-    if (dateRange === "30d") return now - 30 * DAY_MS;
-    if (dateRange === "90d") return now - 90 * DAY_MS;
-    if (dateRange === "12m") return now - 365 * DAY_MS;
-    return null;
-  }, [dateRange]);
-
-  const filteredMetrics = useMemo(() => {
-    return metrics.filter((item) => {
-      if (rangeStartTime === null) return true;
-      if (!item.placementDate) return false;
-      return item.placementTime >= rangeStartTime;
-    });
-  }, [metrics, rangeStartTime]);
-
-  const geoDistribution = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of filteredMetrics) {
-      const key = geoFocus === "states" ? item.state : item.city;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-
-    const total = filteredMetrics.length || 1;
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([name, value]) => ({
-        name,
-        value,
-        share: Math.round((value / total) * 100),
-      }));
-  }, [filteredMetrics, geoFocus]);
+  const analytics = useMemo(
+    () => buildDashboardAnalytics(metrics, dateRange, selectedState),
+    [metrics, dateRange, selectedState]
+  );
 
   useEffect(() => {
-    if (!selectedGeo) return;
-    if (!geoDistribution.some((item) => item.name === selectedGeo)) {
-      setSelectedGeo(null);
+    if (!selectedState) return;
+    if (!analytics.stateTotals.some((row) => row.state === selectedState)) {
+      setSelectedState(null);
     }
-  }, [geoDistribution, selectedGeo]);
+  }, [analytics.stateTotals, selectedState]);
 
-  const scopedMetrics = useMemo(() => {
-    if (!selectedGeo) return filteredMetrics;
-    return filteredMetrics.filter((item) =>
-      geoFocus === "states" ? item.state === selectedGeo : item.city === selectedGeo
-    );
-  }, [filteredMetrics, geoFocus, selectedGeo]);
+  const toggleStateFilter = useCallback((stateName?: string) => {
+    if (!stateName) return;
+    setSelectedState((current) => (current === stateName ? null : stateName));
+  }, []);
 
-  const stateOpportunity = useMemo(() => {
-    const grouped = new Map<
-      string,
-      { placements: number; cities: Set<string>; latestPlacementTime: number }
-    >();
-
-    for (const item of filteredMetrics) {
-      const existing = grouped.get(item.state) ?? {
-        placements: 0,
-        cities: new Set<string>(),
-        latestPlacementTime: 0,
-      };
-      existing.placements += 1;
-      existing.cities.add(item.city);
-      if (item.placementTime > existing.latestPlacementTime) {
-        existing.latestPlacementTime = item.placementTime;
-      }
-      grouped.set(item.state, existing);
-    }
-
-    const now = Date.now();
-    return [...grouped.entries()]
-      .map(([state, data]) => ({
-        state,
-        placements: data.placements,
-        citySpread: data.cities.size,
-        freshnessDays:
-          data.latestPlacementTime > 0
-            ? Math.max(0, Math.round((now - data.latestPlacementTime) / DAY_MS))
-            : 999,
-        density:
-          data.cities.size === 0
-            ? data.placements
-            : Number((data.placements / data.cities.size).toFixed(2)),
-      }))
-      .sort((a, b) => b.placements - a.placements)
-      .slice(0, 16);
-  }, [filteredMetrics]);
-
-  const computed = useMemo(() => {
-    const totalPlacements = scopedMetrics.length;
-    const stateCounts = new Map<string, number>();
-    const cityCounts = new Map<string, number>();
-
-    const now = new Date();
-    const nowTime = now.getTime();
-    let placementsThisMonth = 0;
-    let placementsLast30Days = 0;
-
-    const datedMetrics = scopedMetrics.filter(
-      (item): item is PlacementMetricItem & { placementDate: Date } =>
-        item.placementDate !== null
-    );
-
-    for (const item of scopedMetrics) {
-      stateCounts.set(item.state, (stateCounts.get(item.state) ?? 0) + 1);
-      cityCounts.set(item.city, (cityCounts.get(item.city) ?? 0) + 1);
-    }
-
-    for (const item of datedMetrics) {
-      if (
-        item.placementDate.getMonth() === now.getMonth() &&
-        item.placementDate.getFullYear() === now.getFullYear()
-      ) {
-        placementsThisMonth += 1;
-      }
-
-      if (nowTime - item.placementTime <= THIRTY_DAYS_MS) {
-        placementsLast30Days += 1;
-      }
-    }
-
-    const topState = [...stateCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-    const topCity = [...cityCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-    const topStates = [...stateCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([state, count]) => ({
-        state,
-        count,
-        percentage:
-          totalPlacements === 0 ? 0 : Math.round((count / totalPlacements) * 100),
-      }));
-
-    const monthBuckets = Array.from({ length: 12 }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (11 - index), 1);
-      return {
-        key: `${date.getFullYear()}-${date.getMonth()}`,
-        label: `${MONTH_LABELS[date.getMonth()]} '${String(date.getFullYear()).slice(
-          -2
-        )}`,
-        value: 0,
-      };
-    });
-    const monthLookup = new Map(monthBuckets.map((bucket, index) => [bucket.key, index]));
-    for (const item of datedMetrics) {
-      const monthKey = `${item.placementDate.getFullYear()}-${item.placementDate.getMonth()}`;
-      const bucketIndex = monthLookup.get(monthKey);
-      if (bucketIndex !== undefined) {
-        monthBuckets[bucketIndex].value += 1;
-      }
-    }
-    const monthlyTrend = monthBuckets.map((bucket, index, arr) => {
-      const window = arr.slice(Math.max(0, index - 2), index + 1);
-      const movingAverage =
-        window.reduce((sum, current) => sum + current.value, 0) / window.length;
-      return {
-        month: bucket.label,
-        placements: bucket.value,
-        movingAverage: Number(movingAverage.toFixed(1)),
-      };
-    });
-
-    const weekdayCounts = Array.from({ length: 7 }, () => 0);
-    for (const item of datedMetrics) {
-      weekdayCounts[item.placementDate.getDay()] += 1;
-    }
-    const weekdayPulse = WEEKDAY_LABELS.map((label, index) => ({
-      day: label,
-      placements: weekdayCounts[index],
-    }));
-    const peakWeekday = [...weekdayPulse].sort((a, b) => b.placements - a.placements)[0];
-
-    const dailyCounts = new Map<string, { count: number; time: number; label: string }>();
-    for (const item of datedMetrics) {
-      const dayTime = startOfDayTime(item.placementDate);
-      const dayDate = new Date(dayTime);
-      const dayKey = formatDateKey(dayDate);
-      const existing = dailyCounts.get(dayKey);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        dailyCounts.set(dayKey, {
-          count: 1,
-          time: dayTime,
-          label: dayDate.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          }),
-        });
-      }
-    }
-
-    const dailySeries = [...dailyCounts.entries()]
-      .map(([key, value]) => ({
-        key,
-        ...value,
-      }))
-      .sort((a, b) => a.time - b.time);
-
-    let runningTotal = 0;
-    const cumulativeTimelineFull = dailySeries.map((item) => {
-      runningTotal += item.count;
-      return {
-        date: item.label,
-        placements: item.count,
-        cumulative: runningTotal,
-      };
-    });
-    const cumulativeTimeline =
-      cumulativeTimelineFull.length > 120
-        ? cumulativeTimelineFull.slice(-120)
-        : cumulativeTimelineFull;
-
-    const maxDailyCount = dailySeries.reduce(
-      (currentMax, item) => Math.max(currentMax, item.count),
-      0
-    );
-    const today = new Date();
-    const activityRibbon = Array.from({ length: 42 }, (_, index) => {
-      const reverseIndex = 41 - index;
-      const date = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() - reverseIndex
-      );
-      const key = formatDateKey(date);
-      const count = dailyCounts.get(key)?.count ?? 0;
-      const intensity =
-        maxDailyCount === 0
-          ? 0
-          : Math.min(4, Math.ceil((count / maxDailyCount) * 4));
-
-      return {
-        key,
-        label: date.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-        }),
-        weekday: WEEKDAY_LABELS[date.getDay()],
-        count,
-        intensity,
-      };
-    });
-
-    return {
-      totalPlacements,
-      uniqueStates: stateCounts.size,
-      uniqueCities: cityCounts.size,
-      placementsThisMonth,
-      placementsLast30Days,
-      latestPlacementDate: scopedMetrics[0]?.placementDate ?? null,
-      latestPlacementRaw: scopedMetrics[0]?.placementDateRaw ?? "",
-      topState,
-      topCity,
-      topStates,
-      monthlyTrend,
-      weekdayPulse,
-      peakWeekday,
-      cumulativeTimeline,
-      activityRibbon,
-    };
-  }, [scopedMetrics]);
-
-  const insightCards = useMemo(() => {
-    const leadingGeo = geoDistribution[0];
-    const secondGeo = geoDistribution[1];
-    const concentrationGap =
-      leadingGeo && secondGeo ? leadingGeo.share - secondGeo.share : 0;
-    const dominantState = stateOpportunity[0];
-
-    return [
-      {
-        title: "Concentration Signal",
-        body: leadingGeo
-          ? `${leadingGeo.name} currently represents ${leadingGeo.share}% of placements${
-              concentrationGap > 8
-                ? ` and leads the next ${geoFocus.slice(0, -1)} by ${concentrationGap}%`
-                : "."
-            }`
-          : "No concentration signal yet.",
-      },
-      {
-        title: "Pace Signal",
-        body:
-          computed.placementsThisMonth >= computed.placementsLast30Days
-            ? "Month-to-date pace is matching or exceeding the last 30-day baseline."
-            : "Last 30 days are outpacing this month-to-date cycle; monitor trend momentum.",
-      },
-      {
-        title: "Spread Signal",
-        body: dominantState
-          ? `${dominantState.state} spans ${dominantState.citySpread} cities with density ${dominantState.density}.`
-          : "Not enough data to calculate spread and density.",
-      },
-    ];
-  }, [
-    computed.placementsLast30Days,
-    computed.placementsThisMonth,
-    geoDistribution,
-    geoFocus,
-    stateOpportunity,
-  ]);
+  const growthSummary = analytics.stateGrowth30d.slice(0, 12);
+  const paceLeaderboard = analytics.statePace.slice(0, 10);
+  const recencyRows = analytics.stateRecencyRisk.slice(0, 12);
+  const paceLeader = paceLeaderboard[0];
+  const concentrationLeader = analytics.statePareto[0];
+  const atRiskCount = analytics.stateRecencyRisk.filter(
+    (row) => row.riskBand === "At Risk"
+  ).length;
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -752,16 +437,16 @@ export default function DashboardPage({
           />
         )}
 
-        <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
+        <main className="mx-auto max-w-[1340px] px-4 py-6 sm:px-6">
           <section className="rounded-3xl border border-[rgba(0,94,184,0.3)] bg-[rgba(253,254,255,0.9)] p-6 shadow-[0_16px_38px_rgba(0,53,84,0.14)] backdrop-blur-md">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--brand-ink)]">
-                  Dashboard
+                  State-First Insight Studio
                 </h1>
                 <p className="mt-1 text-sm text-[var(--brand-body)]">
-                  Real-time summary from `GET /api/placement_metrics/`.
+                  Placement intelligence from `GET /api/placement_metrics/`, centered on
+                  state pace, concentration, and freshness risk.
                 </p>
               </div>
 
@@ -795,10 +480,10 @@ export default function DashboardPage({
               <div>
                 <h2 className="inline-flex items-center gap-2 text-base font-bold text-[var(--brand-ink)]">
                   <Sparkles className="h-4 w-4 text-[var(--brand-accent)]" />
-                  Analytics Studio
+                  Analytics Controls
                 </h2>
                 <p className="mt-1 text-xs text-[var(--brand-body)]">
-                  Adjust time range and geography, then click chart segments to focus.
+                  Select a range, then click state bars/points to cross-filter all sections.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -820,68 +505,38 @@ export default function DashboardPage({
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setGeoFocus("states");
-                  setSelectedGeo(null);
-                }}
-                className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
-                  geoFocus === "states"
-                    ? "border-[var(--brand-secondary)] bg-[rgba(60,159,192,0.16)] text-[var(--brand-primary-deep)]"
-                    : "border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)]"
-                }`}
-              >
-                <MapPinned className="mr-1.5 h-3.5 w-3.5" />
-                State Focus
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setGeoFocus("cities");
-                  setSelectedGeo(null);
-                }}
-                className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
-                  geoFocus === "cities"
-                    ? "border-[var(--brand-secondary)] bg-[rgba(60,159,192,0.16)] text-[var(--brand-primary-deep)]"
-                    : "border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)]"
-                }`}
-              >
-                <Globe2 className="mr-1.5 h-3.5 w-3.5" />
-                City Focus
-              </button>
-              {selectedGeo ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {selectedState ? (
                 <button
                   type="button"
-                  onClick={() => setSelectedGeo(null)}
-                  className="inline-flex h-8 items-center rounded-full border border-[rgba(255,87,0,0.4)] bg-[rgba(255,87,0,0.12)] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-accent)] transition-colors hover:bg-[rgba(255,87,0,0.18)]"
+                  onClick={() => setSelectedState(null)}
+                  className="inline-flex h-8 items-center rounded-full border border-[rgba(255,87,0,0.42)] bg-[rgba(255,87,0,0.12)] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-accent)] transition-colors hover:bg-[rgba(255,87,0,0.18)]"
                 >
                   <Filter className="mr-1.5 h-3.5 w-3.5" />
-                  Clear {geoFocus === "states" ? "State" : "City"}: {selectedGeo}
+                  Clear State Filter: {selectedState}
                 </button>
-              ) : null}
+              ) : (
+                <span className="inline-flex h-8 items-center rounded-full border border-[var(--brand-border-soft)] bg-[var(--brand-surface-elevated)] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)]">
+                  State Scope: All States
+                </span>
+              )}
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {geoDistribution.slice(0, 8).map((item) => (
+              {analytics.stateTotals.slice(0, 10).map((item) => (
                 <button
-                  key={item.name}
+                  key={item.state}
                   type="button"
-                  onClick={() =>
-                    setSelectedGeo((current) =>
-                      current === item.name ? null : item.name
-                    )
-                  }
+                  onClick={() => toggleStateFilter(item.state)}
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                    selectedGeo === item.name
+                    selectedState === item.state
                       ? "border-[var(--brand-primary)] bg-[rgba(0,94,184,0.12)] text-[var(--brand-primary-deep)]"
                       : "border-[var(--brand-border-soft)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)] hover:border-[var(--brand-primary)]"
                   }`}
                 >
-                  <span>{item.name}</span>
+                  <span>{item.state}</span>
                   <span className="rounded-full bg-[rgba(0,53,84,0.08)] px-1.5 py-0.5 text-[10px]">
-                    {item.value}
+                    {item.placements}
                   </span>
                 </button>
               ))}
@@ -891,70 +546,62 @@ export default function DashboardPage({
           <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Scoped Placements"
-              value={computed.totalPlacements.toLocaleString()}
-              detail={
-                selectedGeo
-                  ? `${geoFocus === "states" ? "State" : "City"} filter active`
-                  : "Current analytics scope"
-              }
+              value={analytics.kpis.scopedPlacements.toLocaleString()}
+              detail={selectedState ? "State filter active" : "All active states"}
               icon={Users}
             />
             <MetricCard
-              label="States Reached"
-              value={computed.uniqueStates}
+              label="Active States"
+              value={analytics.kpis.activeStates}
               detail={
-                computed.topState
-                  ? `Top state: ${computed.topState[0]} (${computed.topState[1]})`
-                  : "No state data"
+                analytics.kpis.topStateName
+                  ? `Top state: ${analytics.kpis.topStateName}`
+                  : "No state records"
               }
               icon={MapPinned}
             />
             <MetricCard
-              label="Cities Reached"
-              value={computed.uniqueCities}
+              label="Top State Share"
+              value={`${analytics.kpis.topStateShare}%`}
               detail={
-                computed.topCity
-                  ? `Top city: ${computed.topCity[0]} (${computed.topCity[1]})`
-                  : "No city data"
-              }
-              icon={Home}
-            />
-            <MetricCard
-              label="Top State Volume"
-              value={computed.topState ? computed.topState[1] : 0}
-              detail={
-                computed.topState
-                  ? `${computed.topState[0]} has the most placements`
-                  : "No state data"
+                analytics.kpis.topStateName
+                  ? `${analytics.kpis.topStateName} concentration`
+                  : "No concentration signal"
               }
               icon={BarChart3}
             />
             <MetricCard
-              label="Placed This Month"
-              value={computed.placementsThisMonth}
-              detail="Current calendar month"
+              label="States Stale 30+ Days"
+              value={analytics.kpis.staleStateCount30d}
+              detail="States with no recent placements"
               icon={CalendarClock}
             />
             <MetricCard
-              label="Placed Last 30 Days"
-              value={computed.placementsLast30Days}
-              detail="Rolling 30-day window"
-              icon={Clock3}
+              label="Median Placements / State"
+              value={analytics.kpis.medianPlacementsPerState}
+              detail="Median across active states"
+              icon={TrendingUp}
             />
             <MetricCard
               label="Latest Placement"
               value={formatDate(
-                computed.latestPlacementDate,
-                computed.latestPlacementRaw
+                analytics.kpis.latestPlacementDate,
+                analytics.kpis.latestPlacementRaw
               )}
-              detail="Most recent record in feed"
-              icon={TrendingUp}
+              detail="Most recent record in scope"
+              icon={CalendarClock}
             />
             <MetricCard
               label="Data Health"
               value={metricsError ? "Issue" : "OK"}
               detail={metricsError ? metricsError : "Metrics endpoint responding"}
               icon={Activity}
+            />
+            <MetricCard
+              label="At Risk States"
+              value={atRiskCount}
+              detail="Recency risk band: 31+ days"
+              icon={MapPinned}
             />
           </section>
 
@@ -964,315 +611,580 @@ export default function DashboardPage({
             </section>
           ) : null}
 
-          <section className="mt-5 grid gap-4 xl:grid-cols-12">
-            <article className="xl:col-span-8 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                    Placement Momentum
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                    Monthly volume with moving average for the active filter scope.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(0,94,184,0.28)] bg-[rgba(0,94,184,0.08)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-primary-deep)]">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  12-Month Lens
-                </span>
-              </div>
-              <div className="mt-4 h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={computed.monthlyTrend}>
-                    <defs>
-                      <linearGradient id="placementGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#005EB8" stopOpacity={0.44} />
-                        <stop offset="100%" stopColor="#005EB8" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#5f6f7a" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#5f6f7a" }} allowDecimals={false} />
-                    <RechartsTooltip content={<DashboardTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="placements"
-                      name="Placements"
-                      stroke="#005EB8"
-                      fill="url(#placementGradient)"
-                      strokeWidth={2.4}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="movingAverage"
-                      name="3-Mo Avg"
-                      stroke="#FF5700"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
+          <section className="mt-5 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
+            <h2 className="text-base font-bold text-[var(--brand-ink)]">State Pace</h2>
+            <p className="mt-1 text-xs text-[var(--brand-muted)]">
+              Compare recent volume and momentum. Every chart supports state click
+              cross-filtering.
+            </p>
 
-            <article className="xl:col-span-4 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                Geographic Concentration
-              </h2>
-              <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Top {geoFocus} share for selected time range.
-              </p>
-              <div className="mt-4 h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={geoDistribution.slice(0, 6)}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={46}
-                      outerRadius={84}
-                      paddingAngle={3}
-                      onClick={(entry) => {
-                        const pieEntry = entry as { name?: string };
-                        const pieName = pieEntry.name;
-                        if (!pieName) return;
-                        setSelectedGeo((current) =>
-                          current === pieName ? null : pieName
-                        );
-                      }}
-                    >
-                      {geoDistribution.slice(0, 6).map((entry, index) => (
-                        <Cell
-                          key={`geo-cell-${entry.name}`}
-                          fill={CHART_PALETTE[index % CHART_PALETTE.length]}
-                          stroke={
-                            selectedGeo === entry.name
-                              ? "rgba(0,53,84,0.9)"
-                              : "rgba(255,255,255,0.86)"
-                          }
-                          strokeWidth={selectedGeo === entry.name ? 2 : 1}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip content={<DashboardTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 space-y-2">
-                {geoDistribution.slice(0, 4).map((item, index) => (
-                  <button
-                    key={`${item.name}-legend`}
-                    type="button"
-                    onClick={() =>
-                      setSelectedGeo((current) =>
-                        current === item.name ? null : item.name
-                      )
-                    }
-                    className="flex w-full items-center justify-between rounded-lg border border-[var(--brand-border-soft)] bg-[var(--brand-surface-elevated)] px-2.5 py-2 text-xs font-semibold text-[var(--brand-body)] transition-colors hover:border-[var(--brand-primary)]"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            CHART_PALETTE[index % CHART_PALETTE.length],
+            <div className="mt-4 grid gap-4 xl:grid-cols-12">
+              <article className="xl:col-span-4 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Pace Leaderboard
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Rank by placements in the last 30 days.
+                </p>
+                <div className="mt-3 h-[310px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ReBarChart layout="vertical" data={paceLeaderboard}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                      <XAxis
+                        type="number"
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Placements (Last 30 Days)",
+                          position: "insideBottom",
+                          offset: -2,
                         }}
                       />
-                      {item.name}
-                    </span>
-                    <span>
-                      {item.value} ({item.share}%)
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </article>
+                      <YAxis
+                        type="category"
+                        dataKey="state"
+                        width={98}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "State",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <RechartsTooltip content={<DashboardTooltip />} />
+                      <Bar
+                        dataKey="placements30d"
+                        name="Placements (Last 30 Days)"
+                        radius={[0, 6, 6, 0]}
+                        onClick={(entry: unknown) =>
+                          toggleStateFilter((entry as { state?: string }).state)
+                        }
+                      >
+                        {paceLeaderboard.map((row) => (
+                          <Cell
+                            key={`pace-${row.state}`}
+                            onClick={() => toggleStateFilter(row.state)}
+                            fill={
+                              selectedState === row.state
+                                ? "rgba(255,87,0,0.78)"
+                                : "rgba(0,94,184,0.74)"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </ReBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+
+              <article className="xl:col-span-4 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Growth vs Volume Quadrant
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Detect large-but-slow vs small-but-accelerating states.
+                </p>
+                <div className="mt-3 h-[310px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 10, right: 18, bottom: 24, left: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                      <ReferenceLine x={0} stroke="rgba(0,53,84,0.32)" />
+                      <XAxis
+                        type="number"
+                        dataKey="growthPct"
+                        name="30-Day Growth vs Prior 30 Days (%)"
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "30-Day Growth vs Prior 30 Days (%)",
+                          position: "insideBottom",
+                          offset: -2,
+                        }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="recentPlacements"
+                        allowDecimals={false}
+                        name="Placements (Last 30 Days)"
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Placements (Last 30 Days)",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <ZAxis
+                        type="number"
+                        dataKey="totalPlacements"
+                        name="Total Scoped Placements"
+                        range={[70, 330]}
+                      />
+                      <RechartsTooltip content={<DashboardTooltip />} cursor={{ strokeDasharray: "4 4" }} />
+                      <Scatter
+                        name="States"
+                        data={growthSummary}
+                        onClick={(entry: unknown) =>
+                          toggleStateFilter(
+                            (entry as { payload?: { state?: string } }).payload?.state
+                          )
+                        }
+                      >
+                        {growthSummary.map((row) => (
+                          <Cell
+                            key={`growth-${row.state}`}
+                            fill={
+                              selectedState === row.state
+                                ? "rgba(255,87,0,0.76)"
+                                : "rgba(60,159,192,0.74)"
+                            }
+                          />
+                        ))}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+
+              <article className="xl:col-span-4 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  Weekly State Momentum
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Top 5 states over the last 16 weeks.
+                </p>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {analytics.weeklySeriesStates.map((state, index) => (
+                    <button
+                      key={`weekly-chip-${state}`}
+                      type="button"
+                      onClick={() => toggleStateFilter(state)}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.09em] ${
+                        selectedState === state
+                          ? "border-[var(--brand-accent)] bg-[rgba(255,87,0,0.12)] text-[var(--brand-accent)]"
+                          : "border-[var(--brand-border-soft)] bg-white text-[var(--brand-body)]"
+                      }`}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{
+                          backgroundColor: CHART_PALETTE[index % CHART_PALETTE.length],
+                        }}
+                      />
+                      {state}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-3 h-[310px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analytics.stateWeeklySeries16w}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                      <XAxis
+                        dataKey="weekLabel"
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{ value: "Week", position: "insideBottom", offset: -2 }}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Placements Per Week",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <RechartsTooltip content={<DashboardTooltip />} />
+                      {analytics.weeklySeriesStates.map((state, index) => (
+                        <Line
+                          key={`weekly-line-${state}`}
+                          type="monotone"
+                          dataKey={state}
+                          name={state}
+                          stroke={CHART_PALETTE[index % CHART_PALETTE.length]}
+                          strokeWidth={selectedState === state ? 3 : 2}
+                          dot={false}
+                          onClick={() => toggleStateFilter(state)}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+            </div>
           </section>
 
-          <section className="mt-4 grid gap-4 xl:grid-cols-12">
-            <article className="xl:col-span-5 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                Weekday Pulse
-              </h2>
-              <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Distribution of placement events by weekday.
-              </p>
-              <div className="mt-4 h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReBarChart data={computed.weekdayPulse}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
-                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#5f6f7a" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#5f6f7a" }} allowDecimals={false} />
-                    <RechartsTooltip content={<DashboardTooltip />} />
-                    <Bar dataKey="placements" fill="rgba(60,159,192,0.82)" radius={[6, 6, 0, 0]} />
-                  </ReBarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="mt-2 text-xs font-semibold text-[var(--brand-body)]">
-                Peak weekday: {computed.peakWeekday?.day ?? "N/A"} (
-                {computed.peakWeekday?.placements ?? 0})
-              </p>
-            </article>
+          <section className="mt-4 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
+            <h2 className="text-base font-bold text-[var(--brand-ink)]">State Distribution</h2>
+            <p className="mt-1 text-xs text-[var(--brand-muted)]">
+              Measure concentration and detect seasonal placement patterns by state.
+            </p>
 
-            <article className="xl:col-span-7 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                Cumulative Growth Curve
-              </h2>
-              <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Running cumulative placements for the active filter scope.
-              </p>
-              <div className="mt-4 h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={computed.cumulativeTimeline}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#5f6f7a" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#5f6f7a" }} allowDecimals={false} />
-                    <RechartsTooltip content={<DashboardTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="cumulative"
-                      name="Cumulative"
-                      stroke="#00903F"
-                      strokeWidth={2.5}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="placements"
-                      name="Daily"
-                      stroke="#FF5700"
-                      strokeWidth={1.8}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
+            <div className="mt-4 grid gap-4 xl:grid-cols-12">
+              <article className="xl:col-span-6 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Concentration Pareto
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Placements and cumulative share across top 12 states.
+                </p>
+                <div className="mt-3 h-[340px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={analytics.statePareto} margin={{ top: 10, right: 15, bottom: 50, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                      <XAxis
+                        dataKey="state"
+                        interval={0}
+                        angle={-28}
+                        textAnchor="end"
+                        height={72}
+                        tick={{ fontSize: 10, fill: "#5f6f7a" }}
+                        label={{ value: "State", position: "insideBottom", offset: -6 }}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Placements",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Cumulative Share (%)",
+                          angle: 90,
+                          position: "insideRight",
+                        }}
+                      />
+                      <RechartsTooltip content={<DashboardTooltip />} />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="placements"
+                        name="Placements"
+                        radius={[6, 6, 0, 0]}
+                        onClick={(entry: unknown) =>
+                          toggleStateFilter((entry as { state?: string }).state)
+                        }
+                      >
+                        {analytics.statePareto.map((row) => (
+                          <Cell
+                            key={`pareto-${row.state}`}
+                            onClick={() => toggleStateFilter(row.state)}
+                            fill={
+                              selectedState === row.state
+                                ? "rgba(255,87,0,0.78)"
+                                : "rgba(0,94,184,0.74)"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="cumulativeShare"
+                        name="Cumulative Share (%)"
+                        stroke="#FF5700"
+                        strokeWidth={2.1}
+                        dot={false}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+
+              <article className="xl:col-span-6 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Seasonality Matrix
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Scatter heatmap: month by state, colored by monthly placements.
+                </p>
+                <div className="mt-3 h-[340px] w-full">
+                  {analytics.stateSeasonalityStates.length === 0 ? (
+                    <div className="h-full rounded-xl border border-dashed border-[var(--brand-border)] bg-[rgba(253,254,255,0.8)] px-4 py-8 text-center text-xs font-semibold text-[var(--brand-muted)]">
+                      Not enough dated state records for seasonality analysis.
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ScatterChart margin={{ top: 10, right: 20, bottom: 35, left: 26 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                        <XAxis
+                          type="number"
+                          dataKey="monthIndex"
+                          ticks={analytics.stateSeasonalityMonths.map((_, index) => index)}
+                          domain={[-0.5, analytics.stateSeasonalityMonths.length - 0.5]}
+                          tickFormatter={(value: number) =>
+                            analytics.stateSeasonalityMonths[value] ?? ""
+                          }
+                          tick={{ fontSize: 10, fill: "#5f6f7a" }}
+                          label={{ value: "Month", position: "insideBottom", offset: -5 }}
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="stateIndex"
+                          ticks={analytics.stateSeasonalityStates.map((_, index) => index)}
+                          domain={[-0.5, analytics.stateSeasonalityStates.length - 0.5]}
+                          tickFormatter={(value: number) =>
+                            analytics.stateSeasonalityStates[value] ?? ""
+                          }
+                          tick={{ fontSize: 10, fill: "#5f6f7a" }}
+                          width={104}
+                          label={{
+                            value: "State",
+                            angle: -90,
+                            position: "insideLeft",
+                          }}
+                        />
+                        <ZAxis type="number" dataKey="placements" range={[90, 90]} />
+                        <RechartsTooltip content={<DashboardTooltip />} />
+                        <Scatter
+                          data={analytics.stateSeasonality12m}
+                          name="Placements In Month"
+                          shape={(shapeProps: unknown) => {
+                            const { cx, cy, payload } = shapeProps as {
+                              cx?: number;
+                              cy?: number;
+                              payload?: StateSeasonalityCell;
+                            };
+                            if (!cx || !cy || !payload) return <g />;
+                            return (
+                              <rect
+                                x={cx - 8}
+                                y={cy - 8}
+                                width={16}
+                                height={16}
+                                rx={3}
+                                fill={getSeasonalityColor(payload.intensity)}
+                                stroke={
+                                  selectedState === payload.state
+                                    ? "rgba(255,87,0,0.92)"
+                                    : "rgba(255,255,255,0.82)"
+                                }
+                                strokeWidth={selectedState === payload.state ? 1.8 : 1}
+                              />
+                            );
+                          }}
+                          onClick={(entry: unknown) =>
+                            toggleStateFilter(
+                              (entry as { payload?: { state?: string } }).payload?.state
+                            )
+                          }
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-[var(--brand-muted)]">
+                  Axes: X = Month, Y = State. Cell intensity = placements in that month.
+                </p>
+              </article>
+            </div>
           </section>
 
-          <section className="mt-4 grid gap-4 xl:grid-cols-12">
-            <article className="xl:col-span-7 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                State Opportunity Matrix
-              </h2>
-              <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Compare placement volume vs city spread, with bubble size based on freshness.
-              </p>
-              <div className="mt-4 h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
-                    <XAxis
-                      type="number"
-                      dataKey="citySpread"
-                      name="City Spread"
-                      tick={{ fontSize: 11, fill: "#5f6f7a" }}
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="placements"
-                      name="Placements"
-                      tick={{ fontSize: 11, fill: "#5f6f7a" }}
-                      allowDecimals={false}
-                    />
-                    <ZAxis
-                      type="number"
-                      dataKey="freshnessDays"
-                      range={[70, 320]}
-                      name="Freshness (days)"
-                    />
-                    <RechartsTooltip content={<DashboardTooltip />} cursor={{ strokeDasharray: "4 4" }} />
-                    <Scatter
-                      name="States"
-                      data={stateOpportunity}
-                      fill="rgba(0,94,184,0.72)"
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
+          <section className="mt-4 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
+            <h2 className="text-base font-bold text-[var(--brand-ink)]">
+              State Risk & Freshness
+            </h2>
+            <p className="mt-1 text-xs text-[var(--brand-muted)]">
+              Track stale states and use the state drill-down to inspect city composition.
+            </p>
 
-            <article className="xl:col-span-5 rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                Activity Ribbon
-              </h2>
-              <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Last 42 days at a glance. Color intensity tracks daily placement volume.
-              </p>
-              <div
-                className="mt-4 grid gap-1.5"
-                style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}
-              >
-                {computed.activityRibbon.map((item) => (
-                  <div
-                    key={item.key}
-                    title={`${item.weekday}, ${item.label}: ${item.count} placement${item.count === 1 ? "" : "s"}`}
-                    className="h-4 rounded-[4px] border border-[rgba(255,255,255,0.62)]"
-                    style={{ backgroundColor: getHeatCellColor(item.intensity) }}
-                  />
-                ))}
-              </div>
-              <div className="mt-4 space-y-2">
-                {insightCards.map((insight) => (
-                  <article
-                    key={insight.title}
-                    className="rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.82)] px-3 py-2.5"
-                  >
-                    <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)]">
-                      {insight.title}
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-[var(--brand-body)]">
-                      {insight.body}
+            <div className="mt-4 grid gap-4 xl:grid-cols-12">
+              <article className="xl:col-span-7 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Recency Risk Ladder
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Days since latest placement per state. Healthy: 0-14, Watch: 15-30, At
+                  Risk: 31+.
+                </p>
+                <div className="mt-3 h-[320px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ReBarChart layout="vertical" data={recencyRows}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                      <XAxis
+                        type="number"
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "Days Since Last Placement",
+                          position: "insideBottom",
+                          offset: -2,
+                        }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="state"
+                        width={102}
+                        tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                        label={{
+                          value: "State",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <RechartsTooltip content={<DashboardTooltip />} />
+                      <Bar
+                        dataKey="daysSinceLastPlacement"
+                        name="Days Since Last Placement"
+                        radius={[0, 6, 6, 0]}
+                        onClick={(entry: unknown) =>
+                          toggleStateFilter((entry as { state?: string }).state)
+                        }
+                      >
+                        {recencyRows.map((row) => (
+                          <Cell
+                            key={`recency-${row.state}`}
+                            onClick={() => toggleStateFilter(row.state)}
+                            fill={
+                              selectedState === row.state
+                                ? "rgba(255,87,0,0.84)"
+                                : getRecencyColor(row.daysSinceLastPlacement)
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </ReBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+
+              <article className="xl:col-span-5 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.56)] p-3">
+                <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  State Drill-Down: Cities
+                </h3>
+                <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                  Secondary city view appears once a state is selected.
+                </p>
+
+                {!selectedState ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-[var(--brand-border)] bg-[rgba(253,254,255,0.8)] px-4 py-12 text-center">
+                    <p className="text-sm font-semibold text-[var(--brand-body)]">
+                      Click any state in the charts to open city drill-down.
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--brand-muted)]">
+                      This keeps the dashboard state-first while preserving city context.
+                    </p>
+                  </div>
+                ) : analytics.cityDrilldown.length === 0 ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-[var(--brand-border)] bg-[rgba(253,254,255,0.8)] px-4 py-12 text-center">
+                    <p className="text-sm font-semibold text-[var(--brand-body)]">
+                      No city records available for {selectedState}.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-3 rounded-lg border border-[rgba(0,94,184,0.28)] bg-[rgba(0,94,184,0.06)] px-3 py-2 text-xs font-semibold text-[var(--brand-primary-deep)]">
+                      Selected State: {selectedState}
+                    </div>
+                    <div className="mt-3 h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ReBarChart layout="vertical" data={analytics.cityDrilldown}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(114,125,131,0.24)" />
+                          <XAxis
+                            type="number"
+                            allowDecimals={false}
+                            tick={{ fontSize: 11, fill: "#5f6f7a" }}
+                            label={{
+                              value: "Placements",
+                              position: "insideBottom",
+                              offset: -2,
+                            }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="city"
+                            width={116}
+                            tick={{ fontSize: 10, fill: "#5f6f7a" }}
+                            label={{
+                              value: "City",
+                              angle: -90,
+                              position: "insideLeft",
+                            }}
+                          />
+                          <RechartsTooltip content={<DashboardTooltip />} />
+                          <Bar dataKey="placements" name="Placements" fill="rgba(60,159,192,0.82)" radius={[0, 6, 6, 0]} />
+                        </ReBarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                )}
+
+                <div className="mt-4 space-y-2">
+                  <article className="rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.84)] px-3 py-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)]">
+                      Pace Signal
+                    </h4>
+                    <p className="mt-1 text-xs text-[var(--brand-body)]">
+                      {paceLeader
+                        ? `${paceLeader.state} leads recent pace with ${paceLeader.placements30d} placements in the last 30 days.`
+                        : "No pace signal available yet."}
                     </p>
                   </article>
-                ))}
-              </div>
-            </article>
+                  <article className="rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.84)] px-3 py-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)]">
+                      Concentration Signal
+                    </h4>
+                    <p className="mt-1 text-xs text-[var(--brand-body)]">
+                      {concentrationLeader
+                        ? `${concentrationLeader.state} accounts for ${concentrationLeader.share}% of current scoped placements.`
+                        : "No concentration signal available yet."}
+                    </p>
+                  </article>
+                </div>
+              </article>
+            </div>
           </section>
 
-          <section className="mt-5 grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <section className="mt-5 grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
             <article className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="inline-flex items-center gap-2 text-base font-bold text-[var(--brand-ink)]">
-                <Compass className="h-4 w-4 text-[var(--brand-primary)]" />
+              <h2 className="text-base font-bold text-[var(--brand-ink)]">
                 Top States Snapshot
               </h2>
               <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Share of scoped placements by state.
+                Share and volume for current scoped states.
               </p>
 
               <div className="mt-4 space-y-3">
-                {computed.topStates.length === 0 ? (
+                {analytics.stateTotals.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-[var(--brand-border)] bg-[rgba(246,247,248,0.8)] px-3 py-8 text-center text-xs font-semibold text-[var(--brand-muted)]">
                     No placement data available.
                   </p>
                 ) : (
-                  computed.topStates.map((stateRow) => (
-                    <div key={stateRow.state} className="space-y-1">
+                  analytics.stateTotals.slice(0, 50).map((stateRow) => (
+                    <button
+                      key={stateRow.state}
+                      type="button"
+                      onClick={() => toggleStateFilter(stateRow.state)}
+                      className="w-full space-y-1 text-left"
+                    >
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span className="text-[var(--brand-body)]">{stateRow.state}</span>
                         <span className="text-[var(--brand-muted)]">
-                          {stateRow.count} ({stateRow.percentage}%)
+                          {stateRow.placements} ({stateRow.share}%)
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-[rgba(0,53,84,0.08)]">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)]"
-                          style={{ width: `${stateRow.percentage}%` }}
+                          style={{ width: `${Math.min(100, stateRow.share)}%` }}
                         />
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
             </article>
 
             <article className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_10px_22px_rgba(0,53,84,0.08)]">
-              <h2 className="text-base font-bold text-[var(--brand-ink)]">
-                Placement Explorer Table
-              </h2>
+              <h2 className="text-base font-bold text-[var(--brand-ink)]">Records Explorer</h2>
               <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                Detailed records for the current filters and chart selection.
+                Detailed records for current range and state cross-filter.
               </p>
 
               {isLoadingMetrics ? (
@@ -1284,13 +1196,13 @@ export default function DashboardPage({
                     />
                   ))}
                 </div>
-              ) : scopedMetrics.length === 0 ? (
+              ) : analytics.scopedMetrics.length === 0 ? (
                 <div className="mt-4 rounded-xl border border-dashed border-[var(--brand-border)] bg-[rgba(246,247,248,0.85)] px-4 py-12 text-center">
                   <p className="text-sm font-semibold text-[var(--brand-body)]">
                     No placements in current scope.
                   </p>
                   <p className="mt-1 text-xs text-[var(--brand-muted)]">
-                    Adjust time range or clear the location filter.
+                    Adjust time range or clear the state filter.
                   </p>
                 </div>
               ) : (
@@ -1305,7 +1217,7 @@ export default function DashboardPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--brand-border-soft)] text-sm">
-                      {scopedMetrics.slice(0, 18).map((item) => (
+                      {analytics.scopedMetrics.slice(0, 18).map((item) => (
                         <tr
                           key={`${item.appId}-${item.city}-${item.state}-${item.placementDateRaw}`}
                           className="hover:bg-[rgba(0,94,184,0.05)]"
