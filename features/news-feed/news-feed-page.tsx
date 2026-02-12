@@ -25,6 +25,23 @@ import type { HeaderView } from "@/components/layout/Header";
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
+const NEWS_FEED_LIMIT = 100;
+
+const NEWS_FEED_STATUS_OPTIONS = ["Unassigned", "Allocated", "Placed"] as const;
+
+type NewsFeedStatus = (typeof NEWS_FEED_STATUS_OPTIONS)[number];
+
+type NewsFeedFilters = {
+  name: string;
+  newStatus: NewsFeedStatus | "";
+  showOnlyFavorites: boolean;
+};
+
+const DEFAULT_NEWS_FEED_FILTERS: NewsFeedFilters = {
+  name: "",
+  newStatus: "",
+  showOnlyFavorites: false,
+};
 
 type NewsFeedEvent = {
   event_id?: number;
@@ -135,6 +152,37 @@ function normalizeNewsFeedPayload(payload: unknown): NewsFeedItem[] {
   );
 }
 
+function normalizeNewsFeedFilters(filters: NewsFeedFilters): NewsFeedFilters {
+  return {
+    name: filters.name.trim(),
+    newStatus: filters.newStatus,
+    showOnlyFavorites: filters.showOnlyFavorites,
+  };
+}
+
+function buildNewsFeedRequest(filters: NewsFeedFilters) {
+  const normalizedFilters = normalizeNewsFeedFilters(filters);
+  const searchParams = new URLSearchParams({
+    limit: String(NEWS_FEED_LIMIT),
+    show_only_favorites: String(normalizedFilters.showOnlyFavorites),
+  });
+
+  if (normalizedFilters.name) {
+    searchParams.set("name", normalizedFilters.name);
+  }
+
+  if (normalizedFilters.newStatus) {
+    searchParams.set("new_status", normalizedFilters.newStatus);
+  }
+
+  const queryString = searchParams.toString();
+  return {
+    queryString,
+    requestUrl: `${API_URL}/news_feed?${queryString}`,
+    cacheKey: `newsFeed:list:${queryString}`,
+  };
+}
+
 function formatEventTime(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Unknown time";
@@ -169,6 +217,12 @@ export default function NewsFeedPage({
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isRefreshingFeed, setIsRefreshingFeed] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [draftFilters, setDraftFilters] = useState<NewsFeedFilters>(
+    DEFAULT_NEWS_FEED_FILTERS
+  );
+  const [appliedFilters, setAppliedFilters] = useState<NewsFeedFilters>(
+    DEFAULT_NEWS_FEED_FILTERS
+  );
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
   const [loadingStudentId, setLoadingStudentId] = useState<number | null>(null);
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set());
@@ -182,10 +236,11 @@ export default function NewsFeedPage({
     }
 
     try {
+      const newsFeedRequest = buildNewsFeedRequest(appliedFilters);
       const normalized = await getCachedValue<NewsFeedItem[]>(
-        "newsFeed:list",
+        newsFeedRequest.cacheKey,
         async () => {
-          const response = await fetch(`${API_URL}/news_feed`, {
+          const response = await fetch(newsFeedRequest.requestUrl, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -214,7 +269,11 @@ export default function NewsFeedPage({
       setIsLoadingFeed(false);
       setIsRefreshingFeed(false);
     }
-  }, []);
+  }, [appliedFilters]);
+
+  const handleApplyFilters = useCallback(() => {
+    setAppliedFilters(normalizeNewsFeedFilters(draftFilters));
+  }, [draftFilters]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -336,7 +395,7 @@ export default function NewsFeedPage({
       }
 
       invalidateClientCacheByPrefix("misc:");
-      invalidateClientCache("newsFeed:list");
+      invalidateClientCacheByPrefix("newsFeed:list");
       const latestUpdate = await getCachedValue<unknown[]>(
         "misc:last_update_time",
         async () => {
@@ -486,6 +545,13 @@ export default function NewsFeedPage({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
+                  onClick={handleApplyFilters}
+                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.12)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
+                >
+                  Apply Filters
+                </button>
+                <button
+                  type="button"
                   onClick={() => void fetchNewsFeed(true)}
                   disabled={isRefreshingFeed}
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -497,6 +563,70 @@ export default function NewsFeedPage({
                 </button>
               </div>
             </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+              <label className="space-y-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
+                Student Name
+                <input
+                  type="text"
+                  value={draftFilters.name}
+                  onChange={(event) =>
+                    setDraftFilters((previous) => ({
+                      ...previous,
+                      name: event.target.value,
+                    }))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    handleApplyFilters();
+                  }}
+                  placeholder="Leave blank for all"
+                  className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm font-medium text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+                />
+              </label>
+
+              <label className="space-y-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
+                Status
+                <select
+                  value={draftFilters.newStatus}
+                  onChange={(event) =>
+                    setDraftFilters((previous) => ({
+                      ...previous,
+                      newStatus: event.target.value as NewsFeedFilters["newStatus"],
+                    }))
+                  }
+                  className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm font-medium text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+                >
+                  <option value="">All statuses</option>
+                  {NEWS_FEED_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="inline-flex h-10 items-center gap-2 self-end rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm font-semibold text-[var(--brand-ink)]">
+                <input
+                  type="checkbox"
+                  checked={draftFilters.showOnlyFavorites}
+                  onChange={(event) =>
+                    setDraftFilters((previous) => ({
+                      ...previous,
+                      showOnlyFavorites: event.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-[var(--brand-border)] accent-[var(--brand-primary)]"
+                />
+                Show Only Favorites
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs text-[var(--brand-muted)]">
+              Querying{" "}
+              <code>{`/api/news_feed?${buildNewsFeedRequest(appliedFilters).queryString}`}</code>
+            </p>
           </section>
 
           <section className="mt-5 space-y-3">

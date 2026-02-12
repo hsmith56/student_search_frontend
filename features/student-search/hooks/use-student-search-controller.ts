@@ -486,7 +486,7 @@ export function useStudentSearchController({
 
       invalidateClientCacheByPrefix("misc:");
       invalidateClientCacheByPrefix("students:status:");
-      invalidateClientCache("newsFeed:list");
+      invalidateClientCacheByPrefix("newsFeed:list");
 
       await fetchLastUpdateTime();
     } catch (error) {

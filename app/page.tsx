@@ -11,7 +11,6 @@ import FeedbackPage from "@/features/feedback/feedback-page";
 import NewsFeedPage from "@/features/news-feed/news-feed-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
-  invalidateClientCache,
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 
@@ -86,7 +85,7 @@ export default function HomePage() {
 
       invalidateClientCacheByPrefix("misc:");
       invalidateClientCacheByPrefix("students:status:");
-      invalidateClientCache("newsFeed:list");
+      invalidateClientCacheByPrefix("newsFeed:list");
 
       const latestUpdateResponse = await fetch(`${API_URL}/misc/last_update_time`, {
         method: "GET",
