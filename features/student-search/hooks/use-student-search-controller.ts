@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   API_URL,
   RESULTS_PER_PAGE_STORAGE_KEY,
@@ -35,6 +35,41 @@ const ALL_STATUS = "All";
 const UNASSIGNED_STATUS = "Unassigned";
 const DEFAULT_STATUS_FOR_LC = ["Allocated"];
 
+const hasSameValues = (left: string[], right: string[]) => {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((value) => right.includes(value));
+};
+
+const getActiveFilterCount = (filters: Filters) => {
+  let count = 0;
+
+  if (filters.country_of_origin !== defaultFilters.country_of_origin) count += 1;
+  if (filters.interests !== defaultFilters.interests) count += 1;
+  if (filters.state !== defaultFilters.state) count += 1;
+  if (filters.gender_male) count += 1;
+  if (filters.gender_female) count += 1;
+  if (filters.pets_in_home !== defaultFilters.pets_in_home) count += 1;
+  if (filters.early_placement !== defaultFilters.early_placement) count += 1;
+  if (filters.hasVideo) count += 1;
+  if (filters.gpa !== defaultFilters.gpa) count += 1;
+  if (filters.adjusted_age !== defaultFilters.adjusted_age) count += 1;
+  if (filters.religiousPractice !== defaultFilters.religiousPractice) count += 1;
+  if (filters.double_placement !== defaultFilters.double_placement) count += 1;
+  if (filters.single_placement !== defaultFilters.single_placement) count += 1;
+
+  count += filters.program_types.length;
+  count += filters.grants_options.length;
+
+  if (!hasSameValues(filters.statusOptions, defaultFilters.statusOptions)) {
+    count += filters.statusOptions.length;
+  }
+
+  return count;
+};
+
 export function useStudentSearchController({
   isAuthenticated,
 }: UseStudentSearchControllerArgs) {
@@ -44,13 +79,9 @@ export function useStudentSearchController({
   const [usahsIdQuery, setUsahsIdQuery] = useState("");
   const [photoQuery, setPhotoQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isProgramTypeOpen, setIsProgramTypeOpen] = useState(false);
-  const [isScholarshipOpen, setIsScholarshipOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [accountType, setAccountType] = useState("");
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
-
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -74,6 +105,7 @@ export function useStudentSearchController({
   const [resultsAnimationKey, setResultsAnimationKey] = useState(0);
 
   const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const activeFilterCount = useMemo(() => getActiveFilterCount(filters), [filters]);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [unassignedNow, setUnassignedNow] = useState(0);
@@ -764,12 +796,6 @@ export function useStudentSearchController({
     setPhotoQuery,
     isFilterOpen,
     setIsFilterOpen,
-    isProgramTypeOpen,
-    setIsProgramTypeOpen,
-    isScholarshipOpen,
-    setIsScholarshipOpen,
-    isStatusOpen,
-    setIsStatusOpen,
     filters,
     setFilters,
     countries,
@@ -780,6 +806,7 @@ export function useStudentSearchController({
     handleSearchInputKeyDown,
     handleFindStudents,
     clearFilters,
+    activeFilterCount,
     totalResults,
     viewMode,
     setViewMode,

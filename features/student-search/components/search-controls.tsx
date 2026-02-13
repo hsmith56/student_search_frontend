@@ -1,7 +1,13 @@
+import {
+  type Dispatch,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type SetStateAction,
+} from "react";
 import { Camera, ChevronDown, ChevronUp, LayoutGrid, List, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ViewMode } from "@/features/student-search/types";
+import { StudentFiltersPanel } from "@/features/student-search/components/panels/student-filters-panel";
+import type { Filters, ViewMode } from "@/features/student-search/types";
 
 type SearchControlsProps = {
   isSearchFiltersExpanded: boolean;
@@ -12,10 +18,20 @@ type SearchControlsProps = {
   onUsahsIdQueryChange: (value: string) => void;
   photoQuery: string;
   onPhotoQueryChange: (value: string) => void;
-  onSearchInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onOpenFilters: () => void;
+  onSearchInputKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
+  isFilterOpen: boolean;
+  onFilterOpenChange: (open: boolean) => void;
+  filters: Filters;
+  setFilters: Dispatch<SetStateAction<Filters>>;
+  countries: string[];
+  onToggleStatus: (value: string) => void;
+  onToggleProgramType: (value: string) => void;
+  onToggleScholarship: (value: string) => void;
+  statusOptions: { id: string; label: string; value: string }[];
+  onApplyFilters: () => void;
   onFindStudents: () => void;
   onClearFilters: () => void;
+  activeFilterCount: number;
   totalResults: number;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
@@ -31,15 +47,25 @@ export function SearchControls({
   photoQuery,
   onPhotoQueryChange,
   onSearchInputKeyDown,
-  onOpenFilters,
+  isFilterOpen,
+  onFilterOpenChange,
+  filters,
+  setFilters,
+  countries,
+  onToggleStatus,
+  onToggleProgramType,
+  onToggleScholarship,
+  statusOptions,
+  onApplyFilters,
   onFindStudents,
   onClearFilters,
+  activeFilterCount,
   totalResults,
   viewMode,
   onViewModeChange,
 }: SearchControlsProps) {
   return (
-    <div className="sticky top-[60px] z-40 mb-3 overflow-hidden rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] backdrop-blur-xl shadow-[0_10px_24px_rgba(0,53,84,0.08)]">
+    <div className="sticky top-[60px] z-40 mb-3 overflow-visible rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] backdrop-blur-xl shadow-[0_10px_24px_rgba(0,53,84,0.08)]">
       <button
         onClick={() => setIsSearchFiltersExpanded(!isSearchFiltersExpanded)}
         className="xl:hidden w-full flex items-center justify-between p-4 transition-colors hover:bg-[rgba(0,94,184,0.06)]"
@@ -95,14 +121,37 @@ export function SearchControls({
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2.5 mb-3">
-          <Button
-            onClick={onOpenFilters}
-            variant="outline"
-            className="h-10 flex-shrink-0 whitespace-nowrap border-[var(--brand-border)] text-[var(--brand-body)] transition-all duration-200 hover:border-[var(--brand-primary)] hover:bg-[rgba(0,94,184,0.08)] flex items-center justify-center gap-2 font-medium"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-          </Button>
+          <div className="relative">
+            <Button
+              onClick={() => onFilterOpenChange(!isFilterOpen)}
+              variant="outline"
+              className={`h-10 flex-shrink-0 whitespace-nowrap border-[rgba(255,87,0,0.34)] text-[var(--brand-body)] transition-all duration-200 hover:border-[rgba(255,87,0,0.58)] hover:bg-[rgba(255,87,0,0.08)] flex items-center justify-center gap-2 font-medium ${
+                isFilterOpen ? "bg-[rgba(255,87,0,0.12)] border-[rgba(255,87,0,0.58)]" : ""
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4 text-[var(--brand-accent)]" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-accent)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+
+            <StudentFiltersPanel
+              open={isFilterOpen}
+              onOpenChange={onFilterOpenChange}
+              filters={filters}
+              setFilters={setFilters}
+              countries={countries}
+              onToggleStatus={onToggleStatus}
+              onToggleProgramType={onToggleProgramType}
+              onToggleScholarship={onToggleScholarship}
+              onApplyFilters={onApplyFilters}
+              onClearFilters={onClearFilters}
+              statusOptions={statusOptions}
+            />
+          </div>
           <Button
             onClick={onFindStudents}
             className="h-10 flex-1 whitespace-nowrap bg-gradient-to-r from-[var(--brand-accent)] to-[#ff7b1a] text-white shadow-md shadow-[rgba(255,87,0,0.24)] transition-all duration-200 hover:from-[#ea4f00] hover:to-[var(--brand-accent)] hover:shadow-lg hover:shadow-[rgba(255,87,0,0.3)] font-semibold"

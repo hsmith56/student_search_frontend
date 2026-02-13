@@ -6,7 +6,6 @@ import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import { SEARCH_TIPS } from "@/features/student-search/constants";
 import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
-import { FiltersDialog } from "@/features/student-search/components/dialogs/filters-dialog";
 import { PaginationControls } from "@/features/student-search/components/pagination-controls";
 import { QuickStatsSection } from "@/features/student-search/components/quick-stats-section";
 import { SearchControls } from "@/features/student-search/components/search-controls";
@@ -129,9 +128,19 @@ export default function StudentSearchPage({
               photoQuery={controller.photoQuery}
               onPhotoQueryChange={controller.setPhotoQuery}
               onSearchInputKeyDown={controller.handleSearchInputKeyDown}
-              onOpenFilters={() => controller.setIsFilterOpen(true)}
+              isFilterOpen={controller.isFilterOpen}
+              onFilterOpenChange={controller.setIsFilterOpen}
+              filters={controller.filters}
+              setFilters={controller.setFilters}
+              countries={controller.countries}
+              onToggleStatus={controller.toggleStatus}
+              onToggleProgramType={controller.toggleProgramType}
+              onToggleScholarship={controller.toggleScholarship}
+              statusOptions={controller.statusOptionsForFilter}
+              onApplyFilters={controller.applyFilters}
               onFindStudents={controller.handleFindStudents}
               onClearFilters={controller.clearFilters}
+              activeFilterCount={controller.activeFilterCount}
               totalResults={controller.totalResults}
               viewMode={controller.viewMode}
               onViewModeChange={controller.setViewMode}
@@ -175,25 +184,6 @@ export default function StudentSearchPage({
         feedbackSuccess={feedback.feedbackSuccess}
         isSubmittingFeedback={feedback.isSubmittingFeedback}
         onSubmit={feedback.submitFeedback}
-      />
-
-      <FiltersDialog
-        open={controller.isFilterOpen}
-        onOpenChange={controller.setIsFilterOpen}
-        filters={controller.filters}
-        setFilters={controller.setFilters}
-        countries={controller.countries}
-        isStatusOpen={controller.isStatusOpen}
-        setIsStatusOpen={controller.setIsStatusOpen}
-        isProgramTypeOpen={controller.isProgramTypeOpen}
-        setIsProgramTypeOpen={controller.setIsProgramTypeOpen}
-        isScholarshipOpen={controller.isScholarshipOpen}
-        setIsScholarshipOpen={controller.setIsScholarshipOpen}
-        onToggleStatus={controller.toggleStatus}
-        onToggleProgramType={controller.toggleProgramType}
-        onToggleScholarship={controller.toggleScholarship}
-        onApplyFilters={controller.applyFilters}
-        statusOptions={controller.statusOptionsForFilter}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useMemo, type Dispatch, type SetStateAction } from "react";
 import {
   Award,
   Calendar,
@@ -6,6 +6,7 @@ import {
   ChevronRight,
   GraduationCap,
   MapPin,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ import {
   PROGRAM_TYPE_OPTIONS,
   SCHOLARSHIP_OPTIONS,
 } from "@/features/student-search/constants";
-import type { Filters } from "@/features/student-search/types";
+import { defaultFilters, type Filters } from "@/features/student-search/types";
 
 type FiltersDialogProps = {
   open: boolean;
@@ -48,6 +49,32 @@ type FiltersDialogProps = {
   statusOptions: { id: string; label: string; value: string }[];
 };
 
+type ActiveFilterPill = {
+  key: string;
+  group: string;
+  value: string;
+  onRemove: () => void;
+};
+
+const RELIGIOUS_PRACTICE_LABELS: Record<string, string> = {
+  often: "Often",
+  some: "Some",
+  none: "Never",
+};
+
+const INTEREST_LABELS = new Map(interests.map((interest) => [interest.value, interest.label]));
+const STATE_LABELS = new Map(states.map((stateOption) => [stateOption.value, stateOption.label]));
+const PROGRAM_TYPE_LABELS = new Map(
+  PROGRAM_TYPE_OPTIONS.map((programTypeOption) => [programTypeOption.value, programTypeOption.label])
+);
+const SCHOLARSHIP_LABELS = new Map(
+  SCHOLARSHIP_OPTIONS.map((scholarshipOption) => [scholarshipOption.value, scholarshipOption.label])
+);
+
+const hasDefaultStatusSelection = (statusOptions: string[]) =>
+  statusOptions.length === defaultFilters.statusOptions.length &&
+  statusOptions.every((status) => defaultFilters.statusOptions.includes(status));
+
 export function FiltersDialog({
   open,
   onOpenChange,
@@ -67,18 +94,184 @@ export function FiltersDialog({
   statusOptions,
 }: FiltersDialogProps) {
   const sectionClass =
-    "rounded-xl border border-[rgba(0,53,84,0.12)] bg-[rgba(253,254,255,0.98)] p-3 shadow-[0_10px_20px_-16px_rgba(0,53,84,0.55)]";
+    "rounded-xl border border-[rgba(0,53,84,0.12)] bg-[rgba(253,254,255,0.98)] p-3";
   const sectionTitleClass =
-    "mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]";
+    "mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted)]";
   const fieldControlClass =
-    "h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]";
+    "h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm hover:border-[var(--brand-primary)]";
   const multiSelectButtonClass =
-    "h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]";
+    "h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]";
+
+  const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
+    const pills: ActiveFilterPill[] = [];
+    const toTitle = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+    if (filters.country_of_origin !== defaultFilters.country_of_origin) {
+      pills.push({
+        key: `country-${filters.country_of_origin}`,
+        group: "Country",
+        value: filters.country_of_origin,
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, country_of_origin: defaultFilters.country_of_origin })),
+      });
+    }
+
+    if (filters.state !== defaultFilters.state) {
+      pills.push({
+        key: `state-${filters.state}`,
+        group: "State",
+        value: STATE_LABELS.get(filters.state) ?? filters.state,
+        onRemove: () => setFilters((prev) => ({ ...prev, state: defaultFilters.state })),
+      });
+    }
+
+    if (filters.interests !== defaultFilters.interests) {
+      pills.push({
+        key: `interest-${filters.interests}`,
+        group: "Interest",
+        value: INTEREST_LABELS.get(filters.interests) ?? filters.interests,
+        onRemove: () => setFilters((prev) => ({ ...prev, interests: defaultFilters.interests })),
+      });
+    }
+
+    if (!hasDefaultStatusSelection(filters.statusOptions)) {
+      filters.statusOptions.forEach((status) => {
+        pills.push({
+          key: `status-${status}`,
+          group: "Status",
+          value: status,
+          onRemove: () => onToggleStatus(status),
+        });
+      });
+    }
+
+    if (filters.gender_male) {
+      pills.push({
+        key: "gender-male",
+        group: "Gender",
+        value: "Male",
+        onRemove: () => setFilters((prev) => ({ ...prev, gender_male: false })),
+      });
+    }
+
+    if (filters.gender_female) {
+      pills.push({
+        key: "gender-female",
+        group: "Gender",
+        value: "Female",
+        onRemove: () => setFilters((prev) => ({ ...prev, gender_female: false })),
+      });
+    }
+
+    if (filters.gpa !== defaultFilters.gpa) {
+      pills.push({
+        key: `gpa-${filters.gpa}`,
+        group: "GPA",
+        value: filters.gpa,
+        onRemove: () => setFilters((prev) => ({ ...prev, gpa: defaultFilters.gpa })),
+      });
+    }
+
+    if (filters.adjusted_age !== defaultFilters.adjusted_age) {
+      pills.push({
+        key: `age-${filters.adjusted_age}`,
+        group: "Age",
+        value: filters.adjusted_age,
+        onRemove: () => setFilters((prev) => ({ ...prev, adjusted_age: defaultFilters.adjusted_age })),
+      });
+    }
+
+    if (filters.pets_in_home !== defaultFilters.pets_in_home) {
+      pills.push({
+        key: `pets-${filters.pets_in_home}`,
+        group: "Pets",
+        value: toTitle(filters.pets_in_home),
+        onRemove: () => setFilters((prev) => ({ ...prev, pets_in_home: defaultFilters.pets_in_home })),
+      });
+    }
+
+    if (filters.early_placement !== defaultFilters.early_placement) {
+      pills.push({
+        key: `early-${filters.early_placement}`,
+        group: "Early Placement",
+        value: toTitle(filters.early_placement),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, early_placement: defaultFilters.early_placement })),
+      });
+    }
+
+    filters.program_types.forEach((programType) => {
+      pills.push({
+        key: `program-${programType}`,
+        group: "Program",
+        value: PROGRAM_TYPE_LABELS.get(programType) ?? programType,
+        onRemove: () => onToggleProgramType(programType),
+      });
+    });
+
+    if (filters.double_placement !== defaultFilters.double_placement) {
+      pills.push({
+        key: `double-${filters.double_placement}`,
+        group: "Double",
+        value: toTitle(filters.double_placement),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, double_placement: defaultFilters.double_placement })),
+      });
+    }
+
+    if (filters.single_placement !== defaultFilters.single_placement) {
+      pills.push({
+        key: `single-${filters.single_placement}`,
+        group: "Single",
+        value: toTitle(filters.single_placement),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, single_placement: defaultFilters.single_placement })),
+      });
+    }
+
+    filters.grants_options.forEach((grant) => {
+      pills.push({
+        key: `grant-${grant}`,
+        group: "Scholarship",
+        value: SCHOLARSHIP_LABELS.get(grant) ?? grant.toUpperCase(),
+        onRemove: () => onToggleScholarship(grant),
+      });
+    });
+
+    if (filters.religiousPractice !== defaultFilters.religiousPractice) {
+      pills.push({
+        key: `religion-${filters.religiousPractice}`,
+        group: "Religion",
+        value:
+          RELIGIOUS_PRACTICE_LABELS[filters.religiousPractice] ??
+          toTitle(filters.religiousPractice),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, religiousPractice: defaultFilters.religiousPractice })),
+      });
+    }
+
+    if (filters.hasVideo) {
+      pills.push({
+        key: "video-yes",
+        group: "Video",
+        value: "Yes",
+        onRemove: () => setFilters((prev) => ({ ...prev, hasVideo: false })),
+      });
+    }
+
+    return pills;
+  }, [
+    filters,
+    onToggleProgramType,
+    onToggleScholarship,
+    onToggleStatus,
+    setFilters,
+  ]);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="mx-auto max-h-[85vh] max-w-[92vw] overflow-y-auto rounded-2xl border border-[rgba(0,53,84,0.16)] bg-[rgba(253,254,255,0.98)] p-0 shadow-[0_26px_60px_-34px_rgba(0,30,48,0.58)] sm:w-[88vw] sm:max-w-[920px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <DialogContent className="mx-auto max-h-[85vh] max-w-[92vw] overflow-y-auto rounded-2xl border border-[rgba(0,53,84,0.16)] bg-[rgba(253,254,255,0.98)] p-0 sm:w-[88vw] sm:max-w-[920px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="border-b border-[var(--brand-border-soft)] bg-[rgba(236,242,246,0.72)] px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted)]">
               Refine Results
@@ -87,6 +280,37 @@ export function FiltersDialog({
               Student Filters
             </p>
           </div>
+
+          {activeFilterPills.length > 0 && (
+            <div className="border-b border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.74)] px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted)]">
+                  Active Filters
+                </p>
+                <span className="inline-flex items-center rounded-full border border-[rgba(0,94,184,0.34)] bg-[rgba(0,94,184,0.08)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)]">
+                  {activeFilterPills.length} selected
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {activeFilterPills.map((pill) => (
+                  <button
+                    key={pill.key}
+                    type="button"
+                    onClick={pill.onRemove}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(0,53,84,0.16)] bg-[var(--brand-surface-elevated)] px-2.5 py-1 text-[11px] text-[var(--brand-body)] transition-colors hover:border-[var(--brand-primary)] hover:bg-[rgba(0,94,184,0.06)]"
+                    title={`Remove ${pill.group}: ${pill.value}`}
+                  >
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-muted)]">
+                      {pill.group}
+                    </span>
+                    <span className="h-3 w-px bg-[var(--brand-border-soft)]" />
+                    <span className="font-medium">{pill.value}</span>
+                    <X className="h-3.5 w-3.5 text-[var(--brand-muted)]" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2.5 p-3">
             <div className={`${sectionClass} border-l-4 border-l-[var(--brand-primary)]`}>
@@ -483,7 +707,7 @@ export function FiltersDialog({
             </Button>
             <Button
               onClick={onApplyFilters}
-              className="h-10 flex-1 bg-[var(--brand-primary)] font-semibold text-white shadow-sm hover:bg-[var(--brand-primary-deep)]"
+              className="h-10 flex-1 bg-[var(--brand-primary)] font-semibold text-white hover:bg-[var(--brand-primary-deep)]"
             >
               Apply Filters
             </Button>
