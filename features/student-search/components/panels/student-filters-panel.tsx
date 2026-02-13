@@ -1,7 +1,6 @@
 import {
   useEffect,
   useMemo,
-  useRef,
   type ComponentType,
   type Dispatch,
   type ReactNode,
@@ -107,7 +106,7 @@ function LedgerSection({ title, subtitle, icon: Icon, children }: SectionProps) 
 }
 
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children }: { children: ReactNode }) {
   return (
     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-muted)]">
       {children}
@@ -122,7 +121,7 @@ function ToggleChip({
 }: {
   selected: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -152,33 +151,19 @@ export function StudentFiltersPanel({
   onClearFilters,
   statusOptions,
 }: StudentFiltersPanelProps) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     if (!open) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
-      const eventPath = event.composedPath();
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
 
-      if (panelRef.current && eventPath.includes(panelRef.current)) {
-        return;
-      }
-
-      // Radix Select menu is portaled outside the panel root.
-      const clickFromSelect = eventPath.some((node) => {
-        if (!(node instanceof HTMLElement)) return false;
-        return (
-          node.dataset.slot === "select-content" ||
-          node.dataset.slot === "select-trigger"
-        );
-      });
-
-      if (clickFromSelect) {
-        return;
-      }
-
-      onOpenChange(false);
-    };
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -186,12 +171,13 @@ export function StudentFiltersPanel({
       }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
+      document.documentElement.style.overflow = previousDocumentOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.paddingRight = previousBodyPaddingRight;
     };
   }, [open, onOpenChange]);
 
@@ -692,9 +678,11 @@ export function StudentFiltersPanel({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4">
+    <div
+      className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4"
+      onMouseDown={() => onOpenChange(false)}
+    >
       <div
-        ref={panelRef}
         onMouseDown={(event) => event.stopPropagation()}
         className="relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white"
       >
