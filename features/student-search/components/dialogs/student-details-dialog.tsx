@@ -9,6 +9,7 @@ import {
 import type { StudentRecord } from "@/features/student-search/types";
 import {
   formatGender,
+  getFavoriteStudentId,
   textOrNotProvided,
 } from "@/features/student-search/utils";
 
@@ -16,8 +17,8 @@ type StudentDetailsDialogProps = {
   selectedStudent: StudentRecord | null;
   selectedStudentMediaLink: string;
   favoritedStudents: Set<string>;
-  onFavorite: (paxId: string) => void;
-  onUnfavorite: (paxId: string) => void;
+  onFavorite: (appId: string) => void;
+  onUnfavorite: (appId: string) => void;
   onClose: () => void;
 };
 
@@ -34,7 +35,11 @@ export function StudentDetailsDialog({
   return (
     <Dialog open={!!selectedStudent} onOpenChange={onClose}>
       <DialogContent className="w-[96vw] max-w-[940px] border-stone-300 bg-[#f4eee4]/95 p-0 shadow-[0_24px_70px_-36px_rgba(41,30,22,0.72)] max-h-[88vh] overflow-y-auto rounded-3xl [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {selectedStudent && (
+        {selectedStudent && (() => {
+          const favoriteId = getFavoriteStudentId(selectedStudent);
+          const isFavorited = favoriteId ? favoritedStudents.has(favoriteId) : false;
+
+          return (
           <div className="rounded-3xl border border-stone-300/90 bg-[#fffdf9]/90 p-5 sm:p-7">
             <DialogHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -63,22 +68,18 @@ export function StudentDetailsDialog({
                 <div className="flex flex-col items-start gap-2 sm:items-end">
                   <button
                     onClick={() =>
-                      favoritedStudents.has(selectedStudent.pax_id.toString())
-                        ? onUnfavorite(selectedStudent.pax_id.toString())
-                        : onFavorite(selectedStudent.pax_id.toString())
+                      favoriteId ? (isFavorited ? onUnfavorite(favoriteId) : onFavorite(favoriteId)) : undefined
                     }
                     className="inline-flex h-9 items-center gap-2 rounded-full border border-stone-300 bg-white px-4 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700 transition hover:border-stone-500"
                   >
                     <Heart
                       className={`h-4 w-4 ${
-                        favoritedStudents.has(selectedStudent.pax_id.toString())
+                        isFavorited
                           ? "fill-pink-500 text-pink-500"
                           : "text-stone-500"
                       }`}
                     />
-                    {favoritedStudents.has(selectedStudent.pax_id.toString())
-                      ? "Favorited"
-                      : "Add Favorite"}
+                    {isFavorited ? "Favorited" : "Add Favorite"}
                   </button>
                   <button
                     type="button"
@@ -227,7 +228,8 @@ export function StudentDetailsDialog({
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );

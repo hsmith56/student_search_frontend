@@ -15,6 +15,7 @@ import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redire
 import { StudentDetailsDialog } from "@/features/student-search/components/dialogs/student-details-dialog";
 import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import type { StudentRecord } from "@/features/student-search/types";
+import { getFavoriteStudentId } from "@/features/student-search/utils";
 import {
   getCachedValue,
   invalidateClientCache,
@@ -367,8 +368,8 @@ export default function NewsFeedPage({
             .map((student) => {
               if (typeof student !== "object" || student === null) return null;
               const record = student as StudentRecord;
-              if (record.pax_id === undefined || record.pax_id === null) return null;
-              return String(record.pax_id);
+              const favoriteId = getFavoriteStudentId(record);
+              return favoriteId || null;
             })
             .filter((value): value is string => Boolean(value))
         );
@@ -460,16 +461,16 @@ export default function NewsFeedPage({
     }
   }, []);
 
-  const handleFavorite = useCallback(async (paxId: string) => {
+  const handleFavorite = useCallback(async (appId: string) => {
     try {
-      const response = await fetch(`${API_URL}/user/favorites?pax_id=${paxId}`, {
+      const response = await fetch(`${API_URL}/user/favorites?app_id=${appId}`, {
         method: "PATCH",
         headers: { accept: "application/json" },
         credentials: "include",
       });
 
       if (response.ok) {
-        setFavoritedStudents((previous) => new Set(previous).add(paxId));
+        setFavoritedStudents((previous) => new Set(previous).add(appId));
         invalidateClientCache("user:favorites");
       }
     } catch (error) {
@@ -477,9 +478,9 @@ export default function NewsFeedPage({
     }
   }, []);
 
-  const handleUnfavorite = useCallback(async (paxId: string) => {
+  const handleUnfavorite = useCallback(async (appId: string) => {
     try {
-      const response = await fetch(`${API_URL}/user/favorites?pax_id=${paxId}`, {
+      const response = await fetch(`${API_URL}/user/favorites?app_id=${appId}`, {
         method: "DELETE",
         headers: { accept: "application/json" },
         credentials: "include",
@@ -488,7 +489,7 @@ export default function NewsFeedPage({
       if (response.ok) {
         setFavoritedStudents((previous) => {
           const next = new Set(previous);
-          next.delete(paxId);
+          next.delete(appId);
           return next;
         });
         invalidateClientCache("user:favorites");
@@ -712,11 +713,11 @@ export default function NewsFeedPage({
         selectedStudent={selectedStudent}
         selectedStudentMediaLink={selectedStudentMediaLink}
         favoritedStudents={favoritedStudents}
-        onFavorite={(paxId) => {
-          void handleFavorite(paxId);
+        onFavorite={(appId) => {
+          void handleFavorite(appId);
         }}
-        onUnfavorite={(paxId) => {
-          void handleUnfavorite(paxId);
+        onUnfavorite={(appId) => {
+          void handleUnfavorite(appId);
         }}
         onClose={() => setSelectedStudent(null)}
       />

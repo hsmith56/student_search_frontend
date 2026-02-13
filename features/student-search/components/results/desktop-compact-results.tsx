@@ -3,6 +3,7 @@ import type { StudentRecord } from "@/features/student-search/types";
 import {
   animationStyle,
   formatGender,
+  getFavoriteStudentId,
   getStatusBadgeClass,
 } from "@/features/student-search/utils";
 
@@ -15,8 +16,8 @@ type DesktopCompactResultsProps = {
   descending: boolean;
   onToggleSort: (field: string) => void;
   onSelectStudent: (student: StudentRecord) => void;
-  onFavorite: (paxId: string, event?: React.MouseEvent) => void;
-  onUnfavorite: (paxId: string, event?: React.MouseEvent) => void;
+  onFavorite: (appId: string, event?: React.MouseEvent) => void;
+  onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
 
 export function DesktopCompactResults({
@@ -121,7 +122,10 @@ export function DesktopCompactResults({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--brand-border-soft)]">
-            {students.map((student, index) => (
+            {students.map((student, index) => {
+              const favoriteId = getFavoriteStudentId(student);
+
+              return (
               <tr
                 key={student.pax_id.toString()}
                 onClick={() => onSelectStudent(student)}
@@ -190,15 +194,16 @@ export function DesktopCompactResults({
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
-                      favoritedStudents.has(student.pax_id.toString())
-                        ? onUnfavorite(student.pax_id.toString(), event)
-                        : onFavorite(student.pax_id.toString(), event);
+                      if (!favoriteId) return;
+                      favoritedStudents.has(favoriteId)
+                        ? onUnfavorite(favoriteId, event)
+                        : onFavorite(favoriteId, event);
                     }}
                     className="rounded-full p-1.5 transition-all duration-200 hover:bg-[rgba(0,94,184,0.08)]"
                   >
                     <Heart
                       className={`w-4 h-4 ${
-                        favoritedStudents.has(student.pax_id.toString())
+                        favoritedStudents.has(favoriteId)
                           ? "fill-[var(--brand-danger)] text-[var(--brand-danger)]"
                           : "text-[var(--brand-muted)] hover:text-[var(--brand-danger)]"
                       } transition-colors duration-200`}
@@ -206,7 +211,7 @@ export function DesktopCompactResults({
                   </button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

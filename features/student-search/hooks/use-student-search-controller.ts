@@ -11,7 +11,10 @@ import {
   type Filters,
   type StudentRecord,
 } from "@/features/student-search/types";
-import { sortStudentsLocally } from "@/features/student-search/utils";
+import {
+  getFavoriteStudentId,
+  sortStudentsLocally,
+} from "@/features/student-search/utils";
 import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import { useStudentSearchPreferences } from "@/features/student-search/hooks/use-student-search-preferences";
 import {
@@ -381,11 +384,11 @@ export function useStudentSearchController({
     fetchStudents(previousPage);
   };
 
-  const handleFavorite = async (paxId: string, event?: React.MouseEvent) => {
+  const handleFavorite = async (appId: string, event?: React.MouseEvent) => {
     event?.stopPropagation();
     try {
       const response = await fetch(
-        `${API_URL}/user/favorites?pax_id=${paxId.toString()}`,
+        `${API_URL}/user/favorites?app_id=${appId.toString()}`,
         {
           method: "PATCH",
           headers: { accept: "application/json" },
@@ -394,7 +397,7 @@ export function useStudentSearchController({
       );
 
       if (response.ok) {
-        setFavoritedStudents((prev) => new Set(prev).add(paxId.toString()));
+        setFavoritedStudents((prev) => new Set(prev).add(appId.toString()));
         invalidateClientCache("user:favorites");
       }
     } catch (error) {
@@ -403,13 +406,13 @@ export function useStudentSearchController({
   };
 
   const handleUnfavorite = async (
-    paxId: string,
+    appId: string,
     event?: React.MouseEvent
   ) => {
     event?.stopPropagation();
     try {
       const response = await fetch(
-        `${API_URL}/user/favorites?pax_id=${paxId.toString()}`,
+        `${API_URL}/user/favorites?app_id=${appId.toString()}`,
         {
           method: "DELETE",
           headers: { accept: "application/json" },
@@ -420,7 +423,7 @@ export function useStudentSearchController({
       if (response.ok) {
         setFavoritedStudents((prev) => {
           const next = new Set(prev);
-          next.delete(paxId.toString());
+          next.delete(appId.toString());
           return next;
         });
         invalidateClientCache("user:favorites");
@@ -453,9 +456,9 @@ export function useStudentSearchController({
 
         setStudents(sortStudentsLocally(data || [], orderBy, descending));
         const favoritedIds = new Set<string>(
-          (data || []).map((student: StudentRecord) =>
-            String(student.pax_id.toString())
-          )
+          (data || [])
+            .map((student: StudentRecord) => getFavoriteStudentId(student))
+            .filter((id) => id.length > 0)
         );
         setFavoritedStudents(favoritedIds);
         setShowFavoritesOnly(true);
@@ -544,7 +547,9 @@ export function useStudentSearchController({
           CACHE_TTL_SHORT_MS
         );
         const favoritedIds = new Set<string>(
-          data.map((student: StudentRecord) => String(student.pax_id))
+          data
+            .map((student: StudentRecord) => getFavoriteStudentId(student))
+            .filter((id) => id.length > 0)
         );
         setFavoritedStudents(favoritedIds);
       } catch (error) {

@@ -193,11 +193,11 @@ export default function StudentSearchPage({
         selectedStudent={controller.selectedStudent}
         selectedStudentMediaLink={controller.selectedStudentMediaLink}
         favoritedStudents={controller.favoritedStudents}
-        onFavorite={(paxId) => {
-          void controller.handleFavorite(paxId);
+        onFavorite={(appId) => {
+          void controller.handleFavorite(appId);
         }}
-        onUnfavorite={(paxId) => {
-          void controller.handleUnfavorite(paxId);
+        onUnfavorite={(appId) => {
+          void controller.handleUnfavorite(appId);
         }}
         onClose={() => controller.setSelectedStudent(null)}
       />

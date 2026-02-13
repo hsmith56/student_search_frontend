@@ -14,8 +14,8 @@ type ResultsSectionProps = {
   descending: boolean;
   onToggleSort: (field: string) => void;
   onSelectStudent: (student: StudentRecord) => void;
-  onFavorite: (paxId: string, event?: React.MouseEvent) => void;
-  onUnfavorite: (paxId: string, event?: React.MouseEvent) => void;
+  onFavorite: (appId: string, event?: React.MouseEvent) => void;
+  onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
 
 export function ResultsSection({

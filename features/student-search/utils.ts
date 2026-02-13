@@ -126,3 +126,17 @@ export const animationStyle = (
   shouldAnimateResults
     ? ({ "--results-item-index": index } as React.CSSProperties)
     : undefined;
+
+export const getFavoriteStudentId = (student: StudentRecord): string => {
+  const appId = student.app_id;
+  if (appId !== undefined && appId !== null) {
+    return String(appId);
+  }
+
+  const paxId = student.pax_id;
+  if (paxId !== undefined && paxId !== null) {
+    return String(paxId);
+  }
+
+  return "";
+};
