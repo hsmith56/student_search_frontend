@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useState,
   type ComponentType,
   type Dispatch,
   type ReactNode,
@@ -10,6 +11,7 @@ import { createPortal } from "react-dom";
 import {
   Award,
   Calendar,
+  ChevronRight,
   CheckCircle2,
   GraduationCap,
   MapPin,
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { interests } from "@/components/search/interests";
 import { states } from "@/components/search/states";
+import { MultiSelectDialog } from "@/features/student-search/components/dialogs/multi-select-dialog";
 import {
   PROGRAM_TYPE_OPTIONS,
   SCHOLARSHIP_OPTIONS,
@@ -151,6 +154,8 @@ export function StudentFiltersPanel({
   onClearFilters,
   statusOptions,
 }: StudentFiltersPanelProps) {
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+
   useEffect(() => {
     if (!open) return;
 
@@ -181,24 +186,55 @@ export function StudentFiltersPanel({
     };
   }, [open, onOpenChange]);
 
+  useEffect(() => {
+    if (open) return;
+    setIsCountryOpen(false);
+  }, [open]);
+
   const selectTriggerClass =
     "h-9 w-full border-[rgba(255,87,0,0.3)] bg-white text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.55)] focus-visible:ring-[rgba(255,87,0,0.24)]";
   const selectContentClass = "z-[120]";
   const weightedThreeColumnGridClass =
     "grid grid-cols-1 gap-y-2.5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.2fr)] md:gap-x-2";
 
+  const countryOptions = useMemo(
+    () =>
+      [...new Set(countries)]
+        .sort((left, right) => left.localeCompare(right))
+        .map((country, index) => ({
+          id: `country-${index}`,
+          label: country,
+          value: country,
+        })),
+    [countries]
+  );
+
+  const toggleCountry = (country: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      country_of_origin: prev.country_of_origin.includes(country)
+        ? prev.country_of_origin.filter((item) => item !== country)
+        : [...prev.country_of_origin, country],
+    }));
+  };
+
   const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
     const pills: ActiveFilterPill[] = [];
 
-    if (filters.country_of_origin !== defaultFilters.country_of_origin) {
+    filters.country_of_origin.forEach((country) => {
       pills.push({
-        key: `country-${filters.country_of_origin}`,
+        key: `country-${country}`,
         group: "Country",
-        value: filters.country_of_origin,
+        value: country,
         onRemove: () =>
-          setFilters((prev) => ({ ...prev, country_of_origin: defaultFilters.country_of_origin })),
+          setFilters((prev) => ({
+            ...prev,
+            country_of_origin: prev.country_of_origin.filter(
+              (item) => item !== country
+            ),
+          })),
       });
-    }
+    });
 
     if (filters.state !== defaultFilters.state) {
       pills.push({
@@ -391,24 +427,21 @@ export function StudentFiltersPanel({
     <div className={weightedThreeColumnGridClass}>
       <div>
         <FieldLabel>Country</FieldLabel>
-        <Select
-          value={filters.country_of_origin}
-          onValueChange={(value) =>
-            setFilters((prev) => ({ ...prev, country_of_origin: value }))
-          }
+        <Button
+          type="button"
+          variant="outline"
+          className={`${selectTriggerClass} justify-between px-3 font-normal`}
+          onClick={() => setIsCountryOpen(true)}
         >
-          <SelectTrigger className={selectTriggerClass}>
-            <SelectValue placeholder="Show All" />
-          </SelectTrigger>
-          <SelectContent className={selectContentClass}>
-            <SelectItem value="all">Show All</SelectItem>
-            {countries.map((country) => (
-              <SelectItem key={country} value={country}>
-                {country}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <span className="truncate text-left text-[13px] text-[var(--brand-body)]">
+            {filters.country_of_origin.length === 0
+              ? "Show All"
+              : filters.country_of_origin.length === 1
+                ? filters.country_of_origin[0]
+                : `${filters.country_of_origin.length} selected`}
+          </span>
+          <ChevronRight className="h-4 w-4 text-[var(--brand-muted)]" />
+        </Button>
       </div>
       <div>
         <FieldLabel>State</FieldLabel>
@@ -680,91 +713,104 @@ export function StudentFiltersPanel({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4"
-      onMouseDown={() => onOpenChange(false)}
-    >
+    <>
       <div
-        onMouseDown={(event) => event.stopPropagation()}
-        className="relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white"
+        className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4"
+        onMouseDown={() => onOpenChange(false)}
       >
-        <div className="border-b border-[rgba(255,87,0,0.2)] bg-[rgba(255,87,0,0.07)] px-3 py-2.5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>              
-              <h3 className="text-sm font-semibold text-[var(--brand-body)]">
-                Student Search Filters
-              </h3>
+        <div
+          onMouseDown={(event) => event.stopPropagation()}
+          className="relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white"
+        >
+          <div className="border-b border-[rgba(255,87,0,0.2)] bg-[rgba(255,87,0,0.07)] px-3 py-2.5">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>              
+                <h3 className="text-sm font-semibold text-[var(--brand-body)]">
+                  Student Search Filters
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-full border border-[rgba(255,87,0,0.26)] p-1 text-[var(--brand-muted)] transition-colors hover:border-[rgba(255,87,0,0.5)] hover:text-[var(--brand-accent)]"
+                aria-label="Close filters panel"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="rounded-full border border-[rgba(255,87,0,0.26)] p-1 text-[var(--brand-muted)] transition-colors hover:border-[rgba(255,87,0,0.5)] hover:text-[var(--brand-accent)]"
-              aria-label="Close filters panel"
+          </div>
+
+          {activeFilterPills.length > 0 && (
+            <div className="border-b border-[rgba(255,87,0,0.2)] px-3 py-2">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(255,87,0,0.76)]">
+                  Active Filters
+                </p>
+                <span className="rounded-full border border-[rgba(255,87,0,0.3)] bg-[rgba(255,87,0,0.1)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-accent)]">
+                  {activeFilterPills.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {activeFilterPills.map((pill) => (
+                  <button
+                    key={pill.key}
+                    type="button"
+                    onClick={pill.onRemove}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,87,0,0.26)] bg-[rgba(255,87,0,0.06)] px-2.5 py-1 text-[11px] text-[var(--brand-body)] transition-colors hover:border-[rgba(255,87,0,0.48)] hover:bg-[rgba(255,87,0,0.14)]"
+                    title={`Remove ${pill.group}: ${pill.value}`}
+                  >
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[rgba(255,87,0,0.7)]">
+                      {pill.group}
+                    </span>
+                    <span className="h-3 w-px bg-[rgba(255,87,0,0.25)]" />
+                    <span>{pill.value}</span>
+                    <X className="h-3.5 w-3.5 text-[rgba(255,87,0,0.72)]" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-[72vh] overflow-y-auto p-3">
+            {ledgerLayout}
+          </div>
+
+          <div className="flex gap-2 border-t border-[rgba(255,87,0,0.2)] p-3">
+            <Button
+              variant="outline"
+              onClick={onClearFilters}
+              className="h-10 flex-1 border-[rgba(255,87,0,0.34)] text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.54)] hover:bg-[rgba(255,87,0,0.08)]"
             >
-              <X className="h-4 w-4" />
-            </button>
+              Clear
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="h-10 flex-1 border-[rgba(255,87,0,0.34)] text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.54)] hover:bg-[rgba(255,87,0,0.08)]"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={onApplyFilters}
+              className="h-10 flex-1 bg-[var(--brand-accent)] text-white hover:bg-[#e74f00]"
+            >
+              Apply Filters
+            </Button>
           </div>
-        </div>
-
-        {activeFilterPills.length > 0 && (
-          <div className="border-b border-[rgba(255,87,0,0.2)] px-3 py-2">
-            <div className="mb-1.5 flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(255,87,0,0.76)]">
-                Active Filters
-              </p>
-              <span className="rounded-full border border-[rgba(255,87,0,0.3)] bg-[rgba(255,87,0,0.1)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-accent)]">
-                {activeFilterPills.length}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {activeFilterPills.map((pill) => (
-                <button
-                  key={pill.key}
-                  type="button"
-                  onClick={pill.onRemove}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,87,0,0.26)] bg-[rgba(255,87,0,0.06)] px-2.5 py-1 text-[11px] text-[var(--brand-body)] transition-colors hover:border-[rgba(255,87,0,0.48)] hover:bg-[rgba(255,87,0,0.14)]"
-                  title={`Remove ${pill.group}: ${pill.value}`}
-                >
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[rgba(255,87,0,0.7)]">
-                    {pill.group}
-                  </span>
-                  <span className="h-3 w-px bg-[rgba(255,87,0,0.25)]" />
-                  <span>{pill.value}</span>
-                  <X className="h-3.5 w-3.5 text-[rgba(255,87,0,0.72)]" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="max-h-[72vh] overflow-y-auto p-3">
-          {ledgerLayout}
-        </div>
-
-        <div className="flex gap-2 border-t border-[rgba(255,87,0,0.2)] p-3">
-          <Button
-            variant="outline"
-            onClick={onClearFilters}
-            className="h-10 flex-1 border-[rgba(255,87,0,0.34)] text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.54)] hover:bg-[rgba(255,87,0,0.08)]"
-          >
-            Clear
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-10 flex-1 border-[rgba(255,87,0,0.34)] text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.54)] hover:bg-[rgba(255,87,0,0.08)]"
-          >
-            Close
-          </Button>
-          <Button
-            onClick={onApplyFilters}
-            className="h-10 flex-1 bg-[var(--brand-accent)] text-white hover:bg-[#e74f00]"
-          >
-            Apply Filters
-          </Button>
         </div>
       </div>
-    </div>,
+      <MultiSelectDialog
+        open={isCountryOpen}
+        onOpenChange={setIsCountryOpen}
+        title="Select Countries"
+        options={countryOptions}
+        selectedValues={filters.country_of_origin}
+        onToggle={toggleCountry}
+        showSearch
+        searchPlaceholder="Search countries"
+        emptyResultsLabel="No countries found."
+      />
+    </>,
     document.body
   );
 }

@@ -43,10 +43,13 @@ const hasSameValues = (left: string[], right: string[]) => {
   return left.every((value) => right.includes(value));
 };
 
+const getCountryFilterPayload = (countries: string[]) =>
+  countries.length > 0 ? countries : ["all"];
+
 const getActiveFilterCount = (filters: Filters) => {
   let count = 0;
 
-  if (filters.country_of_origin !== defaultFilters.country_of_origin) count += 1;
+  count += filters.country_of_origin.length;
   if (filters.interests !== defaultFilters.interests) count += 1;
   if (filters.state !== defaultFilters.state) count += 1;
   if (filters.gender_male) count += 1;
@@ -196,6 +199,7 @@ export function useStudentSearchController({
           credentials: "include",
           body: JSON.stringify({
             ...filters,
+            country_of_origin: getCountryFilterPayload(filters.country_of_origin),
             status: statusValue,
             free_text: query,
             usahsId: usahsIdQuery,
@@ -224,6 +228,7 @@ export function useStudentSearchController({
           credentials: "include",
           body: JSON.stringify({
             ...defaultFilters,
+            country_of_origin: getCountryFilterPayload(defaultFilters.country_of_origin),
             status: "Allocated",
             free_text: "",
             usahsId: "",
@@ -277,6 +282,7 @@ export function useStudentSearchController({
               credentials: "include",
               body: JSON.stringify({
                 ...filters,
+                country_of_origin: getCountryFilterPayload(filters.country_of_origin),
                 statusOptions: sanitizedStatus,
               }),
             }

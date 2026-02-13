@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FilterCheckbox } from "@/features/student-search/components/filter-checkbox";
 
 type MultiSelectOption = {
@@ -16,6 +18,9 @@ type MultiSelectDialogProps = {
   selectedValues: string[];
   onToggle: (value: string) => void;
   doneLabel?: string;
+  showSearch?: boolean;
+  searchPlaceholder?: string;
+  emptyResultsLabel?: string;
 };
 
 export function MultiSelectDialog({
@@ -26,17 +31,49 @@ export function MultiSelectDialog({
   selectedValues,
   onToggle,
   doneLabel = "Done",
+  showSearch = false,
+  searchPlaceholder = "Search",
+  emptyResultsLabel = "No options found.",
 }: MultiSelectDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredOptions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return options;
+    }
+
+    return options.filter((option) => option.label.toLowerCase().includes(query));
+  }, [options, searchQuery]);
+
+  const selectedCount = selectedValues.length;
+
+  useEffect(() => {
+    if (open) return;
+    setSearchQuery("");
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="mx-auto w-md rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)]">
+      <DialogContent className="z-[90] mx-auto w-md rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)] sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-[var(--brand-ink)]">
             {title}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-1 mt-1">
-          {options.map((option) => (
+        {showSearch && (
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm text-[var(--brand-body)]"
+          />
+        )}
+        <div className="rounded-lg border border-[var(--brand-border-soft)] bg-white/75 px-2 py-1 text-xs font-medium text-[var(--brand-muted)]">
+          {selectedCount} selected
+        </div>
+        <div className="mt-1 max-h-[52vh] space-y-1 overflow-y-auto pr-1">
+          {filteredOptions.map((option) => (
             <div
               key={option.id}
               className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-[rgba(0,94,184,0.06)]"
@@ -54,6 +91,11 @@ export function MultiSelectDialog({
               </label>
             </div>
           ))}
+          {filteredOptions.length === 0 && (
+            <p className="py-6 text-center text-sm text-[var(--brand-muted)]">
+              {emptyResultsLabel}
+            </p>
+          )}
         </div>
         <div className="flex border-t border-[var(--brand-border-soft)]">
           <Button

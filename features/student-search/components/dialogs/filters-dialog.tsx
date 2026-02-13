@@ -1,4 +1,4 @@
-import { useMemo, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   Award,
   Calendar,
@@ -93,6 +93,7 @@ export function FiltersDialog({
   onApplyFilters,
   statusOptions,
 }: FiltersDialogProps) {
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
   const sectionClass =
     "rounded-xl border border-[rgba(0,53,84,0.12)] bg-[rgba(253,254,255,0.98)] p-3";
   const sectionTitleClass =
@@ -102,19 +103,45 @@ export function FiltersDialog({
   const multiSelectButtonClass =
     "h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]";
 
+  const countryOptions = useMemo(
+    () =>
+      [...new Set(countries)]
+        .sort((left, right) => left.localeCompare(right))
+        .map((country, index) => ({
+          id: `country-${index}`,
+          label: country,
+          value: country,
+        })),
+    [countries]
+  );
+
+  const toggleCountry = (country: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      country_of_origin: prev.country_of_origin.includes(country)
+        ? prev.country_of_origin.filter((item) => item !== country)
+        : [...prev.country_of_origin, country],
+    }));
+  };
+
   const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
     const pills: ActiveFilterPill[] = [];
     const toTitle = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-    if (filters.country_of_origin !== defaultFilters.country_of_origin) {
+    filters.country_of_origin.forEach((country) => {
       pills.push({
-        key: `country-${filters.country_of_origin}`,
+        key: `country-${country}`,
         group: "Country",
-        value: filters.country_of_origin,
+        value: country,
         onRemove: () =>
-          setFilters((prev) => ({ ...prev, country_of_origin: defaultFilters.country_of_origin })),
+          setFilters((prev) => ({
+            ...prev,
+            country_of_origin: prev.country_of_origin.filter(
+              (item) => item !== country
+            ),
+          })),
       });
-    }
+    });
 
     if (filters.state !== defaultFilters.state) {
       pills.push({
@@ -349,24 +376,19 @@ export function FiltersDialog({
                   <label className="mb-1.5 block text-[11px] font-semibold text-[var(--brand-body)]">
                     Country of Origin
                   </label>
-                  <Select
-                    value={filters.country_of_origin}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, country_of_origin: value }))
-                    }
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCountryOpen(true)}
+                    className={multiSelectButtonClass}
                   >
-                    <SelectTrigger className={fieldControlClass}>
-                      <SelectValue placeholder="Show All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Show All</SelectItem>
-                      {countries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <span className="text-[var(--brand-body)]">
+                      {filters.country_of_origin.length > 0
+                        ? `${filters.country_of_origin.length} selected`
+                        : "Show All"}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-[var(--brand-muted)]" />
+                  </Button>
                 </div>
 
                 <div>
@@ -714,6 +736,18 @@ export function FiltersDialog({
           </div>
         </DialogContent>
       </Dialog>
+
+      <MultiSelectDialog
+        open={isCountryOpen}
+        onOpenChange={setIsCountryOpen}
+        title="Select Countries"
+        options={countryOptions}
+        selectedValues={filters.country_of_origin}
+        onToggle={toggleCountry}
+        showSearch
+        searchPlaceholder="Search countries"
+        emptyResultsLabel="No countries found."
+      />
 
       <MultiSelectDialog
         open={isProgramTypeOpen}

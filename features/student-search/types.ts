@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 export type ViewMode = "card" | "compact";
 
 export type Filters = {
-  country_of_origin: string;
+  country_of_origin: string[];
   interests: string;
   state: string;
   gender_male: boolean;
@@ -23,7 +23,7 @@ export type Filters = {
 };
 
 export const defaultFilters: Filters = {
-  country_of_origin: "all",
+  country_of_origin: [],
   interests: "all",
   state: "all",
   gender_male: false,
