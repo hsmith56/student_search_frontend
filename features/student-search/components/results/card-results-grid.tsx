@@ -12,7 +12,6 @@ type CardResultsGridProps = {
   shouldAnimateResults: boolean;
   resultsAnimationKey: number;
   favoritedStudents: Set<string>;
-  onSelectStudent: (student: StudentRecord) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
@@ -22,7 +21,6 @@ export function CardResultsGrid({
   shouldAnimateResults,
   resultsAnimationKey,
   favoritedStudents,
-  onSelectStudent,
   onFavorite,
   onUnfavorite,
 }: CardResultsGridProps) {
@@ -35,13 +33,20 @@ export function CardResultsGrid({
     >
       {students.map((student, index) => {
         const favoriteId = getFavoriteStudentId(student);
+        const appId = student.app_id?.toString() ?? "";
+        const hasAppId = appId.trim().length > 0;
+        const profileHref = hasAppId
+          ? `/StudentProfile?id=${encodeURIComponent(appId)}`
+          : "";
+        const beaconHref = hasAppId
+          ? `https://beacon.ciee.org/participant/${encodeURIComponent(appId)}`
+          : "";
 
         return (
         <div
           key={student.pax_id.toString()}
-          onClick={() => onSelectStudent(student)}
           style={animationStyle(shouldAnimateResults, index)}
-          className={`group cursor-pointer border-2 ${getStatusRingColor(
+          className={`group border-2 ${getStatusRingColor(
             student.placement_status as string | undefined
           )} rounded-xl bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_6px_16px_rgba(0,53,84,0.14)] transition-all duration-200 hover:shadow-[0_12px_24px_rgba(0,53,84,0.2)] relative ${
             shouldAnimateResults ? "results-refresh-item" : ""
@@ -68,10 +73,34 @@ export function CardResultsGrid({
           <div className="mb-3 flex items-start justify-between border-b border-[var(--brand-border-soft)] pb-3 pr-8">
             <div className="flex-1">
               <h2 className="text-base font-semibold tracking-tight text-[var(--brand-ink)] transition-colors duration-200 group-hover:text-[var(--brand-primary)]">
-                {student.first_name} - {formatGender(student.gender_desc)}
+                {hasAppId ? (
+                  <a
+                    href={profileHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-[rgba(0,94,184,0.35)] underline-offset-3"
+                  >
+                    {student.first_name} - {formatGender(student.gender_desc)}
+                  </a>
+                ) : (
+                  <>
+                    {student.first_name} - {formatGender(student.gender_desc)}
+                  </>
+                )}
               </h2>
               <p className="mt-0.5 font-mono text-xs text-[var(--brand-muted)]">
-                {String(student.usahsid ?? "")}
+                {hasAppId ? (
+                  <a
+                    href={beaconHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-[rgba(0,53,84,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary-deep)]"
+                  >
+                    {String(student.usahsid ?? "")}
+                  </a>
+                ) : (
+                  String(student.usahsid ?? "")
+                )}
               </p>
             </div>
             <div className="flex items-center gap-1 rounded-lg border border-[rgba(0,94,184,0.28)] bg-gradient-to-br from-[rgba(0,94,184,0.08)] to-[rgba(60,159,192,0.08)] px-2.5 py-1.5 text-sm font-semibold text-[var(--brand-primary-deep)] shadow-sm">

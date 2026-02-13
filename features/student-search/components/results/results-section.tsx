@@ -13,7 +13,6 @@ type ResultsSectionProps = {
   orderBy: string;
   descending: boolean;
   onToggleSort: (field: string) => void;
-  onSelectStudent: (student: StudentRecord) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
@@ -28,7 +27,6 @@ export function ResultsSection({
   orderBy,
   descending,
   onToggleSort,
-  onSelectStudent,
   onFavorite,
   onUnfavorite,
 }: ResultsSectionProps) {
@@ -39,7 +37,6 @@ export function ResultsSection({
         shouldAnimateResults={shouldAnimateResults}
         resultsAnimationKey={resultsAnimationKey}
         favoritedStudents={favoritedStudents}
-        onSelectStudent={onSelectStudent}
         onFavorite={onFavorite}
         onUnfavorite={onUnfavorite}
       />
@@ -53,7 +50,6 @@ export function ResultsSection({
         shouldAnimateResults={shouldAnimateResults}
         resultsAnimationKey={resultsAnimationKey}
         favoritedStudents={favoritedStudents}
-        onSelectStudent={onSelectStudent}
         onFavorite={onFavorite}
         onUnfavorite={onUnfavorite}
       />
@@ -69,7 +65,6 @@ export function ResultsSection({
       orderBy={orderBy}
       descending={descending}
       onToggleSort={onToggleSort}
-      onSelectStudent={onSelectStudent}
       onFavorite={onFavorite}
       onUnfavorite={onUnfavorite}
     />

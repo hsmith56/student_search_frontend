@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { SEARCH_TIPS } from "@/features/student-search/constants";
 import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
 import { FiltersDialog } from "@/features/student-search/components/dialogs/filters-dialog";
-import { StudentDetailsDialog } from "@/features/student-search/components/dialogs/student-details-dialog";
 import { PaginationControls } from "@/features/student-search/components/pagination-controls";
 import { QuickStatsSection } from "@/features/student-search/components/quick-stats-section";
 import { SearchControls } from "@/features/student-search/components/search-controls";
@@ -148,7 +147,6 @@ export default function StudentSearchPage({
               orderBy={controller.orderBy}
               descending={controller.descending}
               onToggleSort={controller.toggleSort}
-              onSelectStudent={controller.setSelectedStudent}
               onFavorite={controller.handleFavorite}
               onUnfavorite={controller.handleUnfavorite}
             />
@@ -196,19 +194,6 @@ export default function StudentSearchPage({
         onToggleScholarship={controller.toggleScholarship}
         onApplyFilters={controller.applyFilters}
         statusOptions={controller.statusOptionsForFilter}
-      />
-
-      <StudentDetailsDialog
-        selectedStudent={controller.selectedStudent}
-        selectedStudentMediaLink={controller.selectedStudentMediaLink}
-        favoritedStudents={controller.favoritedStudents}
-        onFavorite={(appId) => {
-          void controller.handleFavorite(appId);
-        }}
-        onUnfavorite={(appId) => {
-          void controller.handleUnfavorite(appId);
-        }}
-        onClose={() => controller.setSelectedStudent(null)}
       />
     </div>
   );

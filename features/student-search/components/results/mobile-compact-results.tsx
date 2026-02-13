@@ -13,7 +13,6 @@ type MobileCompactResultsProps = {
   shouldAnimateResults: boolean;
   resultsAnimationKey: number;
   favoritedStudents: Set<string>;
-  onSelectStudent: (student: StudentRecord) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
@@ -23,7 +22,6 @@ export function MobileCompactResults({
   shouldAnimateResults,
   resultsAnimationKey,
   favoritedStudents,
-  onSelectStudent,
   onFavorite,
   onUnfavorite,
 }: MobileCompactResultsProps) {
@@ -36,15 +34,22 @@ export function MobileCompactResults({
     >
       {students.map((student, index) => {
         const favoriteId = getFavoriteStudentId(student);
+        const appId = student.app_id?.toString() ?? "";
+        const hasAppId = appId.trim().length > 0;
+        const profileHref = hasAppId
+          ? `/StudentProfile?id=${encodeURIComponent(appId)}`
+          : "";
+        const beaconHref = hasAppId
+          ? `https://beacon.ciee.org/participant/${encodeURIComponent(appId)}`
+          : "";
 
         return (
         <div
           key={student.pax_id.toString()}
-          onClick={() => onSelectStudent(student)}
           style={animationStyle(shouldAnimateResults, index)}
           className={`border-2 ${getStatusRingColor(
             student.placement_status as string | undefined
-          )} relative cursor-pointer rounded-xl bg-[rgba(253,254,255,0.95)] p-4 shadow-md shadow-[rgba(0,53,84,0.12)] transition-all duration-200 hover:shadow-lg hover:shadow-[rgba(0,53,84,0.16)] backdrop-blur-sm ${
+          )} relative rounded-xl bg-[rgba(253,254,255,0.95)] p-4 shadow-md shadow-[rgba(0,53,84,0.12)] transition-all duration-200 hover:shadow-lg hover:shadow-[rgba(0,53,84,0.16)] backdrop-blur-sm ${
             shouldAnimateResults ? "results-refresh-item" : ""
           }`}
         >
@@ -69,10 +74,34 @@ export function MobileCompactResults({
 
           <div className="mb-3 pr-8">
             <h3 className="text-lg font-bold text-[var(--brand-ink)]">
-              {student.first_name} - {formatGender(student.gender_desc)}
+              {hasAppId ? (
+                <a
+                  href={profileHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-[rgba(0,94,184,0.35)] underline-offset-3 transition hover:text-[var(--brand-primary)]"
+                >
+                  {student.first_name} - {formatGender(student.gender_desc)}
+                </a>
+              ) : (
+                <>
+                  {student.first_name} - {formatGender(student.gender_desc)}
+                </>
+              )}
             </h3>
             <p className="font-mono text-xs text-[var(--brand-muted)]">
-              {String(student.usahsid ?? "")}
+              {hasAppId ? (
+                <a
+                  href={beaconHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-[rgba(0,53,84,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary-deep)]"
+                >
+                  {String(student.usahsid ?? "")}
+                </a>
+              ) : (
+                String(student.usahsid ?? "")
+              )}
             </p>
           </div>
 

@@ -15,7 +15,6 @@ type DesktopCompactResultsProps = {
   orderBy: string;
   descending: boolean;
   onToggleSort: (field: string) => void;
-  onSelectStudent: (student: StudentRecord) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
@@ -28,7 +27,6 @@ export function DesktopCompactResults({
   orderBy,
   descending,
   onToggleSort,
-  onSelectStudent,
   onFavorite,
   onUnfavorite,
 }: DesktopCompactResultsProps) {
@@ -124,13 +122,20 @@ export function DesktopCompactResults({
           <tbody className="divide-y divide-[var(--brand-border-soft)]">
             {students.map((student, index) => {
               const favoriteId = getFavoriteStudentId(student);
+              const appId = student.app_id?.toString() ?? "";
+              const hasAppId = appId.trim().length > 0;
+              const profileHref = hasAppId
+                ? `/StudentProfile?id=${encodeURIComponent(appId)}`
+                : "";
+              const beaconHref = hasAppId
+                ? `https://beacon.ciee.org/participant/${encodeURIComponent(appId)}`
+                : "";
 
               return (
               <tr
                 key={student.pax_id.toString()}
-                onClick={() => onSelectStudent(student)}
                 style={animationStyle(shouldAnimateResults, index)}
-                className={`cursor-pointer transition-colors duration-150 hover:bg-[rgba(0,94,184,0.07)] ${
+                className={`transition-colors duration-150 hover:bg-[rgba(0,94,184,0.07)] ${
                   shouldAnimateResults ? "results-refresh-item" : ""
                 }`}
               >
@@ -138,13 +143,35 @@ export function DesktopCompactResults({
                   className="truncate px-2 py-2.5 text-[13px] font-normal leading-5 text-[var(--brand-body)] md:px-2.5"
                   title={String(student.first_name ?? "-")}
                 >
-                  {String(student.first_name ?? "-")}
+                  {hasAppId ? (
+                    <a
+                      href={profileHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-[var(--brand-primary-deep)] underline decoration-[rgba(0,94,184,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary)]"
+                    >
+                      {String(student.first_name ?? "-")}
+                    </a>
+                  ) : (
+                    String(student.first_name ?? "-")
+                  )}
                 </td>
                 <td className={bodyCellClass}>
                   {formatGender(student.gender_desc)}
                 </td>
                 <td className="px-2.5 py-2.5 font-mono text-[12px] text-[var(--brand-muted)] md:px-3">
-                  {String(student.usahsid ?? "")}
+                  {hasAppId ? (
+                    <a
+                      href={beaconHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-[rgba(0,53,84,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary-deep)]"
+                    >
+                      {String(student.usahsid ?? "")}
+                    </a>
+                  ) : (
+                    String(student.usahsid ?? "")
+                  )}
                 </td>
                 <td className={bodyCellClass}>
                   {String(student.country ?? "-")}

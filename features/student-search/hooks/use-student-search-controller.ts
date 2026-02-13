@@ -16,7 +16,6 @@ import {
   getFavoriteStudentId,
   sortStudentsLocally,
 } from "@/features/student-search/utils";
-import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import { useStudentSearchPreferences } from "@/features/student-search/hooks/use-student-search-preferences";
 import {
   getCachedValue,
@@ -52,10 +51,6 @@ export function useStudentSearchController({
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(
-    null
-  );
-  const selectedStudentMediaLink = useSelectedStudentMedia(selectedStudent);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -794,9 +789,6 @@ export function useStudentSearchController({
     orderBy,
     descending,
     toggleSort,
-    selectedStudent,
-    setSelectedStudent,
-    selectedStudentMediaLink,
     handleFavorite,
     handleUnfavorite,
     currentPage,
