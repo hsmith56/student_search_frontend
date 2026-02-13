@@ -265,9 +265,14 @@ export default function StudentProfilePage() {
               >
                 {student.first_name}
               </h1>
-              <p className="mt-2 text-sm text-stone-600">
-                USAHS ID {textOrDash(student.usahsid)}
-              </p>
+              <a
+                                    href={`https://beacon.ciee.org/participant/${student.app_id}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex h-8 items-center rounded-full border border-stone-300 bg-white px-3 font-semibold uppercase tracking-[0.14em] text-stone-700 transition hover:border-stone-400"
+                                  >
+                                    USAHS ID {textOrDash(student.usahsid)}
+                                  </a>
             </div>
             <div className="flex flex-col items-start gap-2">
               <span

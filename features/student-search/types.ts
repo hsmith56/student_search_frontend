@@ -49,6 +49,7 @@ export type StudentRecord = {
   usahsid?: string | number;
   country?: string;
   selected_interests?: string[];
+  states?: string[];
   gpa?: string | number;
   applying_to_grade?: string | number;
   adjusted_age?: string | number;

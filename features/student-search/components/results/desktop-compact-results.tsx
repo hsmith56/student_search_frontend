@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Award, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import type { StudentRecord } from "@/features/student-search/types";
 import {
@@ -19,6 +20,16 @@ type DesktopCompactResultsProps = {
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
 };
 
+const getRowId = (student: StudentRecord) => String(student.pax_id);
+
+const toStringList = (value: unknown) =>
+  Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    : [];
+
 export function DesktopCompactResults({
   students,
   shouldAnimateResults,
@@ -30,6 +41,10 @@ export function DesktopCompactResults({
   onFavorite,
   onUnfavorite,
 }: DesktopCompactResultsProps) {
+  const [rowsShowingStates, setRowsShowingStates] = useState<Set<string>>(
+    () => new Set()
+  );
+
   const headerCellClass =
     "px-2.5 md:px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-body)]";
   const bodyCellClass =
@@ -132,6 +147,18 @@ export function DesktopCompactResults({
               const favoriteId = getFavoriteStudentId(student);
               const appId = student.app_id?.toString() ?? "";
               const hasAppId = appId.trim().length > 0;
+              const rowId = getRowId(student);
+              const states = toStringList(student.states);
+              const hasStates = states.length > 0;
+              const isShowingStates = rowsShowingStates.has(rowId);
+              const interests = toStringList(student.selected_interests);
+              const interestsText = interests.length > 0 ? interests.join(", ") : "-";
+              const statesText = states.join(", ");
+              const shouldShowStates = hasStates && isShowingStates;
+              const interestsDisplayText = shouldShowStates ? statesText : interestsText;
+              const interestsTitle = hasStates
+                ? `Interests: ${interestsText} | States: ${statesText}`
+                : interestsText;
               const profileHref = hasAppId
                 ? `/StudentProfile?id=${encodeURIComponent(appId)}`
                 : "";
@@ -143,7 +170,19 @@ export function DesktopCompactResults({
               <tr
                 key={student.pax_id.toString()}
                 style={animationStyle(shouldAnimateResults, index)}
-                className={`${
+                onClick={() => {
+                  if (!hasStates) return;
+                  setRowsShowingStates((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(rowId)) {
+                      next.delete(rowId);
+                    } else {
+                      next.add(rowId);
+                    }
+                    return next;
+                  });
+                }}
+                className={`${hasStates ? "cursor-pointer" : ""} ${
                   shouldAnimateResults ? "results-refresh-item" : ""
                 }`}
               >
@@ -156,6 +195,7 @@ export function DesktopCompactResults({
                       href={profileHref}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(event) => event.stopPropagation()}
                       className="font-semibold text-[var(--brand-primary-deep)] underline decoration-[rgba(0,94,184,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary)]"
                     >
                       {String(student.first_name ?? "-")}
@@ -173,6 +213,7 @@ export function DesktopCompactResults({
                       href={beaconHref}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(event) => event.stopPropagation()}
                       className="underline decoration-[rgba(255,87,0,0.4)] underline-offset-2 transition hover:text-[var(--brand-accent)]"
                     >
                       {String(student.usahsid ?? "")}
@@ -183,19 +224,13 @@ export function DesktopCompactResults({
                 </td>
                 <td className={countryBodyCellClass}>
                   {String(student.country ?? "-")}
+                  {hasStates ? " 📍" : ""}
                 </td>
                 <td
                   className={interestsBodyCellClass}
-                  title={
-                    Array.isArray(student.selected_interests)
-                      ? student.selected_interests.join(", ")
-                      : ""
-                  }
+                  title={interestsTitle}
                 >
-                  {Array.isArray(student.selected_interests) &&
-                  student.selected_interests.length > 0
-                    ? student.selected_interests.join(", ")
-                    : "-"}
+                  {interestsDisplayText}
                 </td>
                 <td className="px-2.5 md:px-3 py-2.5">
                   <span className="inline-flex items-center gap-1 rounded-md border border-[rgba(0,94,184,0.28)] bg-gradient-to-br from-[rgba(0,94,184,0.08)] to-[rgba(60,159,192,0.08)] px-2 py-1 text-[12px] font-semibold text-[var(--brand-primary-deep)]">
