@@ -34,6 +34,14 @@ export function DesktopCompactResults({
     "px-2.5 md:px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-body)]";
   const bodyCellClass =
     "px-2.5 md:px-3 py-2.5 text-[13px] leading-5 font-normal text-[var(--brand-body)]";
+  const countryHeaderCellClass =
+    "pl-2.5 pr-1.5 md:pl-3 md:pr-2 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-body)]";
+  const interestsHeaderCellClass =
+    "pl-1.5 pr-2.5 md:pl-2 md:pr-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-body)]";
+  const countryBodyCellClass =
+    "pl-2.5 pr-1.5 md:pl-3 md:pr-2 py-2.5 text-[13px] leading-5 font-normal text-[var(--brand-body)]";
+  const interestsBodyCellClass =
+    "whitespace-normal break-words pl-1.5 pr-2.5 md:pl-2 md:pr-3 py-2.5 text-[13px] font-normal leading-5 text-[var(--brand-body)]";
 
   return (
     <div
@@ -48,13 +56,13 @@ export function DesktopCompactResults({
             <col style={{ width: "9%" }} />
             <col style={{ width: "6%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "29%" }} />
             <col style={{ width: "7%" }} />
+            <col style={{ width: "25%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "8%" }} />
+            <col style={{ width: "9%" }} />
             <col style={{ width: "7%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "8%" }} />
             <col style={{ width: "4%" }} />
           </colgroup>
           <thead className="border-b border-[var(--brand-border-soft)] bg-[rgba(0,53,84,0.05)]">
@@ -73,7 +81,7 @@ export function DesktopCompactResults({
               <th className={headerCellClass}>
                 ID
               </th>
-              <th className={headerCellClass}>
+              <th className={countryHeaderCellClass}>
                 <SortableHeader
                   label="Country"
                   isActive={orderBy === "country"}
@@ -81,7 +89,7 @@ export function DesktopCompactResults({
                   onClick={() => onToggleSort("country")}
                 />
               </th>
-              <th className={headerCellClass}>
+              <th className={interestsHeaderCellClass}>
                 Interests
               </th>
               <th className={headerCellClass}>
@@ -173,11 +181,11 @@ export function DesktopCompactResults({
                     String(student.usahsid ?? "")
                   )}
                 </td>
-                <td className={bodyCellClass}>
+                <td className={countryBodyCellClass}>
                   {String(student.country ?? "-")}
                 </td>
                 <td
-                  className="whitespace-normal break-words px-2.5 py-2.5 text-[13px] font-normal leading-5 text-[var(--brand-body)] md:px-3"
+                  className={interestsBodyCellClass}
                   title={
                     Array.isArray(student.selected_interests)
                       ? student.selected_interests.join(", ")

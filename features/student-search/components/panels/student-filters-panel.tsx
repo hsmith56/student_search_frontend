@@ -184,6 +184,8 @@ export function StudentFiltersPanel({
   const selectTriggerClass =
     "h-9 w-full border-[rgba(255,87,0,0.3)] bg-white text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.55)] focus-visible:ring-[rgba(255,87,0,0.24)]";
   const selectContentClass = "z-[120]";
+  const weightedThreeColumnGridClass =
+    "grid grid-cols-1 gap-y-2.5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.2fr)] md:gap-x-2";
 
   const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
     const pills: ActiveFilterPill[] = [];
@@ -386,7 +388,7 @@ export function StudentFiltersPanel({
   };
 
   const locationFields = (
-    <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+    <div className={weightedThreeColumnGridClass}>
       <div>
         <FieldLabel>Country</FieldLabel>
         <Select
@@ -468,7 +470,7 @@ export function StudentFiltersPanel({
   );
 
   const academicFields = (
-    <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+    <div className={weightedThreeColumnGridClass}>
       <div>
         <FieldLabel>GPA</FieldLabel>
         <Select
