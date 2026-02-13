@@ -688,10 +688,7 @@ export function StudentFiltersPanel({
       >
         <div className="border-b border-[rgba(255,87,0,0.2)] bg-[rgba(255,87,0,0.07)] px-3 py-2.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgba(255,87,0,0.78)]">
-                Filter Studio
-              </p>
+            <div>              
               <h3 className="text-sm font-semibold text-[var(--brand-body)]">
                 Student Search Filters
               </h3>
