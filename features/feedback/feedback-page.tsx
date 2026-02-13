@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   MessageSquareText,
+  Plus,
   RefreshCw,
   CalendarDays,
   UserRound,
@@ -17,6 +18,8 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import type { HeaderView } from "@/components/layout/Header";
+import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
+import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-form";
 
 const API_URL = "/api";
 
@@ -140,6 +143,12 @@ export default function FeedbackPage({
     }
   };
 
+  const feedbackForm = useFeedbackForm({
+    onSuccess: async () => {
+      await fetchFeedback(true);
+    },
+  });
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchFeedback();
@@ -238,6 +247,14 @@ export default function FeedbackPage({
                       </Button>
                     </Link>
                   )}
+                  <Button
+                    onClick={feedbackForm.openFeedbackDialog}
+                    variant="outline"
+                    className="h-9 border-[rgba(255,255,255,0.4)] bg-white text-[var(--brand-primary-deep)] hover:bg-[var(--brand-surface)]"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Feedback
+                  </Button>
                   <Button
                     onClick={() => fetchFeedback(true)}
                     disabled={isRefreshing}
@@ -340,6 +357,17 @@ export default function FeedbackPage({
             </div>
           )}
         </main>
+
+        <FeedbackDialog
+          open={feedbackForm.isFeedbackOpen}
+          onOpenChange={feedbackForm.handleFeedbackOpenChange}
+          feedbackComment={feedbackForm.feedbackComment}
+          onFeedbackCommentChange={feedbackForm.setFeedbackComment}
+          feedbackError={feedbackForm.feedbackError}
+          feedbackSuccess={feedbackForm.feedbackSuccess}
+          isSubmittingFeedback={feedbackForm.isSubmittingFeedback}
+          onSubmit={feedbackForm.submitFeedback}
+        />
 
         {!embedded && <Footer />}
       </div>

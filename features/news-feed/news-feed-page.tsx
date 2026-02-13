@@ -602,12 +602,19 @@ export default function NewsFeedPage({
                 Status
                 <select
                   value={draftFilters.newStatus}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const newStatus = event.target.value as NewsFeedFilters["newStatus"];
                     setDraftFilters((previous) => ({
                       ...previous,
-                      newStatus: event.target.value as NewsFeedFilters["newStatus"],
-                    }))
-                  }
+                      newStatus,
+                    }));
+                    setAppliedFilters((previous) =>
+                      normalizeNewsFeedFilters({
+                        ...previous,
+                        newStatus,
+                      })
+                    );
+                  }}
                   className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm font-medium text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
                 >
                   <option value="">All statuses</option>
@@ -623,12 +630,19 @@ export default function NewsFeedPage({
                 <input
                   type="checkbox"
                   checked={draftFilters.showOnlyFavorites}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const showOnlyFavorites = event.target.checked;
                     setDraftFilters((previous) => ({
                       ...previous,
-                      showOnlyFavorites: event.target.checked,
-                    }))
-                  }
+                      showOnlyFavorites,
+                    }));
+                    setAppliedFilters((previous) =>
+                      normalizeNewsFeedFilters({
+                        ...previous,
+                        showOnlyFavorites,
+                      })
+                    );
+                  }}
                   className="h-4 w-4 rounded border-[var(--brand-border)] accent-[var(--brand-primary)]"
                 />
                 Show Only Favorites

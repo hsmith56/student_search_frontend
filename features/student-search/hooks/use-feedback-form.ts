@@ -4,7 +4,12 @@ import type React from "react";
 import { useState } from "react";
 import { API_URL } from "@/features/student-search/constants";
 
-export function useFeedbackForm() {
+type UseFeedbackFormOptions = {
+  onSuccess?: () => void | Promise<void>;
+};
+
+export function useFeedbackForm(options: UseFeedbackFormOptions = {}) {
+  const { onSuccess } = options;
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -40,6 +45,9 @@ export function useFeedbackForm() {
 
       setFeedbackComment("");
       setFeedbackSuccess("Feedback submitted. Thank you.");
+      if (onSuccess) {
+        await onSuccess();
+      }
     } catch (error) {
       console.error("Error submitting feedback:", error);
       setFeedbackError("Unable to submit feedback right now. Please try again.");
