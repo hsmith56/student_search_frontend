@@ -1,6 +1,7 @@
 export const states = [
   { value: "all", label: "Show All" },
   { value: "no_pref", label: "No Preference" },
+  { value: "state_only", label: "State Requests Only" },
   { value: "Alabama", label: "Alabama" },
   { value: "Alaska", label: "Alaska" },
   { value: "Arizona", label: "Arizona" },
