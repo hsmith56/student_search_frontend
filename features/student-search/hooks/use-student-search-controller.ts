@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   API_URL,
   RESULTS_PER_PAGE_STORAGE_KEY,
+  STATUS_OPTIONS,
 } from "@/features/student-search/constants";
 import {
   defaultFilters,
@@ -30,6 +31,10 @@ type UseStudentSearchControllerArgs = {
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
 const CACHE_TTL_LONG_MS = 24 * 60 * 60_000;
+const LC_ACCOUNT_TYPE = "lc";
+const ALL_STATUS = "All";
+const UNASSIGNED_STATUS = "Unassigned";
+const DEFAULT_STATUS_FOR_LC = ["Allocated"];
 
 export function useStudentSearchController({
   isAuthenticated,
@@ -43,6 +48,8 @@ export function useStudentSearchController({
   const [isProgramTypeOpen, setIsProgramTypeOpen] = useState(false);
   const [isScholarshipOpen, setIsScholarshipOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
+  const [accountType, setAccountType] = useState("");
+  const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(
@@ -77,6 +84,31 @@ export function useStudentSearchController({
   const [unassignedNow, setUnassignedNow] = useState(0);
   const [availableNow, setAvailableNow] = useState(0);
   const [alreadyPlaced, setAlreadyPlaced] = useState(0);
+  const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
+  const canShowUnassigned = hasLoadedAuthUser && !isLcUser;
+  const canUpdateDatabase = hasLoadedAuthUser && !isLcUser;
+  const statusOptionsForFilter = canShowUnassigned
+    ? STATUS_OPTIONS
+    : STATUS_OPTIONS.filter(
+        (status) =>
+          status.value !== UNASSIGNED_STATUS && status.value !== ALL_STATUS
+      );
+
+  const sanitizeStatusOptions = (statusOptions: string[]) => {
+    if (!isLcUser) {
+      return statusOptions;
+    }
+
+    const filteredStatusOptions = statusOptions.filter(
+      (status) => status !== UNASSIGNED_STATUS && status !== ALL_STATUS
+    );
+
+    if (filteredStatusOptions.length === 0) {
+      return DEFAULT_STATUS_FOR_LC;
+    }
+
+    return filteredStatusOptions;
+  };
 
   const getHeaders = () => ({
     "Content-Type": "application/json",
@@ -124,9 +156,10 @@ export function useStudentSearchController({
       typeof descendingParam === "boolean" ? descendingParam : descending;
     const pageSize = resultsPerPageParam ?? resultsPerPage;
     try {
-      const statusValue = filters.statusOptions.includes("All")
+      const effectiveStatusOptions = sanitizeStatusOptions(filters.statusOptions);
+      const statusValue = effectiveStatusOptions.includes(ALL_STATUS)
         ? "allocated"
-        : filters.statusOptions.map((status) => status.toLowerCase()).join(",");
+        : effectiveStatusOptions.map((status) => status.toLowerCase()).join(",");
 
       const response = await fetch(
         `${API_URL}/students/search?page=${page}&page_size=${pageSize}&order_by=${sortBy}&descending=${sortDesc}`,
@@ -186,15 +219,18 @@ export function useStudentSearchController({
   };
 
   const fetchStudentsByStatus = async (status: string[]) => {
+    const sanitizedStatus = sanitizeStatusOptions(status);
     setCurrentPage(1);
     setShowFavoritesOnly(false);
     setFilters((prev) => ({
       ...prev,
-      statusOptions: status,
+      statusOptions: sanitizedStatus,
     }));
 
     try {
-      const statusKey = status.map((value) => value.toLowerCase()).join(",");
+      const statusKey = sanitizedStatus
+        .map((value) => value.toLowerCase())
+        .join(",");
       const cacheKey = `students:status:${statusKey}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
         filters
       )}`;
@@ -214,7 +250,7 @@ export function useStudentSearchController({
               credentials: "include",
               body: JSON.stringify({
                 ...filters,
-                statusOptions: status,
+                statusOptions: sanitizedStatus,
               }),
             }
           );
@@ -256,7 +292,7 @@ export function useStudentSearchController({
 
   const fetchLoggedInUser = async () => {
     try {
-      const data = await getCachedValue<{ first_name?: string }>(
+      const data = await getCachedValue<{ first_name?: string; account_type?: string }>(
         "auth:me",
         async () => {
           const response = await fetch(`${API_URL}/auth/me`, {
@@ -268,13 +304,19 @@ export function useStudentSearchController({
             throw new Error(`Failed to fetch auth user: ${response.status}`);
           }
 
-          return (await response.json()) as { first_name?: string };
+          return (await response.json()) as {
+            first_name?: string;
+            account_type?: string;
+          };
         },
         CACHE_TTL_MEDIUM_MS
       );
       setFirstName(data.first_name ?? "");
+      setAccountType(data.account_type ?? "");
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setHasLoadedAuthUser(true);
     }
   };
 
@@ -307,12 +349,16 @@ export function useStudentSearchController({
   };
 
   const toggleStatus = (value: string) => {
+    if (isLcUser && (value === UNASSIGNED_STATUS || value === ALL_STATUS)) {
+      return;
+    }
+
     setFilters((prev) => {
-      if (value === "All") {
-        return { ...prev, statusOptions: ["All"] };
+      if (value === ALL_STATUS) {
+        return { ...prev, statusOptions: [ALL_STATUS] };
       }
 
-      let newStatusOptions = prev.statusOptions.filter((item) => item !== "All");
+      let newStatusOptions = prev.statusOptions.filter((item) => item !== ALL_STATUS);
 
       if (newStatusOptions.includes(value)) {
         newStatusOptions = newStatusOptions.filter((item) => item !== value);
@@ -321,7 +367,7 @@ export function useStudentSearchController({
       }
 
       if (newStatusOptions.length === 0) {
-        newStatusOptions = ["All"];
+        newStatusOptions = isLcUser ? DEFAULT_STATUS_FOR_LC : [ALL_STATUS];
       }
 
       return { ...prev, statusOptions: newStatusOptions };
@@ -523,6 +569,27 @@ export function useStudentSearchController({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isLcUser) return;
+
+    setFilters((prev) => {
+      const nextStatusOptions = sanitizeStatusOptions(prev.statusOptions);
+
+      if (
+        nextStatusOptions.length === prev.statusOptions.length &&
+        nextStatusOptions.every((status, index) => status === prev.statusOptions[index])
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        statusOptions: nextStatusOptions,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLcUser]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -744,6 +811,10 @@ export function useStudentSearchController({
     availableNow,
     unassignedNow,
     alreadyPlaced,
+    canUpdateDatabase,
+    canShowUnassigned,
+    isLcUser,
+    statusOptionsForFilter,
     showFavorites,
     fetchStudentsByStatus,
   };

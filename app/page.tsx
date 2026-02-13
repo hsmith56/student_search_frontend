@@ -21,9 +21,12 @@ export default function HomePage() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<HeaderView>("search");
   const [firstName, setFirstName] = useState("");
+  const [accountType, setAccountType] = useState("");
+  const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
   const handleViewChange = (view: HeaderView) => setActiveView(view);
+  const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -50,8 +53,12 @@ export default function HomePage() {
         ]);
 
         if (userResponse.ok) {
-          const userData = (await userResponse.json()) as { first_name?: string };
+          const userData = (await userResponse.json()) as {
+            first_name?: string;
+            account_type?: string;
+          };
           setFirstName(userData?.first_name ?? "");
+          setAccountType(userData?.account_type ?? "");
         }
 
         if (updateTimeResponse.ok) {
@@ -62,6 +69,8 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error("Error loading header data:", error);
+      } finally {
+        setHasLoadedAuthUser(true);
       }
     };
 
@@ -149,7 +158,7 @@ export default function HomePage() {
         firstName={firstName}
         onLogout={logout}
         updateTime={updateTime}
-        onUpdateDatabase={handleUpdateDatabase}
+        onUpdateDatabase={canUpdateDatabase ? handleUpdateDatabase : undefined}
         isUpdatingDatabase={isUpdatingDatabase}
         activeView={activeView}
         onViewChange={handleViewChange}

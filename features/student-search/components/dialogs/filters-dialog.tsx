@@ -26,7 +26,6 @@ import { MultiSelectDialog } from "@/features/student-search/components/dialogs/
 import {
   PROGRAM_TYPE_OPTIONS,
   SCHOLARSHIP_OPTIONS,
-  STATUS_OPTIONS,
 } from "@/features/student-search/constants";
 import type { Filters } from "@/features/student-search/types";
 
@@ -46,6 +45,7 @@ type FiltersDialogProps = {
   onToggleProgramType: (value: string) => void;
   onToggleScholarship: (value: string) => void;
   onApplyFilters: () => void;
+  statusOptions: { id: string; label: string; value: string }[];
 };
 
 export function FiltersDialog({
@@ -64,6 +64,7 @@ export function FiltersDialog({
   onToggleProgramType,
   onToggleScholarship,
   onApplyFilters,
+  statusOptions,
 }: FiltersDialogProps) {
   return (
     <>
@@ -494,7 +495,7 @@ export function FiltersDialog({
         open={isStatusOpen}
         onOpenChange={setIsStatusOpen}
         title="Select Placement Status"
-        options={STATUS_OPTIONS}
+        options={statusOptions}
         selectedValues={filters.statusOptions}
         onToggle={onToggleStatus}
       />

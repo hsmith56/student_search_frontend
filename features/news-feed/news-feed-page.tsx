@@ -212,6 +212,8 @@ export default function NewsFeedPage({
   useAuthRedirect({ authLoading, isAuthenticated });
 
   const [firstName, setFirstName] = useState("");
+  const [accountType, setAccountType] = useState("");
+  const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
   const [feedItems, setFeedItems] = useState<NewsFeedItem[]>([]);
@@ -228,6 +230,7 @@ export default function NewsFeedPage({
   const [loadingStudentId, setLoadingStudentId] = useState<number | null>(null);
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set());
   const selectedStudentMediaLink = useSelectedStudentMedia(selectedStudent);
+  const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   const fetchNewsFeed = useCallback(async (manualRefresh = false) => {
     if (manualRefresh) {
@@ -279,7 +282,7 @@ export default function NewsFeedPage({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    getCachedValue<{ first_name?: string }>(
+    getCachedValue<{ first_name?: string; account_type?: string }>(
       "auth:me",
       async () => {
         const response = await fetch(`${API_URL}/auth/me`, {
@@ -292,7 +295,10 @@ export default function NewsFeedPage({
           throw new Error(`Failed to fetch auth user: ${response.status}`);
         }
 
-        return (await response.json()) as { first_name?: string };
+        return (await response.json()) as {
+          first_name?: string;
+          account_type?: string;
+        };
       },
       CACHE_TTL_MEDIUM_MS
     )
@@ -300,9 +306,14 @@ export default function NewsFeedPage({
         if (data?.first_name) {
           setFirstName(data.first_name);
         }
+        setAccountType(data?.account_type ?? "");
       })
       .catch(() => {
         setFirstName("");
+        setAccountType("");
+      })
+      .finally(() => {
+        setHasLoadedAuthUser(true);
       });
 
     getCachedValue<unknown[]>(
@@ -520,7 +531,7 @@ export default function NewsFeedPage({
             firstName={firstName}
             onLogout={logout}
             updateTime={updateTime}
-            onUpdateDatabase={handleUpdateDatabase}
+            onUpdateDatabase={canUpdateDatabase ? handleUpdateDatabase : undefined}
             isUpdatingDatabase={isUpdatingDatabase}
             activeView={activeView}
             onViewChange={onViewChange}

@@ -58,15 +58,19 @@ export default function StudentSearchPage({
         "border-[rgba(0,94,184,0.32)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(0,94,184,0.5)]",
       onClick: () => controller.fetchStudentsByStatus(["Allocated"]),
     },
-    {
-      label: "Unassigned",
-      value: controller.unassignedNow,
-      icon: UserLock,
-      iconClass: "text-[var(--brand-body)]",
-      cardClass:
-        "border-[rgba(114,125,131,0.4)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(114,125,131,0.62)]",
-      onClick: () => controller.fetchStudentsByStatus(["Unassigned"]),
-    },
+    ...(controller.canShowUnassigned
+      ? [
+          {
+            label: "Unassigned",
+            value: controller.unassignedNow,
+            icon: UserLock,
+            iconClass: "text-[var(--brand-body)]",
+            cardClass:
+              "border-[rgba(114,125,131,0.4)] bg-[rgba(253,254,255,0.95)] hover:border-[rgba(114,125,131,0.62)]",
+            onClick: () => controller.fetchStudentsByStatus(["Unassigned"]),
+          } satisfies QuickStatsCard,
+        ]
+      : []),
     {
       label: "Students Placed",
       value: controller.alreadyPlaced,
@@ -97,7 +101,11 @@ export default function StudentSearchPage({
             firstName={controller.firstName}
             onLogout={logout}
             updateTime={controller.updateTime}
-            onUpdateDatabase={controller.handleUpdateDatabase}
+            onUpdateDatabase={
+              controller.canUpdateDatabase
+                ? controller.handleUpdateDatabase
+                : undefined
+            }
             isUpdatingDatabase={controller.isUpdatingDatabase}
             activeView={activeView}
             onViewChange={onViewChange}
@@ -187,6 +195,7 @@ export default function StudentSearchPage({
         onToggleProgramType={controller.toggleProgramType}
         onToggleScholarship={controller.toggleScholarship}
         onApplyFilters={controller.applyFilters}
+        statusOptions={controller.statusOptionsForFilter}
       />
 
       <StudentDetailsDialog
