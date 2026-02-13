@@ -90,6 +90,27 @@ function textOrDash(value: string | number | undefined | null): string {
   return text ? text : "Not provided";
 }
 
+function religiousFrequencyText(value: number | string | undefined | null): string {
+  const mappedValues: Record<number, string> = {
+    0: "Never",
+    1: "Occasionally",
+    2: "Often",
+  };
+
+  if (value === undefined || value === null) {
+    return "Not provided";
+  }
+
+  const numericValue =
+    typeof value === "number" ? value : Number.parseInt(String(value), 10);
+
+  if (Object.prototype.hasOwnProperty.call(mappedValues, numericValue)) {
+    return mappedValues[numericValue];
+  }
+
+  return textOrDash(value);
+}
+
 function statusTone(status: string) {
   const tone = status.toLowerCase();
   if (tone.includes("placed")) {
@@ -325,7 +346,7 @@ export default function StudentProfilePage() {
               />
               <InfoRow
                 label="Religious Frequency"
-                value={textOrDash(student.religious_frequency)}
+                value={religiousFrequencyText(student.religious_frequency)}
               />
             </dl>
           </article>
