@@ -97,15 +97,11 @@
   --brand-shell-bg: rgba(253, 254, 255, 0.88);
   --brand-shadow-soft: 0 10px 26px rgba(0, 53, 84, 0.1);
   --brand-shadow-card: 0 14px 30px rgba(0, 53, 84, 0.12);
-  --brand-page-background:
-    radial-gradient(circle at 12% 8%, rgba(60, 159, 192, 0.16), transparent 45%),
-    radial-gradient(circle at 84% 88%, rgba(255, 87, 0, 0.13), transparent 48%),
-    linear-gradient(
-      148deg,
-      var(--brand-surface-muted) 0%,
-      var(--brand-surface) 58%,
-      var(--brand-surface-elevated) 100%
-    );
+  /*
+    Temporarily disabled multi-tone background gradients.
+    Re-enable the gradient stack below when we move back to branded page backgrounds.
+  */
+  --brand-page-background: #ffffff;
 }
 
 .dark {
@@ -156,7 +152,8 @@
 }
 
 .brand-page-gradient {
-  background: var(--brand-page-background);
+  background-color: #ffffff;
+  background-image: none;
 }
 
 .brand-surface-panel {

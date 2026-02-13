@@ -66,13 +66,31 @@ export function FiltersDialog({
   onApplyFilters,
   statusOptions,
 }: FiltersDialogProps) {
+  const sectionClass =
+    "rounded-xl border border-[rgba(0,53,84,0.12)] bg-[rgba(253,254,255,0.98)] p-3 shadow-[0_10px_20px_-16px_rgba(0,53,84,0.55)]";
+  const sectionTitleClass =
+    "mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]";
+  const fieldControlClass =
+    "h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]";
+  const multiSelectButtonClass =
+    "h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]";
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="mx-auto max-h-[85vh] max-w-[95vw] overflow-y-auto rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.92)] shadow-[0_24px_50px_-30px_rgba(0,53,84,0.8)] sm:w-[92vw] sm:max-w-[1200px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="space-y-3">
-            <div className="rounded-xl border border-[rgba(0,94,184,0.3)] bg-gradient-to-br from-[rgba(0,94,184,0.08)] to-[rgba(253,254,255,0.96)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--brand-ink)]">
+        <DialogContent className="mx-auto max-h-[85vh] max-w-[92vw] overflow-y-auto rounded-2xl border border-[rgba(0,53,84,0.16)] bg-[rgba(253,254,255,0.98)] p-0 shadow-[0_26px_60px_-34px_rgba(0,30,48,0.58)] sm:w-[88vw] sm:max-w-[920px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="border-b border-[var(--brand-border-soft)] bg-[rgba(236,242,246,0.72)] px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted)]">
+              Refine Results
+            </p>
+            <p className="text-sm font-semibold text-[var(--brand-primary-deep)]">
+              Student Filters
+            </p>
+          </div>
+
+          <div className="space-y-2.5 p-3">
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-primary)]`}>
+              <h3 className={sectionTitleClass}>
                 <CheckCircle2 className="h-4 w-4 text-[var(--brand-primary)]" />
                 Status
               </h3>
@@ -84,7 +102,7 @@ export function FiltersDialog({
                   <Button
                     variant="outline"
                     onClick={() => setIsStatusOpen(true)}
-                    className="h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]"
+                    className={multiSelectButtonClass}
                   >
                     <span className="text-[var(--brand-body)]">
                       {filters.statusOptions.length > 0
@@ -97,8 +115,8 @@ export function FiltersDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--brand-ink)]">
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-primary-deep)]`}>
+              <h3 className={sectionTitleClass}>
                 <MapPin className="h-4 w-4 text-[var(--brand-primary-deep)]" />
                 Location & Demographics
               </h3>
@@ -113,7 +131,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, country_of_origin: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -137,7 +155,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, state: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -190,9 +208,9 @@ export function FiltersDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[rgba(255,194,62,0.5)] bg-gradient-to-br from-[rgba(255,194,62,0.18)] to-[rgba(253,254,255,0.96)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--brand-ink)]">
-                <GraduationCap className="h-4 w-4 text-[#9b6b00]" />
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-highlight)]`}>
+              <h3 className={sectionTitleClass}>
+                <GraduationCap className="h-4 w-4 text-[var(--brand-body)]" />
                 Academic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -206,7 +224,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, gpa: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -229,7 +247,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, adjusted_age: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -253,7 +271,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, interests: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -268,12 +286,12 @@ export function FiltersDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[rgba(0,144,63,0.42)] bg-gradient-to-br from-[rgba(0,144,63,0.14)] to-[rgba(253,254,255,0.96)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--brand-ink)]">
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-success)]`}>
+              <h3 className={sectionTitleClass}>
                 <Calendar className="h-4 w-4 text-[var(--brand-success-deep)]" />
                 Program Details
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="mb-2 block text-[11px] font-semibold text-[var(--brand-body)]">
                     Pets in Home
@@ -284,7 +302,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, pets_in_home: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,7 +323,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, early_placement: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -323,7 +341,7 @@ export function FiltersDialog({
                   <Button
                     variant="outline"
                     onClick={() => setIsProgramTypeOpen(true)}
-                    className="h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]"
+                    className={multiSelectButtonClass}
                   >
                     <span className="text-[var(--brand-body)]">
                       {filters.program_types.length > 0
@@ -336,8 +354,8 @@ export function FiltersDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[rgba(255,87,0,0.42)] bg-gradient-to-br from-[rgba(255,87,0,0.12)] to-[rgba(253,254,255,0.96)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--brand-ink)]">
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-accent)]`}>
+              <h3 className={sectionTitleClass}>
                 <Award className="h-4 w-4 text-[var(--brand-accent)]" />
                 Placement & Scholarship
               </h3>
@@ -352,7 +370,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, double_placement: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -373,7 +391,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, single_placement: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="Show All" />
                     </SelectTrigger>
                     <SelectContent>
@@ -391,7 +409,7 @@ export function FiltersDialog({
                   <Button
                     variant="outline"
                     onClick={() => setIsScholarshipOpen(true)}
-                    className="h-9 w-full justify-between border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)] hover:bg-[var(--brand-surface-elevated)]"
+                    className={multiSelectButtonClass}
                   >
                     <span className="text-[var(--brand-body)]">
                       {filters.grants_options.length > 0
@@ -404,8 +422,8 @@ export function FiltersDialog({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[rgba(60,159,192,0.45)] bg-gradient-to-br from-[rgba(60,159,192,0.14)] to-[rgba(253,254,255,0.96)] p-4 shadow-[0_5px_14px_-12px_rgba(0,53,84,0.72)]">
-              <h3 className="mb-3 text-sm font-semibold text-[var(--brand-ink)]">
+            <div className={`${sectionClass} border-l-4 border-l-[var(--brand-secondary)]`}>
+              <h3 className={sectionTitleClass}>
                 Additional Preferences
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -419,7 +437,7 @@ export function FiltersDialog({
                       setFilters((prev) => ({ ...prev, religiousPractice: value }))
                     }
                   >
-                    <SelectTrigger className="h-9 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm shadow-sm hover:border-[var(--brand-primary)]">
+                    <SelectTrigger className={fieldControlClass}>
                       <SelectValue placeholder="all" />
                     </SelectTrigger>
                     <SelectContent>
@@ -455,7 +473,7 @@ export function FiltersDialog({
             </div>
           </div>
 
-          <div className="mt-4 flex gap-3 border-t border-[var(--brand-border-soft)] pt-4">
+          <div className="mt-1 flex gap-3 border-t border-[var(--brand-border-soft)] px-3 pb-3 pt-3">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}

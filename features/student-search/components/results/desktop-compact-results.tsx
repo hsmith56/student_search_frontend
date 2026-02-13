@@ -135,7 +135,7 @@ export function DesktopCompactResults({
               <tr
                 key={student.pax_id.toString()}
                 style={animationStyle(shouldAnimateResults, index)}
-                className={`transition-colors duration-150 hover:bg-[rgba(0,94,184,0.07)] ${
+                className={`${
                   shouldAnimateResults ? "results-refresh-item" : ""
                 }`}
               >
@@ -159,13 +159,13 @@ export function DesktopCompactResults({
                 <td className={bodyCellClass}>
                   {formatGender(student.gender_desc)}
                 </td>
-                <td className="px-2.5 py-2.5 font-mono text-[12px] text-[var(--brand-muted)] md:px-3">
+                <td className="px-2.5 py-2.5 font-mono text-[12px] text-[rgba(255,87,0,0.72)] md:px-3">
                   {hasAppId ? (
                     <a
                       href={beaconHref}
                       target="_blank"
                       rel="noreferrer"
-                      className="underline decoration-[rgba(0,53,84,0.35)] underline-offset-2 transition hover:text-[var(--brand-primary-deep)]"
+                      className="underline decoration-[rgba(255,87,0,0.4)] underline-offset-2 transition hover:text-[var(--brand-accent)]"
                     >
                       {String(student.usahsid ?? "")}
                     </a>
