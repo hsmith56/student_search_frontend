@@ -535,6 +535,7 @@ export default function NewsFeedPage({
             isUpdatingDatabase={isUpdatingDatabase}
             activeView={activeView}
             onViewChange={onViewChange}
+            showDashboard={accountType.toLowerCase() !== "lc"}
           />
         )}
 

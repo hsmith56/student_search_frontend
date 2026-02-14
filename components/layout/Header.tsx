@@ -7,7 +7,7 @@ import {
   Search,
   Bell,
   MessageSquareText,
-  // LayoutDashboard,
+  LayoutDashboard,
   Users,
   LogOut,
   RefreshCw,
@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 
-export type HeaderView = "search" | "newsFeed" | "feedback" // | "dashboard" 
+export type HeaderView = "search" | "newsFeed" | "dashboard" | "feedback"
 
 interface HeaderProps {
   firstName: string
@@ -26,6 +26,7 @@ interface HeaderProps {
   isUpdatingDatabase?: boolean
   activeView?: HeaderView
   onViewChange?: (view: HeaderView) => void
+  showDashboard?: boolean
 }
 
 type HeaderNavItem = {
@@ -44,11 +45,12 @@ export default function Header({
   isUpdatingDatabase = false,
   activeView,
   onViewChange,
+  showDashboard = true,
 }: HeaderProps) {
   const pathname = usePathname()
   const { unreadCount, markAllAsRead } = useNotifications()
 
-  const navItems: HeaderNavItem[] = onViewChange
+  const baseNavItems: HeaderNavItem[] = onViewChange
     ? [
         { view: "search" as const, href: "/", label: "Search", icon: Search },
         {
@@ -58,12 +60,12 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
-        // {
-        //   view: "dashboard" as const,
-        //   href: "/dashboard",
-        //   label: "Dashboard",
-        //   icon: LayoutDashboard,
-        // },
+        {
+          view: "dashboard" as const,
+          href: "/dashboard",
+          label: "Dashboard",
+          icon: LayoutDashboard,
+        },
         {
           view: "feedback" as const,
           href: "/feedback",
@@ -79,13 +81,17 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
-        // { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         {
           href: "/feedback",
           label: "Feedback",
           icon: MessageSquareText,
         },
       ]
+
+  const navItems: HeaderNavItem[] = baseNavItems.filter((item) =>
+    showDashboard ? true : item.view !== "dashboard" && item.href !== "/dashboard"
+  )
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--brand-border-soft)] bg-[var(--brand-shell-bg)] backdrop-blur-xl shadow-[0_8px_20px_rgba(0,53,84,0.08)]">

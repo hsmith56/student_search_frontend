@@ -274,6 +274,8 @@ export default function DashboardPage({
   useAuthRedirect({ authLoading, isAuthenticated });
 
   const [firstName, setFirstName] = useState("");
+  const [accountType, setAccountType] = useState("");
+  const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
   const [metrics, setMetrics] = useState<PlacementMetricItem[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
@@ -281,6 +283,7 @@ export default function DashboardPage({
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>("90d");
   const [selectedState, setSelectedState] = useState<string | null>(null);
+  const isLcUser = accountType.toLowerCase() === "lc";
 
   const fetchPlacementMetrics = useCallback(async (manualRefresh = false) => {
     if (manualRefresh) {
@@ -327,7 +330,7 @@ export default function DashboardPage({
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    getCachedValue<{ first_name?: string }>(
+    getCachedValue<{ first_name?: string; account_type?: string }>(
       "auth:me",
       async () => {
         const response = await fetch(`${API_URL}/auth/me`, {
@@ -340,7 +343,10 @@ export default function DashboardPage({
           throw new Error(`Failed to fetch auth user: ${response.status}`);
         }
 
-        return (await response.json()) as { first_name?: string };
+        return (await response.json()) as {
+          first_name?: string;
+          account_type?: string;
+        };
       },
       CACHE_TTL_MEDIUM_MS
     )
@@ -348,9 +354,14 @@ export default function DashboardPage({
         if (data?.first_name) {
           setFirstName(data.first_name);
         }
+        setAccountType(data?.account_type ?? "");
       })
       .catch(() => {
         setFirstName("");
+        setAccountType("");
+      })
+      .finally(() => {
+        setHasLoadedAuthUser(true);
       });
 
     getCachedValue<unknown[]>(
@@ -411,12 +422,66 @@ export default function DashboardPage({
     (row) => row.riskBand === "At Risk"
   ).length;
 
-  if (authLoading || !isAuthenticated) {
+  if (authLoading || !isAuthenticated || !hasLoadedAuthUser) {
     return (
       <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
           <p className="mt-4 font-medium text-[var(--brand-body)]">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLcUser) {
+    return (
+      <div
+        className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
+      >
+        <div className="relative z-10">
+          {!embedded && (
+            <Header
+              firstName={firstName}
+              onLogout={logout}
+              updateTime={updateTime}
+              activeView={activeView}
+              onViewChange={onViewChange}
+              showDashboard={false}
+            />
+          )}
+
+          <main className="mx-auto max-w-[900px] px-4 py-8 sm:px-6">
+            <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] p-6 text-center shadow-[0_12px_28px_rgba(0,53,84,0.12)]">
+              <h1 className="text-2xl font-black tracking-tight text-[var(--brand-ink)]">
+                Dashboard Unavailable
+              </h1>
+              <p className="mt-2 text-sm text-[var(--brand-body)]">
+                Dashboard access is not available for LC accounts.
+              </p>
+              <div className="mt-5">
+                {embedded && onViewChange ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewChange("search")}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to Search
+                  </button>
+                ) : (
+                  <Link
+                    href="/"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to Search
+                  </Link>
+                )}
+              </div>
+            </section>
+          </main>
+
+          {!embedded && <Footer />}
         </div>
       </div>
     );
@@ -434,6 +499,7 @@ export default function DashboardPage({
             updateTime={updateTime}
             activeView={activeView}
             onViewChange={onViewChange}
+            showDashboard={!isLcUser}
           />
         )}
 

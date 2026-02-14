@@ -59,6 +59,7 @@ export default function FeedbackPage({
   const router = useRouter();
 
   const [firstName, setFirstName] = useState("");
+  const [accountType, setAccountType] = useState("");
   const [updateTime, setUpdateTime] = useState("");
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
@@ -85,10 +86,15 @@ export default function FeedbackPage({
           credentials: "include",
         });
         if (!response.ok) return;
-        const data = await response.json();
+        const data = (await response.json()) as {
+          first_name?: string;
+          account_type?: string;
+        };
         setFirstName(data?.first_name || "");
+        setAccountType(data?.account_type || "");
       } catch (fetchError) {
         console.error("Error loading current user:", fetchError);
+        setAccountType("");
       }
     };
 
@@ -220,6 +226,7 @@ export default function FeedbackPage({
             updateTime={updateTime}
             activeView={activeView}
             onViewChange={onViewChange}
+            showDashboard={accountType.toLowerCase() !== "lc"}
           />
         )}
 

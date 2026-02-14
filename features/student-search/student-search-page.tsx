@@ -107,6 +107,7 @@ export default function StudentSearchPage({
             isUpdatingDatabase={controller.isUpdatingDatabase}
             activeView={activeView}
             onViewChange={onViewChange}
+            showDashboard={!controller.isLcUser}
           />
         )}
 
