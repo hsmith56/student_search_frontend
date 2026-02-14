@@ -15,7 +15,7 @@ import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redire
 import { StudentDetailsDialog } from "@/features/student-search/components/dialogs/student-details-dialog";
 import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import type { StudentRecord } from "@/features/student-search/types";
-import { getFavoriteStudentId } from "@/features/student-search/utils";
+import { getFavoriteStudentId, getStatusBadgeClass } from "@/features/student-search/utils";
 import {
   getCachedValue,
   invalidateClientCache,
@@ -195,6 +195,23 @@ function formatEventTime(value: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function resolveNewsFeedStatusBadge(status: string | null | undefined) {
+  const normalized = (status ?? "").trim().toLowerCase();
+
+  if (
+    normalized.includes("place") ||
+    normalized.includes("accepted")
+  ) {
+    return { label: "Placed", themeStatus: "Placed" };
+  }
+
+  if (normalized.includes("allocated")) {
+    return { label: "Ready to Place", themeStatus: "Allocated" };
+  }
+
+  return { label: "Unavailable", themeStatus: "Unassigned" };
 }
 
 type NewsFeedPageProps = {
@@ -683,15 +700,20 @@ export default function NewsFeedPage({
                 </p>
               </div>
             ) : (
-              feedItems.map((alert, index) => (
-                <button
-                  key={alert.id}
-                  type="button"
-                  onClick={() => void handleSelectStudent(alert.studentId)}
-                  disabled={loadingStudentId === alert.studentId}
-                  className="w-full rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 text-left shadow-[0_8px_20px_rgba(0,53,84,0.09)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,53,84,0.14)] disabled:cursor-wait disabled:opacity-70"
-                  style={{ animationDelay: `${index * 35}ms` }}
-                >
+              feedItems.map((alert, index) => {
+                const badge = resolveNewsFeedStatusBadge(
+                  alert.statusTo ?? alert.placementState
+                );
+
+                return (
+                  <button
+                    key={alert.id}
+                    type="button"
+                    onClick={() => void handleSelectStudent(alert.studentId)}
+                    disabled={loadingStudentId === alert.studentId}
+                    className="w-full rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 text-left shadow-[0_8px_20px_rgba(0,53,84,0.09)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,53,84,0.14)] disabled:cursor-wait disabled:opacity-70"
+                    style={{ animationDelay: `${index * 35}ms` }}
+                  >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
@@ -710,8 +732,12 @@ export default function NewsFeedPage({
                         Loading profile...
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.11)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand-primary-deep)]">
-                        Open Student
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getStatusBadgeClass(
+                          badge.themeStatus
+                        )}`}
+                      >
+                        {badge.label}
                       </span>
                     )}
                   </div>
@@ -727,7 +753,8 @@ export default function NewsFeedPage({
                     </span>
                   </div>
                 </button>
-              ))
+                );
+              })
             )}
           </section>
         </main>

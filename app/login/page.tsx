@@ -148,13 +148,16 @@ export default function LoginOnePage() {
                 <p>No access to third party sites, all information is maintained internally.</p>
               </div>
             </article>
-            <article className={styles.loginOneHighlightCard}>
-              <User size={18} aria-hidden />
-              <div>
-                <h2>Full Profile Searching</h2>
-                <p>Search all aspects of a student's profile with filters and text search.</p>
-              </div>
-            </article>
+	            <article className={styles.loginOneHighlightCard}>
+	              <User size={18} aria-hidden />
+	              <div>
+	                <h2>Full Profile Searching</h2>
+	                <p>
+	                  Search all aspects of a student&apos;s profile with filters and text
+	                  search.
+	                </p>
+	              </div>
+	            </article>
             <article className={styles.loginOneHighlightCard}>
               <ArrowRight size={18} aria-hidden />
               <div>

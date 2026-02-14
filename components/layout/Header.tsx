@@ -8,6 +8,7 @@ import {
   Bell,
   MessageSquareText,
   LayoutDashboard,
+  BarChart3,
   Users,
   LogOut,
   RefreshCw,
@@ -82,6 +83,7 @@ export default function Header({
           clearOnClick: true,
         },
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/dashv2", label: "Dash v2", icon: BarChart3 },
         {
           href: "/feedback",
           label: "Feedback",
@@ -90,7 +92,9 @@ export default function Header({
       ]
 
   const navItems: HeaderNavItem[] = baseNavItems.filter((item) =>
-    showDashboard ? true : item.view !== "dashboard" && item.href !== "/dashboard"
+    showDashboard
+      ? true
+      : item.view !== "dashboard" && item.href !== "/dashboard" && item.href !== "/dashv2"
   )
 
   return (

@@ -54,6 +54,8 @@ const FULL_STATE_NAMES = [
   "District of Columbia",
 ] as const;
 
+export const ALL_STATE_NAMES = FULL_STATE_NAMES;
+
 const ABBREVIATION_TO_STATE: Record<string, string> = {
   AL: "Alabama",
   AK: "Alaska",
