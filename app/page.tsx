@@ -6,13 +6,13 @@ import type { HeaderView } from "@/components/layout/Header";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
-import DashboardPage from "@/features/dashboard/dashboard-page";
 import FeedbackPage from "@/features/feedback/feedback-page";
 import NewsFeedPage from "@/features/news-feed/news-feed-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
+import { ENABLE_DASHBOARD } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 
@@ -26,8 +26,13 @@ export default function HomePage() {
   const [updateTime, setUpdateTime] = useState("");
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
   const isLcUser = accountType.toLowerCase() === "lc";
+  const canShowDashboard = ENABLE_DASHBOARD && !isLcUser;
 
   const handleViewChange = (view: HeaderView) => {
+    if (view === "dashboard" && !ENABLE_DASHBOARD) {
+      setActiveView("search");
+      return;
+    }
     if (view === "dashboard" && isLcUser) {
       setActiveView("search");
       return;
@@ -38,6 +43,10 @@ export default function HomePage() {
   const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   useEffect(() => {
+    if (!ENABLE_DASHBOARD && activeView === "dashboard") {
+      setActiveView("search");
+      return;
+    }
     if (isLcUser && activeView === "dashboard") {
       setActiveView("search");
     }
@@ -155,12 +164,6 @@ export default function HomePage() {
     );
   }
 
-  if (activeView === "dashboard" && !isLcUser) {
-    content = (
-      <DashboardPage activeView={activeView} onViewChange={handleViewChange} embedded />
-    );
-  }
-
   if (activeView === "feedback") {
     content = (
       <FeedbackPage activeView={activeView} onViewChange={handleViewChange} embedded />
@@ -177,7 +180,7 @@ export default function HomePage() {
         isUpdatingDatabase={isUpdatingDatabase}
         activeView={activeView}
         onViewChange={handleViewChange}
-        showDashboard={!isLcUser}
+        showDashboard={canShowDashboard}
       />
       {content}
       <Footer />

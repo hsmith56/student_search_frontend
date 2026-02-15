@@ -22,6 +22,7 @@ import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 import type { HeaderView } from "@/components/layout/Header";
+import { ENABLE_DASHBOARD } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -552,7 +553,7 @@ export default function NewsFeedPage({
             isUpdatingDatabase={isUpdatingDatabase}
             activeView={activeView}
             onViewChange={onViewChange}
-            showDashboard={accountType.toLowerCase() !== "lc"}
+            showDashboard={ENABLE_DASHBOARD && accountType.toLowerCase() !== "lc"}
           />
         )}
 

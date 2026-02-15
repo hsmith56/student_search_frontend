@@ -1,0 +1,6 @@
+# Dashboards are currently disabled via `lib/feature-flags.ts`.
+app/dashboard/**
+app/dashv2/**
+features/dashboard/**
+features/manager-dashboard/**
+
