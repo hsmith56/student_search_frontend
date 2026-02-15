@@ -10,12 +10,12 @@ import {
   LayoutDashboard,
   BarChart3,
   Users,
-  LogOut,
   RefreshCw,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
+import { HeaderSettingsDialog } from "@/components/layout/header-settings-dialog"
 
 export type HeaderView = "search" | "newsFeed" | "dashboard" | "feedback"
 
@@ -129,35 +129,59 @@ export default function Header({
               <p className="text-[11px] font-medium text-[var(--brand-muted)]">Tool to search student profiles for improved match making</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-4 text-sm font-medium text-[var(--brand-body)]">
-            <nav className="flex items-center gap-1 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-1">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = onViewChange
-                  ? activeView === item.view
-                  : item.href === "/"
-                    ? pathname === "/"
-                    : pathname?.startsWith(item.href)
-                const isNewsFeedItem =
-                  item.view === "newsFeed" || item.href === "/newsFeed"
+          <div className="flex items-center gap-3 text-sm font-medium text-[var(--brand-body)]">
+            <div className="hidden md:flex items-center gap-4">
+              <nav className="flex items-center gap-1 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = onViewChange
+                    ? activeView === item.view
+                    : item.href === "/"
+                      ? pathname === "/"
+                      : pathname?.startsWith(item.href)
+                  const isNewsFeedItem =
+                    item.view === "newsFeed" || item.href === "/newsFeed"
 
-                if (onViewChange) {
-                  const view = item.view
+                  if (onViewChange) {
+                    const view = item.view
 
-                  if (!view) {
-                    return null
+                    if (!view) {
+                      return null
+                    }
+
+                    return (
+                      <button
+                        key={view}
+                        type="button"
+                        onClick={() => {
+                          if (item.clearOnClick) {
+                            markAllAsRead()
+                          }
+                          onViewChange(view)
+                        }}
+                        className={cn(
+                          "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                          isActive
+                            ? "bg-[var(--brand-primary)] text-white shadow-sm"
+                            : "text-[var(--brand-body)] hover:bg-[rgba(0,94,184,0.1)] hover:text-[var(--brand-ink)]"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {item.label}
+                        {isNewsFeedItem && unreadCount > 0 ? (
+                          <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        ) : null}
+                      </button>
+                    )
                   }
 
                   return (
-                    <button
-                      key={view}
-                      type="button"
-                      onClick={() => {
-                        if (item.clearOnClick) {
-                          markAllAsRead()
-                        }
-                        onViewChange(view)
-                      }}
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={item.clearOnClick ? markAllAsRead : undefined}
                       className={cn(
                         "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                         isActive
@@ -172,44 +196,17 @@ export default function Header({
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       ) : null}
-                    </button>
+                    </Link>
                   )
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={item.clearOnClick ? markAllAsRead : undefined}
-                    className={cn(
-                      "relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                      isActive
-                        ? "bg-[var(--brand-primary)] text-white shadow-sm"
-                        : "text-[var(--brand-body)] hover:bg-[rgba(0,94,184,0.1)] hover:text-[var(--brand-ink)]"
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {item.label}
-                    {isNewsFeedItem && unreadCount > 0 ? (
-                      <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand-danger)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-md shadow-[rgba(201,18,41,0.35)]">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </span>
-                    ) : null}
-                  </Link>
-                )
-              })}
-            </nav>
-            <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" />
-              Hello, {firstName}!
+                })}
+              </nav>
+              <div className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Hello, {firstName}!
+              </div>
             </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-1.5 transition-colors duration-200 hover:text-[var(--brand-danger)]"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Logout
-            </button>
+
+            <HeaderSettingsDialog onLogout={onLogout} />
           </div>
         </div>
       </div>
