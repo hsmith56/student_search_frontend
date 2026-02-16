@@ -145,6 +145,7 @@ export default function Header({
                   </button>
                 ) : null}
               </div>
+              <p className="sr-only">Signed in as {firstName}</p>
               <p className="text-[11px] font-medium text-[var(--brand-muted)]">Tool to search student profiles for improved match making</p>
             </div>
           </div>

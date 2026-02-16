@@ -265,9 +265,11 @@ export function DesktopCompactResults({
                     onClick={(event) => {
                       event.stopPropagation();
                       if (!favoriteId) return;
-                      favoritedStudents.has(favoriteId)
-                        ? onUnfavorite(favoriteId, event)
-                        : onFavorite(favoriteId, event);
+                      if (favoritedStudents.has(favoriteId)) {
+                        onUnfavorite(favoriteId, event);
+                      } else {
+                        onFavorite(favoriteId, event);
+                      }
                     }}
                     className="rounded-full p-1.5 transition-all duration-200 hover:bg-[rgba(0,94,184,0.08)]"
                   >

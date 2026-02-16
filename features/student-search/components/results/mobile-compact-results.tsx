@@ -57,9 +57,11 @@ export function MobileCompactResults({
             onClick={(event) => {
               event.stopPropagation();
               if (!favoriteId) return;
-              favoritedStudents.has(favoriteId)
-                ? onUnfavorite(favoriteId, event)
-                : onFavorite(favoriteId, event);
+              if (favoritedStudents.has(favoriteId)) {
+                onUnfavorite(favoriteId, event);
+              } else {
+                onFavorite(favoriteId, event);
+              }
             }}
             className="absolute top-3 right-3 z-10 rounded-full border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] p-1.5 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-[var(--brand-surface-elevated)]"
           >

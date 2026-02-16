@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   API_URL,
   RESULTS_PER_PAGE_STORAGE_KEY,
@@ -171,21 +171,24 @@ export function useStudentSearchController({
           status.value !== UNASSIGNED_STATUS && status.value !== ALL_STATUS
       );
 
-  const sanitizeStatusOptions = (statusOptions: string[]) => {
-    if (!isLcUser) {
-      return statusOptions;
-    }
+  const sanitizeStatusOptions = useCallback(
+    (statusOptions: string[]) => {
+      if (!isLcUser) {
+        return statusOptions;
+      }
 
-    const filteredStatusOptions = statusOptions.filter(
-      (status) => status !== UNASSIGNED_STATUS && status !== ALL_STATUS
-    );
+      const filteredStatusOptions = statusOptions.filter(
+        (status) => status !== UNASSIGNED_STATUS && status !== ALL_STATUS
+      );
 
-    if (filteredStatusOptions.length === 0) {
-      return DEFAULT_STATUS_FOR_LC;
-    }
+      if (filteredStatusOptions.length === 0) {
+        return DEFAULT_STATUS_FOR_LC;
+      }
 
-    return filteredStatusOptions;
-  };
+      return filteredStatusOptions;
+    },
+    [isLcUser]
+  );
 
   const getHeaders = () => ({
     "Content-Type": "application/json",
@@ -713,8 +716,7 @@ export function useStudentSearchController({
         statusOptions: nextStatusOptions,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLcUser]);
+  }, [isLcUser, sanitizeStatusOptions]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -878,7 +880,6 @@ export function useStudentSearchController({
     if (isAuthenticated) {
       fetchLastUpdateTime();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   return {
