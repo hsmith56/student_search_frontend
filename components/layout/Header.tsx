@@ -9,8 +9,8 @@ import {
   MessageSquareText,
   LayoutDashboard,
   BarChart3,
-  Users,
   RefreshCw,
+  LogOut,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -200,13 +200,19 @@ export default function Header({
                   )
                 })}
               </nav>
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                Hello, {firstName}!
-              </div>
             </div>
 
-            <HeaderSettingsDialog onLogout={onLogout} />
+            <div className="flex items-center gap-2">
+              <HeaderSettingsDialog />
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(201,18,41,0.35)] bg-transparent px-3 py-1.5 text-xs font-semibold text-[var(--brand-danger)] transition-colors hover:border-[rgba(201,18,41,0.55)] hover:bg-[rgba(201,18,41,0.08)]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { LogOut, Settings } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Settings, X } from "lucide-react";
 
 import { states } from "@/components/search/states";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,21 +11,28 @@ import { FilterCheckbox } from "@/features/student-search/components/filter-chec
 import { cn } from "@/lib/utils";
 import { useFavoriteStates } from "@/lib/favorite-states";
 
-const EXCLUDED_STATE_VALUES = new Set(["all", "no_pref", "state_only"]);
+const EXCLUDED_STATE_VALUES = new Set(["all", "no_pref", "state_only", "my_states"]);
 
 type HeaderSettingsDialogProps = {
-  onLogout: () => void;
   desktopTriggerClassName?: string;
   mobileTriggerClassName?: string;
 };
 
 export function HeaderSettingsDialog({
-  onLogout,
   desktopTriggerClassName,
   mobileTriggerClassName,
 }: HeaderSettingsDialogProps) {
-  const { favoriteStates, toggleFavoriteState, clearFavoriteStates } =
-    useFavoriteStates();
+  const {
+    favoriteStates,
+    toggleFavoriteState,
+    clearFavoriteStates,
+    discardFavoriteStateChanges,
+    applyFavoriteStates,
+    reloadFavoriteStates,
+    hasPendingFavoriteStateChanges,
+    isLoadingFavoriteStates,
+    isApplyingFavoriteStates,
+  } = useFavoriteStates();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -47,12 +54,26 @@ export function HeaderSettingsDialog({
     );
   }, [searchQuery, stateOptions]);
 
+  const handleApply = useCallback(async () => {
+    await applyFavoriteStates();
+  }, [applyFavoriteStates]);
+
+  const handleClose = useCallback(() => {
+    discardFavoriteStateChanges();
+    setSearchQuery("");
+    setOpen(false);
+  }, [discardFavoriteStateChanges]);
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) setSearchQuery("");
+        if (nextOpen) {
+          setOpen(true);
+          void reloadFavoriteStates();
+          return;
+        }
+        handleClose();
       }}
     >
       <DialogTrigger asChild>
@@ -107,6 +128,7 @@ export function HeaderSettingsDialog({
                   type="button"
                   variant="outline"
                   onClick={clearFavoriteStates}
+                  disabled={isLoadingFavoriteStates || isApplyingFavoriteStates}
                   className="h-8 border-[var(--brand-border)] bg-transparent px-3 text-xs font-semibold text-[var(--brand-body)] hover:border-[var(--brand-primary-deep)] hover:bg-[rgba(0,53,84,0.06)]"
                 >
                   Clear
@@ -131,6 +153,7 @@ export function HeaderSettingsDialog({
                     <FilterCheckbox
                       id={option.id}
                       checked={favoriteStates.includes(option.value)}
+                      disabled={isLoadingFavoriteStates || isApplyingFavoriteStates}
                       onCheckedChange={() => toggleFavoriteState(option.value)}
                     />
                     <label
@@ -151,15 +174,27 @@ export function HeaderSettingsDialog({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-[var(--brand-border-soft)] p-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex flex-col gap-2 border-t border-[var(--brand-border-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            type="button"
+            onClick={handleApply}
+            disabled={
+              isLoadingFavoriteStates ||
+              isApplyingFavoriteStates ||
+              !hasPendingFavoriteStateChanges
+            }
+            className="h-10 bg-[var(--brand-primary)] font-semibold text-white hover:bg-[var(--brand-primary-deep)]"
+          >
+            {isApplyingFavoriteStates ? "Applying..." : "Apply"}
+          </Button>
           <Button
             type="button"
             variant="outline"
-            onClick={onLogout}
-            className="h-10 border-[rgba(201,18,41,0.35)] bg-transparent font-semibold text-[var(--brand-danger)] hover:border-[rgba(201,18,41,0.55)] hover:bg-[rgba(201,18,41,0.08)]"
+            onClick={handleClose}
+            className="h-10 border-[var(--brand-border)] bg-transparent font-semibold text-[var(--brand-body)] hover:border-[var(--brand-primary-deep)] hover:bg-[rgba(0,53,84,0.06)]"
           >
-            <LogOut className="h-4 w-4" />
-            Logout
+            <X className="h-4 w-4" />
+            Close
           </Button>
         </div>
       </DialogContent>

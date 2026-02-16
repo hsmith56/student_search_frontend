@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const FAVORITE_STATES_STORAGE_KEY = "student_search.favorite_states.v1";
+const API_URL = "/api";
 
 function normalizeFavoriteStates(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -18,55 +18,75 @@ function normalizeFavoriteStates(value: unknown): string[] {
   return Array.from(deduped);
 }
 
-export function readFavoriteStates(): string[] {
-  if (typeof window === "undefined") return [];
+function parsePlacingStates(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return normalizeFavoriteStates(value);
+  }
+
+  if (typeof value !== "string") return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
 
   try {
-    const raw = localStorage.getItem(FAVORITE_STATES_STORAGE_KEY);
-    if (!raw) return [];
-    return normalizeFavoriteStates(JSON.parse(raw));
+    return normalizeFavoriteStates(JSON.parse(trimmed));
   } catch {
     return [];
   }
 }
 
-export function writeFavoriteStates(states: string[]) {
-  if (typeof window === "undefined") return;
-
-  try {
-    localStorage.setItem(
-      FAVORITE_STATES_STORAGE_KEY,
-      JSON.stringify(normalizeFavoriteStates(states)),
-    );
-  } catch {
-    // Ignore quota / parsing issues; this is a non-critical preference.
+function hasSameValues(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false;
   }
+
+  return left.every((value) => right.includes(value));
 }
 
 export function useFavoriteStates() {
-  const [favoriteStates, setFavoriteStates] = useState<string[]>(() =>
-    readFavoriteStates(),
-  );
+  const [favoriteStates, setFavoriteStates] = useState<string[]>([]);
+  const [savedFavoriteStates, setSavedFavoriteStates] = useState<string[]>([]);
+  const [isLoadingFavoriteStates, setIsLoadingFavoriteStates] = useState(true);
+  const [isApplyingFavoriteStates, setIsApplyingFavoriteStates] = useState(false);
 
-  useEffect(() => {
-    writeFavoriteStates(favoriteStates);
-  }, [favoriteStates]);
+  const reloadFavoriteStates = useCallback(async () => {
+    setIsLoadingFavoriteStates(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+      if (!response.ok) {
+        throw new Error(`Failed to load placing states: ${response.status}`);
+      }
 
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== FAVORITE_STATES_STORAGE_KEY) return;
-      setFavoriteStates(readFavoriteStates());
-    };
-
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+      const data = (await response.json()) as {
+        placing_states?: unknown;
+      };
+      const parsedStates = parsePlacingStates(data.placing_states);
+      setFavoriteStates(parsedStates);
+      setSavedFavoriteStates(parsedStates);
+      return true;
+    } catch (error) {
+      console.error("Error loading favorite states:", error);
+      return false;
+    } finally {
+      setIsLoadingFavoriteStates(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void reloadFavoriteStates();
+  }, [reloadFavoriteStates]);
 
   const favoriteStatesSet = useMemo(
     () => new Set(favoriteStates),
     [favoriteStates],
+  );
+  const hasPendingFavoriteStateChanges = useMemo(
+    () => !hasSameValues(favoriteStates, savedFavoriteStates),
+    [favoriteStates, savedFavoriteStates],
   );
 
   const toggleFavoriteState = useCallback((stateName: string) => {
@@ -85,12 +105,53 @@ export function useFavoriteStates() {
     setFavoriteStates([]);
   }, []);
 
+  const discardFavoriteStateChanges = useCallback(() => {
+    setFavoriteStates(savedFavoriteStates);
+  }, [savedFavoriteStates]);
+
+  const applyFavoriteStates = useCallback(async () => {
+    if (isApplyingFavoriteStates) {
+      return false;
+    }
+
+    const nextStates = normalizeFavoriteStates(favoriteStates);
+    setIsApplyingFavoriteStates(true);
+
+    try {
+      const response = await fetch(`${API_URL}/user/states`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(nextStates),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update favorite states: ${response.status}`);
+      }
+
+      setFavoriteStates(nextStates);
+      setSavedFavoriteStates(nextStates);
+      return true;
+    } catch (error) {
+      console.error("Error updating favorite states:", error);
+      return false;
+    } finally {
+      setIsApplyingFavoriteStates(false);
+    }
+  }, [favoriteStates, isApplyingFavoriteStates]);
+
   return {
     favoriteStates,
     favoriteStatesSet,
     setFavoriteStates,
     toggleFavoriteState,
     clearFavoriteStates,
+    discardFavoriteStateChanges,
+    applyFavoriteStates,
+    reloadFavoriteStates,
+    hasPendingFavoriteStateChanges,
+    isLoadingFavoriteStates,
+    isApplyingFavoriteStates,
   };
 }
 
