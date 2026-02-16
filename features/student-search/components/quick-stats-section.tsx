@@ -1,16 +1,15 @@
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToolTutorialDialog } from "@/components/layout/tool-tutorial-dialog";
 import type { QuickStatsCard } from "@/features/student-search/types";
 
 type QuickStatsSectionProps = {
   cards: QuickStatsCard[];
-  searchTips: string[];
   onOpenFeedback: () => void;
 };
 
 export function QuickStatsSection({
   cards,
-  searchTips,
   onOpenFeedback,
 }: QuickStatsSectionProps) {
   return (
@@ -43,20 +42,20 @@ export function QuickStatsSection({
             <Star className="h-4 w-4 text-[var(--brand-primary)]" />
             Tips & Feedback
           </h3>
-          <ul className="space-y-1.5 text-xs leading-relaxed text-[var(--brand-body)]">
-            {searchTips.slice(0, 2).map((tip) => (
-              <li key={tip} className="flex items-start gap-2">
-                <span className="mt-[7px] block h-1 w-1 flex-shrink-0 rounded-full bg-[var(--brand-primary)]" />
-                <span>{tip}</span>
-              </li>
-            ))}
-          </ul>
-          <Button
-            onClick={onOpenFeedback}
-            className="mt-auto h-9 w-full bg-gradient-to-r from-[var(--brand-accent)] to-[#ff7b1a] text-sm text-white shadow-[0_8px_16px_rgba(255,87,0,0.22)] hover:from-[#eb4f00] hover:to-[var(--brand-accent)]"
-          >
-            Open feedback form
-          </Button>
+
+          <div className="mt-auto space-y-2">
+            <ToolTutorialDialog
+              triggerLabel="How to use this tool"
+              showTriggerIcon={false}
+              triggerClassName="h-9 w-full rounded-md border border-[rgba(0,94,184,0.35)] bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-deep)] text-sm font-semibold text-white shadow-[0_8px_16px_rgba(0,94,184,0.24)] hover:from-[var(--brand-primary-deep)] hover:to-[var(--brand-primary)]"
+            />
+            <Button
+              onClick={onOpenFeedback}
+              className="h-9 w-full bg-gradient-to-r from-[var(--brand-accent)] to-[#ff7b1a] text-sm text-white shadow-[0_8px_16px_rgba(255,87,0,0.22)] hover:from-[#eb4f00] hover:to-[var(--brand-accent)]"
+            >
+              Open feedback form
+            </Button>
+          </div>
         </div>
       </div>
     </section>

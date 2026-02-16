@@ -127,7 +127,7 @@ export default function Header({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-tight text-[var(--brand-ink)]">
-                  Last Updated - {updateTime}
+                  Updated - {updateTime}
                 </h1>
                 {onUpdateDatabase ? (
                   <button
@@ -144,9 +144,8 @@ export default function Header({
                     {isUpdatingDatabase ? "Updating..." : "Update"}
                   </button>
                 ) : null}
-              </div>
+              </div>              
               <p className="sr-only">Signed in as {firstName}</p>
-              <p className="text-[11px] font-medium text-[var(--brand-muted)]">Tool to search student profiles for improved match making</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm font-medium text-[var(--brand-body)]">
