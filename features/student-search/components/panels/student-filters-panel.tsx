@@ -47,6 +47,8 @@ type StudentFiltersPanelProps = {
   onApplyFilters: () => void;
   onClearFilters: () => void;
   statusOptions: { id: string; label: string; value: string }[];
+  stateOptions: { value: string; label: string }[];
+  defaultStateValue: string;
 };
 
 type ActiveFilterPill = {
@@ -61,10 +63,6 @@ const RELIGIOUS_PRACTICE_LABELS: Record<string, string> = {
   some: "Some",
   none: "Never",
 };
-
-const STATE_LABELS = new Map(
-  states.map((stateOption) => [stateOption.value, stateOption.label])
-);
 
 const INTEREST_LABELS = new Map(
   interests.map((interestOption) => [interestOption.value, interestOption.label])
@@ -153,6 +151,8 @@ export function StudentFiltersPanel({
   onApplyFilters,
   onClearFilters,
   statusOptions,
+  stateOptions,
+  defaultStateValue,
 }: StudentFiltersPanelProps) {
   const [isCountryOpen, setIsCountryOpen] = useState(false);
 
@@ -208,6 +208,16 @@ export function StudentFiltersPanel({
         })),
     [countries]
   );
+  const stateLabels = useMemo(
+    () =>
+      new Map(
+        [...states, ...stateOptions].map((stateOption) => [
+          stateOption.value,
+          stateOption.label,
+        ])
+      ),
+    [stateOptions]
+  );
 
   const toggleCountry = (country: string) => {
     setFilters((prev) => ({
@@ -236,12 +246,12 @@ export function StudentFiltersPanel({
       });
     });
 
-    if (filters.state !== defaultFilters.state) {
+    if (filters.state !== defaultStateValue) {
       pills.push({
         key: `state-${filters.state}`,
         group: "State",
-        value: STATE_LABELS.get(filters.state) ?? filters.state,
-        onRemove: () => setFilters((prev) => ({ ...prev, state: defaultFilters.state })),
+        value: stateLabels.get(filters.state) ?? filters.state,
+        onRemove: () => setFilters((prev) => ({ ...prev, state: defaultStateValue })),
       });
     }
 
@@ -385,6 +395,8 @@ export function StudentFiltersPanel({
     onToggleProgramType,
     onToggleScholarship,
     onToggleStatus,
+    defaultStateValue,
+    stateLabels,
     setFilters,
   ]);
 
@@ -453,7 +465,7 @@ export function StudentFiltersPanel({
             <SelectValue placeholder="Show All" />
           </SelectTrigger>
           <SelectContent className={selectContentClass}>
-            {states.map((stateOption) => (
+            {stateOptions.map((stateOption) => (
               <SelectItem key={stateOption.value} value={stateOption.value}>
                 {stateOption.label}
               </SelectItem>

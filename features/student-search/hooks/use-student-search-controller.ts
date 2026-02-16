@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { states as ALL_STATE_OPTIONS } from "@/components/search/states";
 import {
   API_URL,
   RESULTS_PER_PAGE_STORAGE_KEY,
@@ -35,6 +36,20 @@ const ALL_STATUS = "All";
 const UNASSIGNED_STATUS = "Unassigned";
 const DEFAULT_STATUS_FOR_LC = ["Allocated"];
 const MY_STATES_FILTER_VALUE = "my_states";
+const NO_PREFERENCES_FILTER_VALUE = "no_pref";
+const MY_STATES_FILTER_LABEL = "My States Only";
+const NO_PREFERENCES_FILTER_LABEL = "No Preferences";
+const SPECIAL_STATE_FILTER_VALUES = new Set([
+  "all",
+  NO_PREFERENCES_FILTER_VALUE,
+  "state_only",
+  MY_STATES_FILTER_VALUE,
+]);
+
+type StateFilterOption = {
+  value: string;
+  label: string;
+};
 
 const hasSameValues = (left: string[], right: string[]) => {
   if (left.length !== right.length) {
@@ -92,12 +107,15 @@ const toStateFilterPayload = (stateValue: string): string[] => {
   return normalized ? [normalized] : ["all"];
 };
 
-const getActiveFilterCount = (filters: Filters) => {
+const getActiveFilterCount = (
+  filters: Filters,
+  defaultStateValue = defaultFilters.state
+) => {
   let count = 0;
 
   count += filters.country_of_origin.length;
   if (filters.interests !== defaultFilters.interests) count += 1;
-  if (filters.state !== defaultFilters.state) count += 1;
+  if (filters.state !== defaultStateValue) count += 1;
   if (filters.gender_male) count += 1;
   if (filters.gender_female) count += 1;
   if (filters.pets_in_home !== defaultFilters.pets_in_home) count += 1;
@@ -154,14 +172,23 @@ export function useStudentSearchController({
   const [resultsAnimationKey, setResultsAnimationKey] = useState(0);
 
   const [filters, setFilters] = useState<Filters>(defaultFilters);
-  const activeFilterCount = useMemo(() => getActiveFilterCount(filters), [filters]);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [unassignedNow, setUnassignedNow] = useState(0);
   const [availableNow, setAvailableNow] = useState(0);
   const [alreadyPlaced, setAlreadyPlaced] = useState(0);
+  const [localCoordinatorStates, setLocalCoordinatorStates] = useState<string[]>(
+    []
+  );
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
   const isRpmUser = accountType.toLowerCase().includes("rpm");
+  const defaultStateFilterValue = isLcUser
+    ? NO_PREFERENCES_FILTER_VALUE
+    : defaultFilters.state;
+  const activeFilterCount = useMemo(
+    () => getActiveFilterCount(filters, defaultStateFilterValue),
+    [defaultStateFilterValue, filters]
+  );
   const canShowUnassigned = hasLoadedAuthUser && !isLcUser;
   const canUpdateDatabase = hasLoadedAuthUser && !isLcUser;
   const statusOptionsForFilter = canShowUnassigned
@@ -170,6 +197,64 @@ export function useStudentSearchController({
         (status) =>
           status.value !== UNASSIGNED_STATUS && status.value !== ALL_STATUS
       );
+  const localCoordinatorStateSet = useMemo(
+    () => new Set(localCoordinatorStates),
+    [localCoordinatorStates]
+  );
+  const allowedLcStateFilterValues = useMemo(
+    () =>
+      new Set([
+        MY_STATES_FILTER_VALUE,
+        NO_PREFERENCES_FILTER_VALUE,
+        ...localCoordinatorStates,
+      ]),
+    [localCoordinatorStates]
+  );
+  const stateOptionsForFilter = useMemo<StateFilterOption[]>(() => {
+    if (!isLcUser) {
+      return ALL_STATE_OPTIONS;
+    }
+
+    const coordinatorStateOptions = ALL_STATE_OPTIONS.filter(
+      (option) =>
+        !SPECIAL_STATE_FILTER_VALUES.has(option.value) &&
+        localCoordinatorStateSet.has(option.value)
+    );
+    const includedStateValues = new Set(
+      coordinatorStateOptions.map((option) => option.value)
+    );
+    const fallbackCoordinatorStateOptions = localCoordinatorStates
+      .filter(
+        (stateName) =>
+          !SPECIAL_STATE_FILTER_VALUES.has(stateName) &&
+          !includedStateValues.has(stateName)
+      )
+      .sort((left, right) => left.localeCompare(right))
+      .map((stateName) => ({ value: stateName, label: stateName }));
+
+    return [
+      { value: MY_STATES_FILTER_VALUE, label: MY_STATES_FILTER_LABEL },
+      { value: NO_PREFERENCES_FILTER_VALUE, label: NO_PREFERENCES_FILTER_LABEL },
+      ...coordinatorStateOptions,
+      ...fallbackCoordinatorStateOptions,
+    ];
+  }, [isLcUser, localCoordinatorStateSet, localCoordinatorStates]);
+  const sanitizeStateFilterValue = useCallback(
+    (stateValue: string) => {
+      const normalizedStateValue = stateValue.trim();
+
+      if (!isLcUser) {
+        return normalizedStateValue || defaultFilters.state;
+      }
+
+      if (allowedLcStateFilterValues.has(normalizedStateValue)) {
+        return normalizedStateValue;
+      }
+
+      return defaultStateFilterValue;
+    },
+    [allowedLcStateFilterValues, defaultStateFilterValue, isLcUser]
+  );
 
   const sanitizeStatusOptions = useCallback(
     (statusOptions: string[]) => {
@@ -190,9 +275,9 @@ export function useStudentSearchController({
     [isLcUser]
   );
 
-  const getHeaders = () => ({
+  const getHeaders = useCallback(() => ({
     "Content-Type": "application/json",
-  });
+  }), []);
 
   const animateResultsRefresh = () => {
     setResultsAnimationKey((prev) => prev + 1);
@@ -225,7 +310,7 @@ export function useStudentSearchController({
     }
   };
 
-  const fetchFavoriteStatesForFilter = async () => {
+  const fetchFavoriteStatesForFilter = useCallback(async () => {
     const data = await getCachedValue<unknown>(
       "user:states",
       async () => {
@@ -244,12 +329,16 @@ export function useStudentSearchController({
       CACHE_TTL_SHORT_MS
     );
 
-    return parseStateValuesResponse(data);
-  };
+    const parsedStateValues = parseStateValuesResponse(data);
+    setLocalCoordinatorStates(parsedStateValues);
+    return parsedStateValues;
+  }, [getHeaders]);
 
   const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
-    if (stateValue !== MY_STATES_FILTER_VALUE) {
-      return toStateFilterPayload(stateValue);
+    const sanitizedStateValue = sanitizeStateFilterValue(stateValue);
+
+    if (sanitizedStateValue !== MY_STATES_FILTER_VALUE) {
+      return toStateFilterPayload(sanitizedStateValue);
     }
 
     try {
@@ -305,9 +394,14 @@ export function useStudentSearchController({
     }
   };
 
-  const fetchStudentsWithDefaults = async () => {
+  const fetchStudentsWithDefaults = async (
+    defaultStateValue = defaultStateFilterValue
+  ) => {
     try {
-      const resolvedStateValue = await resolveStateFilterValue(defaultFilters.state);
+      const sanitizedDefaultStateValue = sanitizeStateFilterValue(defaultStateValue);
+      const resolvedStateValue = await resolveStateFilterValue(
+        sanitizedDefaultStateValue
+      );
       const response = await fetch(
         `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
         {
@@ -449,13 +543,19 @@ export function useStudentSearchController({
   };
 
   const clearFilters = () => {
-    setFilters(defaultFilters);
+    const sanitizedDefaultStateValue = sanitizeStateFilterValue(
+      defaultStateFilterValue
+    );
+    setFilters({
+      ...defaultFilters,
+      state: sanitizedDefaultStateValue,
+    });
     setQuery("");
     setUsahsIdQuery("");
     setPhotoQuery("");
     setCurrentPage(1);
     setShowFavoritesOnly(false);
-    fetchStudentsWithDefaults();
+    fetchStudentsWithDefaults(sanitizedDefaultStateValue);
   };
 
   const toggleProgramType = (value: string) => {
@@ -685,11 +785,11 @@ export function useStudentSearchController({
   }, [usahsIdQuery]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchStudentsByStatus(["Allocated"]);
-    }
+    if (!isAuthenticated || !hasLoadedAuthUser) return;
+
+    fetchStudentsByStatus(["Allocated"]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasLoadedAuthUser]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -699,14 +799,27 @@ export function useStudentSearchController({
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasLoadedAuthUser || !isLcUser) {
+      if (!isLcUser) {
+        setLocalCoordinatorStates([]);
+      }
+      return;
+    }
+
+    void fetchFavoriteStatesForFilter().catch(() => setLocalCoordinatorStates([]));
+  }, [fetchFavoriteStatesForFilter, hasLoadedAuthUser, isAuthenticated, isLcUser]);
+
+  useEffect(() => {
     if (!isLcUser) return;
 
     setFilters((prev) => {
       const nextStatusOptions = sanitizeStatusOptions(prev.statusOptions);
+      const nextStateValue = sanitizeStateFilterValue(prev.state);
 
       if (
         nextStatusOptions.length === prev.statusOptions.length &&
-        nextStatusOptions.every((status, index) => status === prev.statusOptions[index])
+        nextStatusOptions.every((status, index) => status === prev.statusOptions[index]) &&
+        nextStateValue === prev.state
       ) {
         return prev;
       }
@@ -714,9 +827,10 @@ export function useStudentSearchController({
       return {
         ...prev,
         statusOptions: nextStatusOptions,
+        state: nextStateValue,
       };
     });
-  }, [isLcUser, sanitizeStatusOptions]);
+  }, [isLcUser, sanitizeStateFilterValue, sanitizeStatusOptions]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -934,6 +1048,8 @@ export function useStudentSearchController({
     isLcUser,
     isRpmUser,
     statusOptionsForFilter,
+    stateOptionsForFilter,
+    defaultStateFilterValue,
     showFavorites,
     fetchStudentsByStatus,
   };

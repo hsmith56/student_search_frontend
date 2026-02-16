@@ -140,6 +140,8 @@ export default function StudentSearchPage({
               onToggleProgramType={controller.toggleProgramType}
               onToggleScholarship={controller.toggleScholarship}
               statusOptions={controller.statusOptionsForFilter}
+              stateOptions={controller.stateOptionsForFilter}
+              defaultStateValue={controller.defaultStateFilterValue}
               onApplyFilters={controller.applyFilters}
               onFindStudents={controller.handleFindStudents}
               onClearFilters={controller.clearFilters}

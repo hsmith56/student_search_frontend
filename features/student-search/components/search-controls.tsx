@@ -28,6 +28,8 @@ type SearchControlsProps = {
   onToggleProgramType: (value: string) => void;
   onToggleScholarship: (value: string) => void;
   statusOptions: { id: string; label: string; value: string }[];
+  stateOptions: { value: string; label: string }[];
+  defaultStateValue: string;
   onApplyFilters: () => void;
   onFindStudents: () => void;
   onClearFilters: () => void;
@@ -56,6 +58,8 @@ export function SearchControls({
   onToggleProgramType,
   onToggleScholarship,
   statusOptions,
+  stateOptions,
+  defaultStateValue,
   onApplyFilters,
   onFindStudents,
   onClearFilters,
@@ -150,6 +154,8 @@ export function SearchControls({
               onApplyFilters={onApplyFilters}
               onClearFilters={onClearFilters}
               statusOptions={statusOptions}
+              stateOptions={stateOptions}
+              defaultStateValue={defaultStateValue}
             />
           </div>
           <Button
