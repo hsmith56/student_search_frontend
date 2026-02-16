@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { invalidateClientCache } from "@/lib/client-cache";
 
 const API_URL = "/api";
 
@@ -131,6 +132,8 @@ export function useFavoriteStates() {
 
       setFavoriteStates(nextStates);
       setSavedFavoriteStates(nextStates);
+      invalidateClientCache("user:states");
+      invalidateClientCache("auth:me");
       return true;
     } catch (error) {
       console.error("Error updating favorite states:", error);

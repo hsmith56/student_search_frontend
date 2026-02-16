@@ -34,6 +34,7 @@ const LC_ACCOUNT_TYPE = "lc";
 const ALL_STATUS = "All";
 const UNASSIGNED_STATUS = "Unassigned";
 const DEFAULT_STATUS_FOR_LC = ["Allocated"];
+const MY_STATES_FILTER_VALUE = "my_states";
 
 const hasSameValues = (left: string[], right: string[]) => {
   if (left.length !== right.length) {
@@ -45,6 +46,51 @@ const hasSameValues = (left: string[], right: string[]) => {
 
 const getCountryFilterPayload = (countries: string[]) =>
   countries.length > 0 ? countries : ["all"];
+
+const normalizeStateValues = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+
+  const deduped = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    deduped.add(trimmed);
+  }
+
+  return Array.from(deduped);
+};
+
+const parseStateValuesResponse = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return normalizeStateValues(value);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      return normalizeStateValues(JSON.parse(trimmed));
+    } catch {
+      return [];
+    }
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { states?: unknown }).states)
+  ) {
+    return normalizeStateValues((value as { states: unknown[] }).states);
+  }
+
+  return [];
+};
+
+const toStateFilterPayload = (stateValue: string): string[] => {
+  const normalized = stateValue.trim();
+  return normalized ? [normalized] : ["all"];
+};
 
 const getActiveFilterCount = (filters: Filters) => {
   let count = 0;
@@ -175,6 +221,41 @@ export function useStudentSearchController({
     }
   };
 
+  const fetchFavoriteStatesForFilter = async () => {
+    const data = await getCachedValue<unknown>(
+      "user:states",
+      async () => {
+        const response = await fetch(`${API_URL}/user/states`, {
+          method: "GET",
+          headers: getHeaders(),
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch user states: ${response.status}`);
+        }
+
+        return (await response.json()) as unknown;
+      },
+      CACHE_TTL_SHORT_MS
+    );
+
+    return parseStateValuesResponse(data);
+  };
+
+  const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
+    if (stateValue !== MY_STATES_FILTER_VALUE) {
+      return toStateFilterPayload(stateValue);
+    }
+
+    try {
+      return await fetchFavoriteStatesForFilter();
+    } catch (error) {
+      console.error("Error resolving favorite states filter:", error);
+      return [];
+    }
+  };
+
   const fetchStudents = async (
     page = 1,
     orderByParam?: string,
@@ -190,6 +271,7 @@ export function useStudentSearchController({
       const statusValue = effectiveStatusOptions.includes(ALL_STATUS)
         ? "allocated"
         : effectiveStatusOptions.map((status) => status.toLowerCase()).join(",");
+      const resolvedStateValue = await resolveStateFilterValue(filters.state);
 
       const response = await fetch(
         `${API_URL}/students/search?page=${page}&page_size=${pageSize}&order_by=${sortBy}&descending=${sortDesc}`,
@@ -199,6 +281,7 @@ export function useStudentSearchController({
           credentials: "include",
           body: JSON.stringify({
             ...filters,
+            state: resolvedStateValue,
             country_of_origin: getCountryFilterPayload(filters.country_of_origin),
             status: statusValue,
             free_text: query,
@@ -220,6 +303,7 @@ export function useStudentSearchController({
 
   const fetchStudentsWithDefaults = async () => {
     try {
+      const resolvedStateValue = await resolveStateFilterValue(defaultFilters.state);
       const response = await fetch(
         `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
         {
@@ -228,6 +312,7 @@ export function useStudentSearchController({
           credentials: "include",
           body: JSON.stringify({
             ...defaultFilters,
+            state: resolvedStateValue,
             country_of_origin: getCountryFilterPayload(defaultFilters.country_of_origin),
             status: "Allocated",
             free_text: "",
@@ -263,7 +348,12 @@ export function useStudentSearchController({
       const statusKey = sanitizedStatus
         .map((value) => value.toLowerCase())
         .join(",");
-      const cacheKey = `students:status:${statusKey}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
+      const resolvedStateValue = await resolveStateFilterValue(filters.state);
+      const resolvedStateToken = resolvedStateValue
+        .map((value) => value.toLowerCase())
+        .sort()
+        .join(",");
+      const cacheKey = `students:status:${statusKey}:state:${resolvedStateToken}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
         filters
       )}`;
       const data = await getCachedValue<{
@@ -282,6 +372,7 @@ export function useStudentSearchController({
               credentials: "include",
               body: JSON.stringify({
                 ...filters,
+                state: resolvedStateValue,
                 country_of_origin: getCountryFilterPayload(filters.country_of_origin),
                 statusOptions: sanitizedStatus,
               }),
