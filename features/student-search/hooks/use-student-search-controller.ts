@@ -161,6 +161,7 @@ export function useStudentSearchController({
   const [availableNow, setAvailableNow] = useState(0);
   const [alreadyPlaced, setAlreadyPlaced] = useState(0);
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
+  const isRpmUser = accountType.toLowerCase().includes("rpm");
   const canShowUnassigned = hasLoadedAuthUser && !isLcUser;
   const canUpdateDatabase = hasLoadedAuthUser && !isLcUser;
   const statusOptionsForFilter = canShowUnassigned
@@ -930,6 +931,7 @@ export function useStudentSearchController({
     canUpdateDatabase,
     canShowUnassigned,
     isLcUser,
+    isRpmUser,
     statusOptionsForFilter,
     showFavorites,
     fetchStudentsByStatus,

@@ -8,6 +8,7 @@ import {
   Bell,
   MessageSquareText,
   LayoutDashboard,
+  ShieldCheck,
   BarChart3,
   RefreshCw,
   LogOut,
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 import { HeaderSettingsDialog } from "@/components/layout/header-settings-dialog"
 
-export type HeaderView = "search" | "newsFeed" | "dashboard" | "feedback"
+export type HeaderView = "search" | "newsFeed" | "dashboard" | "rpm" | "feedback"
 
 interface HeaderProps {
   firstName: string
@@ -28,6 +29,7 @@ interface HeaderProps {
   activeView?: HeaderView
   onViewChange?: (view: HeaderView) => void
   showDashboard?: boolean
+  showRpm?: boolean
 }
 
 type HeaderNavItem = {
@@ -47,6 +49,7 @@ export default function Header({
   activeView,
   onViewChange,
   showDashboard = true,
+  showRpm = false,
 }: HeaderProps) {
   const pathname = usePathname()
   const { unreadCount, markAllAsRead } = useNotifications()
@@ -68,6 +71,12 @@ export default function Header({
           icon: LayoutDashboard,
         },
         {
+          view: "rpm" as const,
+          href: "/rpm",
+          label: "RPM",
+          icon: ShieldCheck,
+        },
+        {
           view: "feedback" as const,
           href: "/feedback",
           label: "Feedback",
@@ -83,6 +92,7 @@ export default function Header({
           clearOnClick: true,
         },
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/rpm", label: "RPM", icon: ShieldCheck },
         { href: "/dashv2", label: "Dash v2", icon: BarChart3 },
         {
           href: "/feedback",
@@ -91,11 +101,20 @@ export default function Header({
         },
       ]
 
-  const navItems: HeaderNavItem[] = baseNavItems.filter((item) =>
-    showDashboard
-      ? true
-      : item.view !== "dashboard" && item.href !== "/dashboard" && item.href !== "/dashv2"
-  )
+  const navItems: HeaderNavItem[] = baseNavItems.filter((item) => {
+    const isDashboardItem =
+      item.view === "dashboard" || item.href === "/dashboard" || item.href === "/dashv2"
+    if (isDashboardItem && !showDashboard) {
+      return false
+    }
+
+    const isRpmItem = item.view === "rpm" || item.href === "/rpm"
+    if (isRpmItem && !showRpm) {
+      return false
+    }
+
+    return true
+  })
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--brand-border-soft)] bg-[var(--brand-shell-bg)] backdrop-blur-xl shadow-[0_8px_20px_rgba(0,53,84,0.08)]">

@@ -16,7 +16,7 @@ import { useIsMobile } from "@/features/student-search/hooks/use-is-mobile";
 import { useStudentSearchController } from "@/features/student-search/hooks/use-student-search-controller";
 import type { QuickStatsCard } from "@/features/student-search/types";
 import type { HeaderView } from "@/components/layout/Header";
-import { ENABLE_DASHBOARD } from "@/lib/feature-flags";
+import { ENABLE_DASHBOARD, ENABLE_RPM } from "@/lib/feature-flags";
 
 type StudentSearchPageProps = {
   activeView?: HeaderView;
@@ -109,6 +109,7 @@ export default function StudentSearchPage({
             activeView={activeView}
             onViewChange={onViewChange}
             showDashboard={ENABLE_DASHBOARD && !controller.isLcUser}
+            showRpm={ENABLE_RPM && controller.isRpmUser}
           />
         )}
 

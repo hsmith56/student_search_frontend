@@ -4,3 +4,7 @@ app/dashv2/**
 features/dashboard/**
 features/manager-dashboard/**
 
+# RPM is currently disabled via `lib/feature-flags.ts`.
+app/rpm/**
+features/rpm-dashboard/**
+

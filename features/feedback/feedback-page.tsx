@@ -18,7 +18,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import type { HeaderView } from "@/components/layout/Header";
-import { ENABLE_DASHBOARD } from "@/lib/feature-flags";
+import { ENABLE_DASHBOARD, ENABLE_RPM } from "@/lib/feature-flags";
 import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
 import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-form";
 
@@ -228,6 +228,7 @@ export default function FeedbackPage({
             activeView={activeView}
             onViewChange={onViewChange}
             showDashboard={ENABLE_DASHBOARD && accountType.toLowerCase() !== "lc"}
+            showRpm={ENABLE_RPM && accountType.toLowerCase().includes("rpm")}
           />
         )}
 

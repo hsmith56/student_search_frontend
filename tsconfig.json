@@ -39,6 +39,8 @@
     "app/dashboard/**",
     "app/dashv2/**",
     "features/dashboard/**",
-    "features/manager-dashboard/**"
+    "features/manager-dashboard/**",
+    "app/rpm/**",
+    "features/rpm-dashboard/**"
   ]
 }
