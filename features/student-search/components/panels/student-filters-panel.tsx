@@ -87,11 +87,20 @@ type SectionProps = {
   subtitle: string;
   icon: ComponentType<{ className?: string }>;
   children: ReactNode;
+  rowClassName?: string;
 };
 
-function LedgerSection({ title, subtitle, icon: Icon, children }: SectionProps) {
+function LedgerSection({
+  title,
+  subtitle,
+  icon: Icon,
+  children,
+  rowClassName,
+}: SectionProps) {
   return (
-    <section className="grid grid-cols-1 border-t border-[rgba(255,87,0,0.22)] py-3 md:grid-cols-[180px_1fr] md:gap-4">
+    <section
+      className={`grid grid-cols-1 border-t border-[rgba(255,87,0,0.22)] py-3 md:grid-cols-[180px_1fr] md:gap-4 ${rowClassName ?? ""}`}
+    >
       <div className="mb-2 md:mb-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgba(255,87,0,0.75)]">
           {subtitle}
@@ -407,6 +416,7 @@ export function StudentFiltersPanel({
       title: "Location & Demographics",
       subtitle: "Profile Base",
       icon: MapPin,
+      rowClassName: "bg-[#ececec]",
     },
     status: {
       title: "Placement Status",
@@ -422,6 +432,7 @@ export function StudentFiltersPanel({
       title: "Program Details",
       subtitle: "Placement Rules",
       icon: Calendar,
+      rowClassName: "bg-[#ececec]",
     },
     placement: {
       title: "Scholarship & Placement",
@@ -432,6 +443,7 @@ export function StudentFiltersPanel({
       title: "Additional Preferences",
       subtitle: "Fine Tuning",
       icon: Sparkles,
+      rowClassName: "bg-[#ececec]",
     },
   };
 
@@ -727,7 +739,7 @@ export function StudentFiltersPanel({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4"
+        className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4"
         onMouseDown={() => onOpenChange(false)}
       >
         <div
