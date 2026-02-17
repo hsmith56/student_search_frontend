@@ -46,6 +46,7 @@ function hasSameValues(left: string[], right: string[]) {
 export function useFavoriteStates() {
   const [favoriteStates, setFavoriteStates] = useState<string[]>([]);
   const [savedFavoriteStates, setSavedFavoriteStates] = useState<string[]>([]);
+  const [accountType, setAccountType] = useState("");
   const [isLoadingFavoriteStates, setIsLoadingFavoriteStates] = useState(true);
   const [isApplyingFavoriteStates, setIsApplyingFavoriteStates] = useState(false);
 
@@ -64,13 +65,16 @@ export function useFavoriteStates() {
 
       const data = (await response.json()) as {
         placing_states?: unknown;
+        account_type?: unknown;
       };
       const parsedStates = parsePlacingStates(data.placing_states);
       setFavoriteStates(parsedStates);
       setSavedFavoriteStates(parsedStates);
+      setAccountType(typeof data.account_type === "string" ? data.account_type : "");
       return true;
     } catch (error) {
       console.error("Error loading favorite states:", error);
+      setAccountType("");
       return false;
     } finally {
       setIsLoadingFavoriteStates(false);
@@ -155,6 +159,7 @@ export function useFavoriteStates() {
     hasPendingFavoriteStateChanges,
     isLoadingFavoriteStates,
     isApplyingFavoriteStates,
+    accountType,
   };
 }
 
