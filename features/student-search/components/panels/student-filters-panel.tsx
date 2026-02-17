@@ -76,6 +76,8 @@ const SCHOLARSHIP_LABELS = new Map(
   SCHOLARSHIP_OPTIONS.map((option) => [option.value, option.label])
 );
 
+const PANEL_ANIMATION_DURATION_MS = 200;
+
 const hasDefaultStatusSelection = (statusOptions: string[]) =>
   statusOptions.length === defaultFilters.statusOptions.length &&
   statusOptions.every((status) => defaultFilters.statusOptions.includes(status));
@@ -164,6 +166,45 @@ export function StudentFiltersPanel({
   defaultStateValue,
 }: StudentFiltersPanelProps) {
   const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [shouldRender, setShouldRender] = useState(open);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      const frameId = window.requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(frameId);
+      };
+    }
+
+    setIsVisible(false);
+
+    const timeoutId = window.setTimeout(() => {
+      setShouldRender(false);
+    }, PANEL_ANIMATION_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      const timeoutId = window.setTimeout(() => {
+        setIsCountryOpen(false);
+      }, PANEL_ANIMATION_DURATION_MS);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
+
+    return;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -194,11 +235,6 @@ export function StudentFiltersPanel({
       document.body.style.paddingRight = previousBodyPaddingRight;
     };
   }, [open, onOpenChange]);
-
-  useEffect(() => {
-    if (open) return;
-    setIsCountryOpen(false);
-  }, [open]);
 
   const selectTriggerClass =
     "h-9 w-full border-[rgba(255,87,0,0.3)] bg-white text-[var(--brand-body)] hover:border-[rgba(255,87,0,0.55)] focus-visible:ring-[rgba(255,87,0,0.24)]";
@@ -409,7 +445,7 @@ export function StudentFiltersPanel({
     setFilters,
   ]);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   const sectionProps = {
     location: {
@@ -739,12 +775,18 @@ export function StudentFiltersPanel({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4"
+        className={`fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4 transition-opacity duration-200 ${
+          isVisible
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
         onMouseDown={() => onOpenChange(false)}
       >
         <div
           onMouseDown={(event) => event.stopPropagation()}
-          className="relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white"
+          className={`relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white transition-all duration-200 ${
+            isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
+          }`}
         >
           <div className="border-b border-[rgba(255,87,0,0.2)] bg-[rgba(255,87,0,0.07)] px-3 py-2.5">
             <div className="flex flex-wrap items-start justify-between gap-2">

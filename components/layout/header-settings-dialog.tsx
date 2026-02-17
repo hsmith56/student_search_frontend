@@ -5,9 +5,7 @@ import { Settings, X } from "lucide-react";
 
 import { states } from "@/components/search/states";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FilterCheckbox } from "@/features/student-search/components/filter-checkbox";
 import { cn } from "@/lib/utils";
 import { useFavoriteStates } from "@/lib/favorite-states";
 
@@ -136,36 +134,37 @@ export function HeaderSettingsDialog({
               </div>
             </div>
 
-            <Input
+            <input
+              type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search states"
-              className="mt-3 h-10 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm text-[var(--brand-body)]"
+              className="mt-2 h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
             />
 
-            <div className="mt-3 max-h-[34vh] overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-white/70 p-2">
-              <div className="space-y-1">
+            <div className="mt-2 max-h-[150px] space-y-2 overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.58)] p-3">
+              <div className="space-y-2">
                 {filteredOptions.map((option) => (
-                  <div
+                  <label
                     key={option.id}
-                    className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-[rgba(0,94,184,0.06)]"
+                    htmlFor={option.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-sm font-medium text-[var(--brand-body)]"
                   >
-                    <FilterCheckbox
+                    <input
+                      type="checkbox"
                       id={option.id}
                       checked={favoriteStates.includes(option.value)}
                       disabled={isLoadingFavoriteStates || isApplyingFavoriteStates}
-                      onCheckedChange={() => toggleFavoriteState(option.value)}
+                      onChange={() => toggleFavoriteState(option.value)}
+                      className="h-4 w-4 accent-[var(--brand-primary)]"
                     />
-                    <label
-                      htmlFor={option.id}
-                      className="flex-1 cursor-pointer text-sm font-medium text-[var(--brand-body)]"
-                    >
+                    <span className="flex-1">
                       {option.label}
-                    </label>
-                  </div>
+                    </span>
+                  </label>
                 ))}
                 {filteredOptions.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-[var(--brand-muted)]">
+                  <p className="py-2 text-center text-sm text-[var(--brand-muted)]">
                     No states found.
                   </p>
                 ) : null}
