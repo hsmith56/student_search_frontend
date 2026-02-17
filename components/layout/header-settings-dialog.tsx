@@ -102,7 +102,7 @@ export function HeaderSettingsDialog({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="z-[90] mx-auto w-[92vw] max-w-[720px] rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.96)] p-0 backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)]">
+      <DialogContent className="z-[90] mx-auto w-[92vw] max-w-[720px] max-h-[78vh] rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.96)] p-0 backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)]">
         <div className="p-5 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
@@ -121,8 +121,8 @@ export function HeaderSettingsDialog({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="rounded-lg border border-[var(--brand-border-soft)] bg-white/70 px-2 py-1 text-[11px] font-semibold text-[var(--brand-muted)]">
-                  {favoriteStates.length} selected
+                <div className="rounded-lg h-8 border border-[var(--brand-border-soft)] bg-white/70 px-1 py-1 text-[11px] font-semibold text-[var(--brand-muted)]">
+                  {favoriteStates.length} active
                 </div>
                 <Button
                   type="button"
@@ -143,7 +143,7 @@ export function HeaderSettingsDialog({
               className="mt-3 h-10 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-sm text-[var(--brand-body)]"
             />
 
-            <div className="mt-3 max-h-[46vh] overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-white/70 p-2">
+            <div className="mt-3 max-h-[34vh] overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-white/70 p-2">
               <div className="space-y-1">
                 {filteredOptions.map((option) => (
                   <div
