@@ -72,78 +72,35 @@ type SignupCodeRecord = {
   createdAt: string;
 };
 
-const MOCK_MANAGED_USERS: ManagedUserRecord[] = [
-  {
-    id: "account-1",
-    firstName: "Taylor",
-    lastName: "Nguyen",
-    email: "taylor.nguyen@example.org",
-    fullName: "Taylor Nguyen",
-    states: ["California", "Arizona"],
-    note: "Leads west region coverage.",
-    accountType: "rpm",
-    accountStatus: "account_created",
-    signupCode: null,
-    signupCodeCreatedAt: null,
-    temporaryPassword: null,
-  },
-  {
-    id: "account-2",
-    firstName: "Morgan",
-    lastName: "Cruz",
-    email: "morgan.cruz@example.org",
-    fullName: "Morgan Cruz",
-    states: ["Florida", "Georgia"],
-    note: "",
-    accountType: "rpm",
-    accountStatus: "signup_code_unused",
-    signupCode: "RPM-H6Q2-WN5A",
-    signupCodeCreatedAt: "2026-02-17T15:22:00.000Z",
-    temporaryPassword: null,
-  },
-  {
-    id: "account-3",
-    firstName: "Avery",
-    lastName: "Shaw",
-    email: "avery.shaw@example.org",
-    fullName: "Avery Shaw",
-    states: ["Texas"],
-    note: "Local coordinator account.",
-    accountType: "lc",
-    accountStatus: "account_created",
-    signupCode: null,
-    signupCodeCreatedAt: null,
-    temporaryPassword: null,
-  },
-  {
-    id: "account-4",
-    firstName: "Jamie",
-    lastName: "Patel",
-    email: "jamie.patel@example.org",
-    fullName: "Jamie Patel",
-    states: [],
-    note: "Platform administrator.",
-    accountType: "admin",
-    accountStatus: "account_created",
-    signupCode: null,
-    signupCodeCreatedAt: null,
-    temporaryPassword: null,
-  },
-];
+type AdminUsersApiItem = {
+  id: string | number;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  states: string[];
+  account_type: string;
+  code_used: boolean;
+  submitter_id: string;
+  created_at: string;
+  used_at: string | null;
+  auth_code: string;
+  notes_text: string | null;
+};
 
-const INITIAL_SIGNUP_CODES: SignupCodeRecord[] = MOCK_MANAGED_USERS.filter(
-  (user): user is ManagedUserRecord & { signupCode: string; signupCodeCreatedAt: string } =>
-    user.accountStatus === "signup_code_unused" &&
-    typeof user.signupCode === "string" &&
-    typeof user.signupCodeCreatedAt === "string"
-).map((user) => ({
-  id: user.id,
-  fullName: user.fullName,
-  email: user.email,
-  accountType: user.accountType,
-  code: user.signupCode,
-  createdAt: user.signupCodeCreatedAt,
-}));
+type AdminSignupRegisterResponse = {
+  id: number | string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  states: string[];
+  account_type: string;
+  code_used: boolean;
+  submitter_id: string;
+  created_at: string;
+  used_at: string | null;
+  auth_code: string;
+  notes_text: string | null;
+};
 
 function randomCodeChunk(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -154,16 +111,15 @@ function randomCodeChunk(length: number): string {
   return next;
 }
 
-function buildSignupCode(prefix: string): string {
-  return `${prefix}-${randomCodeChunk(4)}-${randomCodeChunk(4)}`;
-}
-
 function buildTemporaryPassword(): string {
   return `Temp-${randomCodeChunk(4)}${Math.floor(100 + Math.random() * 900)}`;
 }
 
 function formatCreatedAt(createdAtIso: string): string {
-  const timestamp = new Date(createdAtIso);
+  const normalizedTimestamp = createdAtIso.includes(" ")
+    ? createdAtIso.replace(" ", "T")
+    : createdAtIso;
+  const timestamp = new Date(normalizedTimestamp);
   if (Number.isNaN(timestamp.getTime())) {
     return "Unknown time";
   }
@@ -206,6 +162,17 @@ function getAccountTypeClassName(accountType: ManagedAccountType): string {
   return "border-[rgba(114,125,131,0.4)] bg-[rgba(114,125,131,0.15)] text-[var(--brand-body)]";
 }
 
+function normalizeManagedAccountType(
+  accountType: unknown,
+  fallback: ManagedAccountType
+): ManagedAccountType {
+  if (accountType === "lc" || accountType === "rpm" || accountType === "admin") {
+    return accountType;
+  }
+
+  return fallback;
+}
+
 export default function AdminPage({
   activeView,
   onViewChange,
@@ -219,26 +186,29 @@ export default function AdminPage({
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
 
-  const [managedUsers, setManagedUsers] =
-    useState<ManagedUserRecord[]>(MOCK_MANAGED_USERS);
+  const [managedUsers, setManagedUsers] = useState<ManagedUserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [draftStates, setDraftStates] = useState<string[]>([]);
   const [draftNote, setDraftNote] = useState("");
   const [draftAccountType, setDraftAccountType] = useState<ManagedAccountType>("rpm");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
 
-  const [generatedCodes, setGeneratedCodes] =
-    useState<SignupCodeRecord[]>(INITIAL_SIGNUP_CODES);
+  const [generatedCodes, setGeneratedCodes] = useState<SignupCodeRecord[]>([]);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardFirstName, setWizardFirstName] = useState("");
   const [wizardLastName, setWizardLastName] = useState("");
   const [wizardEmail, setWizardEmail] = useState("");
+  const [wizardAccountType, setWizardAccountType] = useState<ManagedAccountType>("rpm");
   const [wizardStates, setWizardStates] = useState<string[]>([]);
   const [wizardStateQuery, setWizardStateQuery] = useState("");
   const [wizardError, setWizardError] = useState<string | null>(null);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [draftStateQuery, setDraftStateQuery] = useState("");
   const [pendingDeleteUser, setPendingDeleteUser] = useState<ManagedUserRecord | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const normalizedAccountType = accountType.trim().toLowerCase();
   const isAdminUser = normalizedAccountType.includes("admin");
@@ -341,6 +311,103 @@ export default function AdminPage({
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasLoadedAuthUser || !isAdminUser) {
+      return;
+    }
+
+    let isActive = true;
+
+    getCachedValue<AdminUsersApiItem[]>(
+      "admin:rpm_admin_get",
+      async () => {
+        const response = await fetch(`${API_URL}/rpm/admin_get`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load users: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as unknown;
+        return Array.isArray(payload) ? (payload as AdminUsersApiItem[]) : [];
+      },
+      CACHE_TTL_SHORT_MS
+    )
+      .then((rows) => {
+        if (!isActive) return;
+
+        const sortedRows = [...rows].sort((left, right) => {
+          const leftTs = new Date(
+            left.created_at.includes(" ")
+              ? left.created_at.replace(" ", "T")
+              : left.created_at
+          ).getTime();
+          const rightTs = new Date(
+            right.created_at.includes(" ")
+              ? right.created_at.replace(" ", "T")
+              : right.created_at
+          ).getTime();
+          return rightTs - leftTs;
+        });
+
+        const mappedUsers = sortedRows.map((item) => {
+          const normalizedFirstName = item.first_name.trim();
+          const normalizedLastName = item.last_name.trim();
+          const fullName = `${normalizedFirstName} ${normalizedLastName}`.trim();
+          const normalizedAccountType = normalizeManagedAccountType(
+            item.account_type,
+            "lc"
+          );
+          const email = typeof item.email === "string" ? item.email : "";
+
+          return {
+            id: String(item.id),
+            firstName: normalizedFirstName,
+            lastName: normalizedLastName,
+            email,
+            fullName: fullName || normalizedFirstName || normalizedLastName || "Unknown user",
+            states: Array.isArray(item.states) ? item.states : [],
+            note: typeof item.notes_text === "string" ? item.notes_text : "",
+            accountType: normalizedAccountType,
+            accountStatus: (item.code_used
+              ? "account_created"
+              : "signup_code_unused") as AccountStatus,
+            signupCode: item.code_used ? null : item.auth_code,
+            signupCodeCreatedAt: item.code_used ? null : item.created_at,
+            temporaryPassword: null,
+          };
+        });
+
+        const mappedCodes = sortedRows
+          .filter((item) => !item.code_used)
+          .map((item) => ({
+            id: String(item.id),
+            fullName: `${item.first_name.trim()} ${item.last_name.trim()}`.trim(),
+            email: typeof item.email === "string" ? item.email : "",
+            accountType: normalizeManagedAccountType(item.account_type, "lc"),
+            code: item.auth_code,
+            createdAt: item.created_at,
+          }))
+          .slice(0, 8);
+
+        setLoadError(null);
+        setManagedUsers(mappedUsers);
+        setGeneratedCodes(mappedCodes);
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to load users.");
+        setManagedUsers([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, hasLoadedAuthUser, isAdminUser]);
+
+  useEffect(() => {
     if (!selectedUser) {
       setDraftStates([]);
       setDraftNote("");
@@ -384,12 +451,13 @@ export default function AdminPage({
     setWizardFirstName("");
     setWizardLastName("");
     setWizardEmail("");
+    setWizardAccountType("rpm");
     setWizardStates([]);
     setWizardStateQuery("");
     setWizardError(null);
   };
 
-  const openNewRpmWizard = () => {
+  const openNewAccountWizard = () => {
     setSaveMessage(null);
     setWizardError(null);
     setIsWizardOpen(true);
@@ -415,7 +483,7 @@ export default function AdminPage({
     setSelectedUserId(null);
   };
 
-  const createNewRpmSignupCode = () => {
+  const createNewAccountSignupCode = async () => {
     const trimmedFirstName = wizardFirstName.trim();
     const trimmedLastName = wizardLastName.trim();
     const trimmedEmail = wizardEmail.trim().toLowerCase();
@@ -425,12 +493,7 @@ export default function AdminPage({
       return;
     }
 
-    if (!trimmedEmail) {
-      setWizardError("Email address is required.");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setWizardError("Enter a valid email address.");
       return;
     }
@@ -440,40 +503,89 @@ export default function AdminPage({
       return;
     }
 
-    const fullName = `${trimmedFirstName} ${trimmedLastName}`;
-    const createdAt = new Date().toISOString();
-    const code = buildSignupCode("RPM");
-    const id = `rpm-account-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    const newUser: ManagedUserRecord = {
-      id,
-      firstName: trimmedFirstName,
-      lastName: trimmedLastName,
-      email: trimmedEmail,
-      fullName,
+    const selectedAccountType = wizardAccountType;
+    const payload = {
+      first_name: trimmedFirstName,
+      last_name: trimmedLastName,
+      email: trimmedEmail || "n/a",
       states: wizardStates,
-      note: "",
-      accountType: "rpm",
-      accountStatus: "signup_code_unused",
-      signupCode: code,
-      signupCodeCreatedAt: createdAt,
-      temporaryPassword: null,
+      account_type: selectedAccountType,
     };
 
-    const newCode: SignupCodeRecord = {
-      id,
-      fullName,
-      email: trimmedEmail,
-      accountType: "rpm",
-      code,
-      createdAt,
-    };
+    setWizardError(null);
+    setIsCreatingAccount(true);
 
-    setManagedUsers((previous) => [newUser, ...previous]);
-    setGeneratedCodes((previous) => [newCode, ...previous].slice(0, 8));
-    setSaveMessage(`Created RPM signup code for ${fullName}.`);
-    setIsWizardOpen(false);
-    resetWizard();
+    try {
+      const response = await fetch(`${API_URL}/rpm/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let message = `Failed to create account (${response.status}).`;
+        try {
+          const errorBody = (await response.json()) as { detail?: unknown };
+          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when backend body is not JSON.
+        }
+        setWizardError(message);
+        return;
+      }
+
+      const created = (await response.json()) as AdminSignupRegisterResponse;
+      const createdAccountType = normalizeManagedAccountType(
+        created.account_type,
+        selectedAccountType
+      );
+      const fullName = `${created.first_name} ${created.last_name}`.trim();
+      const createdEmail =
+        typeof created.email === "string" ? created.email : payload.email;
+
+      const newUser: ManagedUserRecord = {
+        id: String(created.id),
+        firstName: created.first_name,
+        lastName: created.last_name,
+        email: createdEmail,
+        fullName,
+        states: Array.isArray(created.states) ? created.states : wizardStates,
+        note: typeof created.notes_text === "string" ? created.notes_text : "",
+        accountType: createdAccountType,
+        accountStatus: created.code_used ? "account_created" : "signup_code_unused",
+        signupCode: created.code_used ? null : created.auth_code,
+        signupCodeCreatedAt: created.code_used ? null : created.created_at,
+        temporaryPassword: null,
+      };
+
+      const newCode: SignupCodeRecord | null = created.code_used
+        ? null
+        : {
+            id: String(created.id),
+            fullName,
+            email: createdEmail,
+            accountType: createdAccountType,
+            code: created.auth_code,
+            createdAt: created.created_at,
+          };
+
+      setManagedUsers((previous) => [newUser, ...previous]);
+      setGeneratedCodes((previous) =>
+        newCode ? [newCode, ...previous].slice(0, 8) : previous
+      );
+      setSaveMessage(
+        `Created ${getAccountTypeLabel(createdAccountType)} account for ${fullName}.`
+      );
+      setIsWizardOpen(false);
+      resetWizard();
+    } catch {
+      setWizardError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsCreatingAccount(false);
+    }
   };
 
   const markAccountCreated = () => {
@@ -511,18 +623,50 @@ export default function AdminPage({
 
   const openDeleteDialog = () => {
     if (!selectedUser) return;
+    setDeleteError(null);
     setPendingDeleteUser(selectedUser);
   };
 
-  const deleteAccount = () => {
+  const deleteAccount = async () => {
     if (!pendingDeleteUser) return;
-
     const deletedUser = pendingDeleteUser;
-    setManagedUsers((previous) => previous.filter((user) => user.id !== deletedUser.id));
-    setGeneratedCodes((previous) => previous.filter((code) => code.id !== deletedUser.id));
-    setSaveMessage(`Deleted account for ${deletedUser.fullName}.`);
-    setPendingDeleteUser(null);
-    setSelectedUserId(null);
+    setDeleteError(null);
+    setIsDeletingAccount(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/rpm/admin_delete/${encodeURIComponent(String(deletedUser.id))}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        let message = `Failed to delete account (${response.status}).`;
+        try {
+          const errorBody = (await response.json()) as { detail?: unknown };
+          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when backend body is not JSON.
+        }
+        setDeleteError(message);
+        return;
+      }
+
+      setManagedUsers((previous) => previous.filter((user) => user.id !== deletedUser.id));
+      setGeneratedCodes((previous) => previous.filter((code) => code.id !== deletedUser.id));
+      setSaveMessage(`Deleted account for ${deletedUser.fullName}.`);
+      setPendingDeleteUser(null);
+      setSelectedUserId(null);
+    } catch {
+      setDeleteError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   if (authLoading || !isAuthenticated || !hasLoadedAuthUser) {
@@ -617,12 +761,17 @@ export default function AdminPage({
               Admin Panel
             </h1>
             <p className="mt-1.5 text-sm text-[var(--brand-body)]">
-              Create RPM accounts and manage account lifecycle actions across all user types.
+              Create accounts and manage account lifecycle actions across all user types.
             </p>
 
             {saveMessage ? (
               <div className="mt-4 rounded-xl border border-[rgba(0,144,63,0.42)] bg-[rgba(0,144,63,0.1)] px-4 py-2 text-sm font-semibold text-[var(--brand-success-deep)]">
                 {saveMessage}
+              </div>
+            ) : null}
+            {loadError ? (
+              <div className="mt-4 rounded-xl border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-4 py-2 text-sm font-semibold text-[var(--brand-danger)]">
+                {loadError}
               </div>
             ) : null}
 
@@ -695,15 +844,15 @@ export default function AdminPage({
 
               <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                  RPM Signup Codes
+                  Signup Codes
                 </h2>
                 <button
                   type="button"
-                  onClick={openNewRpmWizard}
+                  onClick={openNewAccountWizard}
                   className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.12)] px-4 text-sm font-semibold text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
                 >
                   <Plus className="h-4 w-4" />
-                  Create RPM Account
+                  Create Account
                 </button>
 
                 <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.8)] px-3 py-2">
@@ -718,7 +867,7 @@ export default function AdminPage({
                 <div className="mt-3 space-y-2">
                   {generatedCodes.length === 0 ? (
                     <p className="text-xs text-[var(--brand-muted)]">
-                      Create an RPM account to start the signup queue.
+                      Create an account to start the signup queue.
                     </p>
                   ) : (
                     generatedCodes.map((entry) => (
@@ -729,7 +878,9 @@ export default function AdminPage({
                         <p className="text-[11px] font-semibold text-[var(--brand-body)]">
                           {entry.fullName}
                         </p>
-                        <p className="text-[11px] text-[var(--brand-muted)]">{entry.email}</p>
+                        <p className="text-[11px] text-[var(--brand-muted)]">
+                          {entry.email || "No email provided"}
+                        </p>
                         <p className="font-mono text-xs font-semibold text-[var(--brand-primary-deep)]">
                           {entry.code}
                         </p>
@@ -760,10 +911,10 @@ export default function AdminPage({
         <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
-              New RPM Wizard
+              New Account
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--brand-body)]">
-              Enter user details and assign states to generate an RPM signup code.
+              Enter user details (email optional), choose account type, and assign states.
             </DialogDescription>
           </DialogHeader>
 
@@ -802,7 +953,7 @@ export default function AdminPage({
 
             <label className="space-y-1 sm:col-span-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                Email address
+                Email address (optional)
               </span>
               <input
                 type="email"
@@ -811,6 +962,25 @@ export default function AdminPage({
                 placeholder="name@example.org"
                 className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
               />
+            </label>
+
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
+                Account type
+              </span>
+              <select
+                value={wizardAccountType}
+                onChange={(event) =>
+                  setWizardAccountType(event.target.value as ManagedAccountType)
+                }
+                className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+              >
+                {ACCOUNT_TYPE_OPTIONS.map((typeOption) => (
+                  <option key={`wizard-type-${typeOption}`} value={typeOption}>
+                    {getAccountTypeLabel(typeOption)}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 
@@ -862,11 +1032,12 @@ export default function AdminPage({
             </button>
             <button
               type="button"
-              onClick={createNewRpmSignupCode}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
+              onClick={createNewAccountSignupCode}
+              disabled={isCreatingAccount || wizardStates.length === 0}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[rgba(0,94,184,0.12)]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Create Signup Code
+              {isCreatingAccount ? "Creating..." : "Create Account"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -892,7 +1063,7 @@ export default function AdminPage({
           {selectedUser ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.9)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-body)]">
-                {selectedUser.email}
+                {selectedUser.email || "No email provided"}
               </span>
               <span
                 className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getAccountTypeClassName(
@@ -1047,6 +1218,8 @@ export default function AdminPage({
         onOpenChange={(open) => {
           if (open) return;
           setPendingDeleteUser(null);
+          setDeleteError(null);
+          setIsDeletingAccount(false);
         }}
       >
         <DialogContent className="max-w-md border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
@@ -1064,11 +1237,20 @@ export default function AdminPage({
               Delete <span className="font-semibold">{pendingDeleteUser.fullName}</span>?
             </p>
           ) : null}
+          {deleteError ? (
+            <p className="rounded-xl border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-3 py-2 text-sm font-semibold text-[var(--brand-danger)]">
+              {deleteError}
+            </p>
+          ) : null}
 
           <DialogFooter>
             <button
               type="button"
-              onClick={() => setPendingDeleteUser(null)}
+              onClick={() => {
+                setPendingDeleteUser(null);
+                setDeleteError(null);
+                setIsDeletingAccount(false);
+              }}
               className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
             >
               Cancel
@@ -1076,10 +1258,11 @@ export default function AdminPage({
             <button
               type="button"
               onClick={deleteAccount}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-danger)] transition-colors hover:bg-[rgba(201,18,41,0.2)]"
+              disabled={isDeletingAccount}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-danger)] transition-colors hover:bg-[rgba(201,18,41,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {isDeletingAccount ? "Deleting..." : "Delete"}
             </button>
           </DialogFooter>
         </DialogContent>

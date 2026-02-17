@@ -66,47 +66,22 @@ type SignupCodeRecord = {
   createdAt: string;
 };
 
-const MOCK_LC_USERS: LcUserRecord[] = [
-  {
-    id: "lc-user-1",
-    firstName: "Ariana",
-    lastName: "Torres",
-    email: "ariana.torres@example.org",
-    fullName: "Ariana Torres",
-    states: ["California", "Arizona", "Texas"],
-    note: "Prefers larger metro markets this quarter.",
-    accountStatus: "account_created",
-    signupCode: null,
-    signupCodeCreatedAt: null,
-    temporaryPassword: null,
-  },
-  {
-    id: "lc-user-2",
-    firstName: "Jordan",
-    lastName: "Bennett",
-    email: "jordan.bennett@example.org",
-    fullName: "Jordan Bennett",
-    states: ["Pennsylvania", "Ohio"],
-    note: "",
-    accountStatus: "signup_code_unused",
-    signupCode: "LC-Q8M2-A7KD",
-    signupCodeCreatedAt: "2026-02-17T15:22:00.000Z",
-    temporaryPassword: null,
-  },
-];
+type RpmSignupRequestItem = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  states: string[];
+  notes_text?: string | null;
+  account_type: "lc" | "rpm";
+  code_used: boolean;
+  submitter_id: string;
+  created_at: string;
+  used_at: string | null;
+  auth_code: string;
+};
 
-const INITIAL_SIGNUP_CODES: SignupCodeRecord[] = MOCK_LC_USERS.filter(
-  (user): user is LcUserRecord & { signupCode: string; signupCodeCreatedAt: string } =>
-    user.accountStatus === "signup_code_unused" &&
-    typeof user.signupCode === "string" &&
-    typeof user.signupCodeCreatedAt === "string"
-).map((user) => ({
-  id: user.id,
-  fullName: user.fullName,
-  email: user.email,
-  code: user.signupCode,
-  createdAt: user.signupCodeCreatedAt,
-}));
+type RpmSignupRegisterResponse = RpmSignupRequestItem;
 
 function randomCodeChunk(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -117,16 +92,16 @@ function randomCodeChunk(length: number): string {
   return next;
 }
 
-function buildSignupCode(): string {
-  return `LC-${randomCodeChunk(4)}-${randomCodeChunk(4)}`;
-}
-
 function buildTemporaryPassword(): string {
   return `Temp-${randomCodeChunk(4)}${Math.floor(100 + Math.random() * 900)}`;
 }
 
+function normalizeTimestamp(value: string): string {
+  return value.includes(" ") ? value.replace(" ", "T") : value;
+}
+
 function formatCreatedAt(createdAtIso: string): string {
-  const timestamp = new Date(createdAtIso);
+  const timestamp = new Date(normalizeTimestamp(createdAtIso));
   if (Number.isNaN(timestamp.getTime())) {
     return "Unknown time";
   }
@@ -151,6 +126,53 @@ function getStatusClassName(status: LcAccountStatus): string {
   return "border-[rgba(255,194,62,0.52)] bg-[rgba(255,194,62,0.24)] text-[var(--brand-primary-deep)]";
 }
 
+function toSortableTimestamp(createdAtIso: string): number {
+  const timestamp = new Date(normalizeTimestamp(createdAtIso)).getTime();
+  if (Number.isNaN(timestamp)) {
+    return 0;
+  }
+  return timestamp;
+}
+
+function mapSignupRequestToUserRecord(item: RpmSignupRequestItem): LcUserRecord {
+  const firstName = item.first_name.trim();
+  const lastName = item.last_name.trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  const email = typeof item.email === "string" ? item.email : "";
+  const unusedCode = item.code_used ? null : item.auth_code;
+
+  return {
+    id: String(item.id),
+    firstName,
+    lastName,
+    email,
+    fullName,
+    states: Array.isArray(item.states) ? item.states : [],
+    note: typeof item.notes_text === "string" ? item.notes_text : "",
+    accountStatus: item.code_used ? "account_created" : "signup_code_unused",
+    signupCode: unusedCode,
+    signupCodeCreatedAt: item.code_used ? null : item.created_at,
+    temporaryPassword: null,
+  };
+}
+
+function mapSignupRequestToCodeRecord(item: RpmSignupRequestItem): SignupCodeRecord | null {
+  if (item.code_used) {
+    return null;
+  }
+
+  const fullName = `${item.first_name.trim()} ${item.last_name.trim()}`.trim();
+  const email = typeof item.email === "string" ? item.email : "";
+
+  return {
+    id: String(item.id),
+    fullName,
+    email,
+    code: item.auth_code,
+    createdAt: item.created_at,
+  };
+}
+
 export default function RpmPage({
   activeView,
   onViewChange,
@@ -164,15 +186,17 @@ export default function RpmPage({
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
 
-  const [lcUsers, setLcUsers] = useState<LcUserRecord[]>(MOCK_LC_USERS);
+  const [lcUsers, setLcUsers] = useState<LcUserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [draftStates, setDraftStates] = useState<string[]>([]);
   const [draftNote, setDraftNote] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [isSavingUserSettings, setIsSavingUserSettings] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [lcSearchQuery, setLcSearchQuery] = useState("");
 
-  const [generatedCodes, setGeneratedCodes] =
-    useState<SignupCodeRecord[]>(INITIAL_SIGNUP_CODES);
+  const [generatedCodes, setGeneratedCodes] = useState<SignupCodeRecord[]>([]);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardFirstName, setWizardFirstName] = useState("");
   const [wizardLastName, setWizardLastName] = useState("");
@@ -180,11 +204,14 @@ export default function RpmPage({
   const [wizardStates, setWizardStates] = useState<string[]>([]);
   const [wizardStateQuery, setWizardStateQuery] = useState("");
   const [wizardError, setWizardError] = useState<string | null>(null);
+  const [isCreatingSignupCode, setIsCreatingSignupCode] = useState(false);
   const [draftStateQuery, setDraftStateQuery] = useState("");
 
   const normalizedAccountType = accountType.trim().toLowerCase();
   const isLcUser = normalizedAccountType.includes("lc");
   const isAdminUser = normalizedAccountType.includes("admin");
+  const canLoadSignupRequests =
+    normalizedAccountType.includes("rpm") || normalizedAccountType.includes("admin");
   const showRpmNav = !normalizedAccountType.includes("lc");
 
   const selectedUser = useMemo(
@@ -282,21 +309,89 @@ export default function RpmPage({
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasLoadedAuthUser || !canLoadSignupRequests) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadSignupRequests = async () => {
+      setLoadError(null);
+
+      try {
+        const response = await fetch(`${API_URL}/rpm/register`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          let message = `Failed to load signup requests (${response.status}).`;
+          try {
+            const errorBody = (await response.json()) as { detail?: unknown };
+            if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+              message = errorBody.detail;
+            }
+          } catch {
+            // Keep default message when backend body is not JSON.
+          }
+
+          throw new Error(message);
+        }
+
+        const payload = (await response.json()) as unknown;
+        const rows = Array.isArray(payload) ? (payload as RpmSignupRequestItem[]) : [];
+        const sortedRows = [...rows].sort(
+          (left, right) =>
+            toSortableTimestamp(right.created_at) - toSortableTimestamp(left.created_at)
+        );
+        const lcRows = sortedRows.filter((row) => row.account_type === "lc");
+
+        const users = lcRows.map((row) => mapSignupRequestToUserRecord(row));
+        const signupCodes = lcRows
+          .map((row) => mapSignupRequestToCodeRecord(row))
+          .filter((row): row is SignupCodeRecord => row !== null)
+          .slice(0, 8);
+
+        if (!isActive) return;
+        setLcUsers(users);
+        setGeneratedCodes(signupCodes);
+      } catch (error) {
+        if (!isActive) return;
+
+        setLoadError(error instanceof Error ? error.message : "Failed to load signup requests.");
+        setLcUsers([]);
+        setGeneratedCodes([]);
+      }
+    };
+
+    void loadSignupRequests();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, hasLoadedAuthUser, canLoadSignupRequests]);
+
+  useEffect(() => {
     if (!selectedUser) {
       setDraftStates([]);
       setDraftNote("");
       setDraftStateQuery("");
+      setManageError(null);
+      setIsSavingUserSettings(false);
       return;
     }
 
     setDraftStates(selectedUser.states);
     setDraftNote(selectedUser.note);
     setDraftStateQuery("");
+    setManageError(null);
   }, [selectedUser]);
 
   const openManageDialog = (user: LcUserRecord) => {
     setSelectedUserId(user.id);
     setSaveMessage(null);
+    setManageError(null);
   };
 
   const toggleDraftState = (stateValue: string) => {
@@ -334,26 +429,63 @@ export default function RpmPage({
     setIsWizardOpen(true);
   };
 
-  const saveUserSettings = () => {
+  const saveUserSettings = async () => {
     if (!selectedUser) return;
+    const trimmedNote = draftNote.trim();
+    setManageError(null);
+    setIsSavingUserSettings(true);
 
-    setLcUsers((previous) =>
-      previous.map((user) =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              states: draftStates,
-              note: draftNote.trim(),
-            }
-          : user
-      )
-    );
+    try {
+      const response = await fetch(
+        `${API_URL}/rpm/register/${encodeURIComponent(selectedUser.id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            states: draftStates,
+            notes_text: trimmedNote,
+          }),
+        }
+      );
 
-    setSaveMessage(`Saved updates for ${selectedUser.fullName}.`);
-    setSelectedUserId(null);
+      if (!response.ok) {
+        let message = `Failed to update account (${response.status}).`;
+        try {
+          const errorBody = (await response.json()) as { detail?: unknown };
+          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when backend body is not JSON.
+        }
+
+        setManageError(message);
+        return;
+      }
+
+      setLcUsers((previous) =>
+        previous.map((user) =>
+          user.id === selectedUser.id
+            ? {
+                ...user,
+                states: draftStates,
+                note: trimmedNote,
+              }
+            : user
+        )
+      );
+
+      setSaveMessage(`Saved updates for ${selectedUser.fullName}.`);
+      setSelectedUserId(null);
+    } catch {
+      setManageError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsSavingUserSettings(false);
+    }
   };
 
-  const createNewLcSignupCode = () => {
+  const createNewLcSignupCode = async () => {
     const trimmedFirstName = wizardFirstName.trim();
     const trimmedLastName = wizardLastName.trim();
     const trimmedEmail = wizardEmail.trim().toLowerCase();
@@ -363,12 +495,7 @@ export default function RpmPage({
       return;
     }
 
-    if (!trimmedEmail) {
-      setWizardError("Email address is required.");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setWizardError("Enter a valid email address.");
       return;
     }
@@ -378,58 +505,74 @@ export default function RpmPage({
       return;
     }
 
-    const fullName = `${trimmedFirstName} ${trimmedLastName}`;
-    const createdAt = new Date().toISOString();
-    const code = buildSignupCode();
-    const id = `lc-user-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    setWizardError(null);
+    setIsCreatingSignupCode(true);
 
-    const newUser: LcUserRecord = {
-      id,
-      firstName: trimmedFirstName,
-      lastName: trimmedLastName,
-      email: trimmedEmail,
-      fullName,
-      states: wizardStates,
-      note: "",
-      accountStatus: "signup_code_unused",
-      signupCode: code,
-      signupCodeCreatedAt: createdAt,
-      temporaryPassword: null,
-    };
+    try {
+      const payload = {
+        first_name: trimmedFirstName,
+        last_name: trimmedLastName,
+        email: trimmedEmail || "n/a",
+        states: wizardStates,
+        account_type: "lc" as const,
+      };
 
-    const newCode: SignupCodeRecord = {
-      id,
-      fullName,
-      email: trimmedEmail,
-      code,
-      createdAt,
-    };
+      const response = await fetch(`${API_URL}/rpm/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-    setLcUsers((previous) => [newUser, ...previous]);
-    setGeneratedCodes((previous) => [newCode, ...previous].slice(0, 8));
-    setSaveMessage(`Created signup code for ${fullName}.`);
-    setIsWizardOpen(false);
-    resetWizard();
-  };
+      if (!response.ok) {
+        let message = `Failed to create signup code (${response.status}).`;
+        try {
+          const errorBody = (await response.json()) as { detail?: unknown };
+          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when backend body is not JSON.
+        }
+        setWizardError(message);
+        return;
+      }
 
-  const markAccountCreated = () => {
-    if (!selectedUser) return;
+      const created = (await response.json()) as RpmSignupRegisterResponse;
+      const createdItem: RpmSignupRequestItem = {
+        id: created.id,
+        first_name: created.first_name,
+        last_name: created.last_name,
+        email: created.email ?? payload.email,
+        states: Array.isArray(created.states) ? created.states : wizardStates,
+        notes_text:
+          "notes_text" in created && typeof created.notes_text === "string"
+            ? created.notes_text
+            : "",
+        account_type: created.account_type,
+        code_used: created.code_used,
+        submitter_id: created.submitter_id,
+        created_at: created.created_at,
+        used_at: created.used_at,
+        auth_code: created.auth_code,
+      };
+      const newUser = mapSignupRequestToUserRecord(createdItem);
+      const newCode = mapSignupRequestToCodeRecord(createdItem);
+      const fullName = newUser.fullName;
 
-    setLcUsers((previous) =>
-      previous.map((user) =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              accountStatus: "account_created",
-              signupCode: null,
-              signupCodeCreatedAt: null,
-            }
-          : user
-      )
-    );
-
-    setSaveMessage(`Marked ${selectedUser.fullName} as account created.`);
-    setSelectedUserId(null);
+      setLcUsers((previous) => [newUser, ...previous]);
+      setGeneratedCodes((previous) =>
+        newCode ? [newCode, ...previous].slice(0, 8) : previous
+      );
+      setLoadError(null);
+      setSaveMessage(`Created signup code for ${fullName}.`);
+      setIsWizardOpen(false);
+      resetWizard();
+    } catch {
+      setWizardError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsCreatingSignupCode(false);
+    }
   };
 
   const resetPasswordToTemporary = () => {
@@ -543,6 +686,11 @@ export default function RpmPage({
                 {saveMessage}
               </div>
             ) : null}
+            {loadError ? (
+              <div className="mt-4 rounded-xl border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-4 py-2 text-sm font-semibold text-[var(--brand-danger)]">
+                {loadError}
+              </div>
+            ) : null}
 
             <div className="mt-4">
               <label className="space-y-1">
@@ -640,7 +788,9 @@ export default function RpmPage({
                         <p className="text-[11px] font-semibold text-[var(--brand-body)]">
                           {entry.fullName}
                         </p>
-                        <p className="text-[11px] text-[var(--brand-muted)]">{entry.email}</p>
+                        <p className="text-[11px] text-[var(--brand-muted)]">
+                          {entry.email || "No email provided"}
+                        </p>
                         <p className="font-mono text-xs font-semibold text-[var(--brand-primary-deep)]">
                           {entry.code}
                         </p>
@@ -674,7 +824,7 @@ export default function RpmPage({
               New LC Wizard
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--brand-body)]">
-              Enter the local coordinator&apos;s name and email, then assign states.
+              Enter the local coordinator&apos;s name and optional email, then assign states.
             </DialogDescription>
           </DialogHeader>
 
@@ -713,7 +863,7 @@ export default function RpmPage({
 
             <label className="space-y-1 sm:col-span-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                Email address
+                Email address (optional)
               </span>
               <input
                 type="email"
@@ -774,10 +924,11 @@ export default function RpmPage({
             <button
               type="button"
               onClick={createNewLcSignupCode}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
+              disabled={wizardStates.length === 0 || isCreatingSignupCode}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[rgba(0,94,184,0.12)]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Create Signup Code
+              {isCreatingSignupCode ? "Creating..." : "Create Signup Code"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -800,10 +951,16 @@ export default function RpmPage({
             </DialogDescription>
           </DialogHeader>
 
+          {manageError ? (
+            <div className="rounded-xl border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-3 py-2 text-sm font-semibold text-[var(--brand-danger)]">
+              {manageError}
+            </div>
+          ) : null}
+
           {selectedUser ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.9)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-body)]">
-                {selectedUser.email}
+                {selectedUser.email || "No email provided"}
               </span>
               <span
                 className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusClassName(
@@ -890,21 +1047,12 @@ export default function RpmPage({
             <button
               type="button"
               onClick={saveUserSettings}
-              disabled={!selectedUser}
+              disabled={!selectedUser || isSavingUserSettings}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-3.5 w-3.5" />
-              Save
+              {isSavingUserSettings ? "Saving..." : "Save"}
             </button>
-            {selectedUser?.accountStatus === "signup_code_unused" ? (
-              <button
-                type="button"
-                onClick={markAccountCreated}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-[rgba(0,144,63,0.38)] bg-[rgba(0,144,63,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-success-deep)] transition-colors hover:bg-[rgba(0,144,63,0.2)]"
-              >
-                Mark Account Created
-              </button>
-            ) : null}
             {selectedUser?.accountStatus === "account_created" ? (
               <button
                 type="button"
