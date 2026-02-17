@@ -132,6 +132,15 @@ export default function StudentProfileSixPage() {
                 Open Beacon
                 <ChevronRight className="h-3.5 w-3.5" />
               </a>
+              <a
+                href={`https://beacon.ciee.org/participant/print/${student.app_id}/redacted`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.42)] bg-[rgba(255,255,255,0.15)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.13em] text-white transition hover:bg-[rgba(255,255,255,0.24)]"
+              >
+                Print View
+                <ChevronRight className="h-3.5 w-3.5" />
+              </a>
               {student.media_link ? (
                 <a
                   href={student.media_link}
