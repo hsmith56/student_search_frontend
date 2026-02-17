@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/auth-context";
 import type { HeaderView } from "@/components/layout/Header";
 import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
 import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-form";
+import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 
@@ -66,6 +67,7 @@ export default function FeedbackPage({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+  const isAdminUser = accountType.toLowerCase().includes("admin");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -227,6 +229,7 @@ export default function FeedbackPage({
             activeView={activeView}
             onViewChange={onViewChange}
             showRpm={accountType.toLowerCase() !== "lc"}
+            showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
           />
         )}
 

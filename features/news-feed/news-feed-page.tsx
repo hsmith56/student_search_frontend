@@ -22,7 +22,7 @@ import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 import type { HeaderView } from "@/components/layout/Header";
-import { ENABLE_RPM } from "@/lib/feature-flags";
+import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -248,6 +248,7 @@ export default function NewsFeedPage({
   const [loadingStudentId, setLoadingStudentId] = useState<number | null>(null);
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set());
   const selectedStudentMediaLink = useSelectedStudentMedia(selectedStudent);
+  const isAdminUser = accountType.toLowerCase().includes("admin");
   const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   const fetchNewsFeed = useCallback(async (manualRefresh = false) => {
@@ -554,6 +555,7 @@ export default function NewsFeedPage({
             activeView={activeView}
             onViewChange={onViewChange}
             showRpm={ENABLE_RPM}
+            showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
           />
         )}
 

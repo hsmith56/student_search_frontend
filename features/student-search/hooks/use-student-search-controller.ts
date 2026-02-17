@@ -182,6 +182,7 @@ export function useStudentSearchController({
   );
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
   const isRpmUser = accountType.toLowerCase().includes("rpm");
+  const isAdminUser = accountType.toLowerCase().includes("admin");
   const defaultStateFilterValue = isLcUser
     ? NO_PREFERENCES_FILTER_VALUE
     : defaultFilters.state;
@@ -1047,6 +1048,7 @@ export function useStudentSearchController({
     canShowUnassigned,
     isLcUser,
     isRpmUser,
+    isAdminUser,
     statusOptionsForFilter,
     stateOptionsForFilter,
     defaultStateFilterValue,

@@ -9,6 +9,8 @@ import {
   Plus,
   Search,
   Save,
+  ShieldPlus,
+  Trash2,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import type { HeaderView } from "@/components/layout/Header";
@@ -25,7 +27,6 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
-import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -36,15 +37,18 @@ const ASSIGNABLE_STATE_OPTIONS = states.filter(
   (stateOption) => !EXCLUDED_STATE_VALUES.has(stateOption.value)
 );
 
-type RpmPageProps = {
+const ACCOUNT_TYPE_OPTIONS = ["lc", "rpm", "admin"] as const;
+type ManagedAccountType = (typeof ACCOUNT_TYPE_OPTIONS)[number];
+
+type AdminPageProps = {
   activeView?: HeaderView;
   onViewChange?: (view: HeaderView) => void;
   embedded?: boolean;
 };
 
-type LcAccountStatus = "account_created" | "signup_code_unused";
+type AccountStatus = "account_created" | "signup_code_unused";
 
-type LcUserRecord = {
+type ManagedUserRecord = {
   id: string;
   firstName: string;
   lastName: string;
@@ -52,7 +56,8 @@ type LcUserRecord = {
   fullName: string;
   states: string[];
   note: string;
-  accountStatus: LcAccountStatus;
+  accountType: ManagedAccountType;
+  accountStatus: AccountStatus;
   signupCode: string | null;
   signupCodeCreatedAt: string | null;
   temporaryPassword: string | null;
@@ -62,41 +67,72 @@ type SignupCodeRecord = {
   id: string;
   fullName: string;
   email: string;
+  accountType: ManagedAccountType;
   code: string;
   createdAt: string;
 };
 
-const MOCK_LC_USERS: LcUserRecord[] = [
+const MOCK_MANAGED_USERS: ManagedUserRecord[] = [
   {
-    id: "lc-user-1",
-    firstName: "Ariana",
-    lastName: "Torres",
-    email: "ariana.torres@example.org",
-    fullName: "Ariana Torres",
-    states: ["California", "Arizona", "Texas"],
-    note: "Prefers larger metro markets this quarter.",
+    id: "account-1",
+    firstName: "Taylor",
+    lastName: "Nguyen",
+    email: "taylor.nguyen@example.org",
+    fullName: "Taylor Nguyen",
+    states: ["California", "Arizona"],
+    note: "Leads west region coverage.",
+    accountType: "rpm",
     accountStatus: "account_created",
     signupCode: null,
     signupCodeCreatedAt: null,
     temporaryPassword: null,
   },
   {
-    id: "lc-user-2",
-    firstName: "Jordan",
-    lastName: "Bennett",
-    email: "jordan.bennett@example.org",
-    fullName: "Jordan Bennett",
-    states: ["Pennsylvania", "Ohio"],
+    id: "account-2",
+    firstName: "Morgan",
+    lastName: "Cruz",
+    email: "morgan.cruz@example.org",
+    fullName: "Morgan Cruz",
+    states: ["Florida", "Georgia"],
     note: "",
+    accountType: "rpm",
     accountStatus: "signup_code_unused",
-    signupCode: "LC-Q8M2-A7KD",
+    signupCode: "RPM-H6Q2-WN5A",
     signupCodeCreatedAt: "2026-02-17T15:22:00.000Z",
+    temporaryPassword: null,
+  },
+  {
+    id: "account-3",
+    firstName: "Avery",
+    lastName: "Shaw",
+    email: "avery.shaw@example.org",
+    fullName: "Avery Shaw",
+    states: ["Texas"],
+    note: "Local coordinator account.",
+    accountType: "lc",
+    accountStatus: "account_created",
+    signupCode: null,
+    signupCodeCreatedAt: null,
+    temporaryPassword: null,
+  },
+  {
+    id: "account-4",
+    firstName: "Jamie",
+    lastName: "Patel",
+    email: "jamie.patel@example.org",
+    fullName: "Jamie Patel",
+    states: [],
+    note: "Platform administrator.",
+    accountType: "admin",
+    accountStatus: "account_created",
+    signupCode: null,
+    signupCodeCreatedAt: null,
     temporaryPassword: null,
   },
 ];
 
-const INITIAL_SIGNUP_CODES: SignupCodeRecord[] = MOCK_LC_USERS.filter(
-  (user): user is LcUserRecord & { signupCode: string; signupCodeCreatedAt: string } =>
+const INITIAL_SIGNUP_CODES: SignupCodeRecord[] = MOCK_MANAGED_USERS.filter(
+  (user): user is ManagedUserRecord & { signupCode: string; signupCodeCreatedAt: string } =>
     user.accountStatus === "signup_code_unused" &&
     typeof user.signupCode === "string" &&
     typeof user.signupCodeCreatedAt === "string"
@@ -104,6 +140,7 @@ const INITIAL_SIGNUP_CODES: SignupCodeRecord[] = MOCK_LC_USERS.filter(
   id: user.id,
   fullName: user.fullName,
   email: user.email,
+  accountType: user.accountType,
   code: user.signupCode,
   createdAt: user.signupCodeCreatedAt,
 }));
@@ -117,8 +154,8 @@ function randomCodeChunk(length: number): string {
   return next;
 }
 
-function buildSignupCode(): string {
-  return `LC-${randomCodeChunk(4)}-${randomCodeChunk(4)}`;
+function buildSignupCode(prefix: string): string {
+  return `${prefix}-${randomCodeChunk(4)}-${randomCodeChunk(4)}`;
 }
 
 function buildTemporaryPassword(): string {
@@ -139,11 +176,11 @@ function formatCreatedAt(createdAtIso: string): string {
   });
 }
 
-function getStatusLabel(status: LcAccountStatus): string {
+function getStatusLabel(status: AccountStatus): string {
   return status === "account_created" ? "Account created" : "Signup code not used";
 }
 
-function getStatusClassName(status: LcAccountStatus): string {
+function getStatusClassName(status: AccountStatus): string {
   if (status === "account_created") {
     return "border-[rgba(0,144,63,0.42)] bg-[rgba(0,144,63,0.12)] text-[var(--brand-success-deep)]";
   }
@@ -151,11 +188,29 @@ function getStatusClassName(status: LcAccountStatus): string {
   return "border-[rgba(255,194,62,0.52)] bg-[rgba(255,194,62,0.24)] text-[var(--brand-primary-deep)]";
 }
 
-export default function RpmPage({
+function getAccountTypeLabel(accountType: ManagedAccountType): string {
+  if (accountType === "admin") return "Admin";
+  if (accountType === "rpm") return "RPM";
+  return "LC";
+}
+
+function getAccountTypeClassName(accountType: ManagedAccountType): string {
+  if (accountType === "admin") {
+    return "border-[rgba(201,18,41,0.38)] bg-[rgba(201,18,41,0.1)] text-[var(--brand-danger)]";
+  }
+
+  if (accountType === "rpm") {
+    return "border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.1)] text-[var(--brand-primary-deep)]";
+  }
+
+  return "border-[rgba(114,125,131,0.4)] bg-[rgba(114,125,131,0.15)] text-[var(--brand-body)]";
+}
+
+export default function AdminPage({
   activeView,
   onViewChange,
   embedded = false,
-}: RpmPageProps) {
+}: AdminPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
@@ -164,12 +219,14 @@ export default function RpmPage({
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
 
-  const [lcUsers, setLcUsers] = useState<LcUserRecord[]>(MOCK_LC_USERS);
+  const [managedUsers, setManagedUsers] =
+    useState<ManagedUserRecord[]>(MOCK_MANAGED_USERS);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [draftStates, setDraftStates] = useState<string[]>([]);
   const [draftNote, setDraftNote] = useState("");
+  const [draftAccountType, setDraftAccountType] = useState<ManagedAccountType>("rpm");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [lcSearchQuery, setLcSearchQuery] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   const [generatedCodes, setGeneratedCodes] =
     useState<SignupCodeRecord[]>(INITIAL_SIGNUP_CODES);
@@ -181,15 +238,15 @@ export default function RpmPage({
   const [wizardStateQuery, setWizardStateQuery] = useState("");
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [draftStateQuery, setDraftStateQuery] = useState("");
+  const [pendingDeleteUser, setPendingDeleteUser] = useState<ManagedUserRecord | null>(null);
 
   const normalizedAccountType = accountType.trim().toLowerCase();
-  const isLcUser = normalizedAccountType.includes("lc");
   const isAdminUser = normalizedAccountType.includes("admin");
   const showRpmNav = !normalizedAccountType.includes("lc");
 
   const selectedUser = useMemo(
-    () => lcUsers.find((user) => user.id === selectedUserId) ?? null,
-    [lcUsers, selectedUserId]
+    () => managedUsers.find((user) => user.id === selectedUserId) ?? null,
+    [managedUsers, selectedUserId]
   );
   const filteredWizardStateOptions = useMemo(() => {
     const query = wizardStateQuery.trim().toLowerCase();
@@ -207,15 +264,17 @@ export default function RpmPage({
       stateOption.label.toLowerCase().includes(query)
     );
   }, [draftStateQuery]);
-  const filteredLcUsers = useMemo(() => {
-    const query = lcSearchQuery.trim().toLowerCase();
-    if (!query) return lcUsers;
+  const filteredUsers = useMemo(() => {
+    const query = userSearchQuery.trim().toLowerCase();
+    if (!query) return managedUsers;
 
-    return lcUsers.filter(
+    return managedUsers.filter(
       (user) =>
-        user.fullName.toLowerCase().includes(query) || user.email.toLowerCase().includes(query)
+        user.fullName.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        getAccountTypeLabel(user.accountType).toLowerCase().includes(query)
     );
-  }, [lcSearchQuery, lcUsers]);
+  }, [userSearchQuery, managedUsers]);
 
   const latestCode = generatedCodes[0] ?? null;
 
@@ -286,15 +345,17 @@ export default function RpmPage({
       setDraftStates([]);
       setDraftNote("");
       setDraftStateQuery("");
+      setDraftAccountType("rpm");
       return;
     }
 
     setDraftStates(selectedUser.states);
     setDraftNote(selectedUser.note);
+    setDraftAccountType(selectedUser.accountType);
     setDraftStateQuery("");
   }, [selectedUser]);
 
-  const openManageDialog = (user: LcUserRecord) => {
+  const openManageDialog = (user: ManagedUserRecord) => {
     setSelectedUserId(user.id);
     setSaveMessage(null);
   };
@@ -328,7 +389,7 @@ export default function RpmPage({
     setWizardError(null);
   };
 
-  const openNewLcWizard = () => {
+  const openNewRpmWizard = () => {
     setSaveMessage(null);
     setWizardError(null);
     setIsWizardOpen(true);
@@ -337,11 +398,12 @@ export default function RpmPage({
   const saveUserSettings = () => {
     if (!selectedUser) return;
 
-    setLcUsers((previous) =>
+    setManagedUsers((previous) =>
       previous.map((user) =>
         user.id === selectedUser.id
           ? {
               ...user,
+              accountType: draftAccountType,
               states: draftStates,
               note: draftNote.trim(),
             }
@@ -353,7 +415,7 @@ export default function RpmPage({
     setSelectedUserId(null);
   };
 
-  const createNewLcSignupCode = () => {
+  const createNewRpmSignupCode = () => {
     const trimmedFirstName = wizardFirstName.trim();
     const trimmedLastName = wizardLastName.trim();
     const trimmedEmail = wizardEmail.trim().toLowerCase();
@@ -380,10 +442,10 @@ export default function RpmPage({
 
     const fullName = `${trimmedFirstName} ${trimmedLastName}`;
     const createdAt = new Date().toISOString();
-    const code = buildSignupCode();
-    const id = `lc-user-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const code = buildSignupCode("RPM");
+    const id = `rpm-account-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    const newUser: LcUserRecord = {
+    const newUser: ManagedUserRecord = {
       id,
       firstName: trimmedFirstName,
       lastName: trimmedLastName,
@@ -391,6 +453,7 @@ export default function RpmPage({
       fullName,
       states: wizardStates,
       note: "",
+      accountType: "rpm",
       accountStatus: "signup_code_unused",
       signupCode: code,
       signupCodeCreatedAt: createdAt,
@@ -401,13 +464,14 @@ export default function RpmPage({
       id,
       fullName,
       email: trimmedEmail,
+      accountType: "rpm",
       code,
       createdAt,
     };
 
-    setLcUsers((previous) => [newUser, ...previous]);
+    setManagedUsers((previous) => [newUser, ...previous]);
     setGeneratedCodes((previous) => [newCode, ...previous].slice(0, 8));
-    setSaveMessage(`Created signup code for ${fullName}.`);
+    setSaveMessage(`Created RPM signup code for ${fullName}.`);
     setIsWizardOpen(false);
     resetWizard();
   };
@@ -415,7 +479,7 @@ export default function RpmPage({
   const markAccountCreated = () => {
     if (!selectedUser) return;
 
-    setLcUsers((previous) =>
+    setManagedUsers((previous) =>
       previous.map((user) =>
         user.id === selectedUser.id
           ? {
@@ -437,7 +501,7 @@ export default function RpmPage({
 
     const tempPassword = buildTemporaryPassword();
 
-    setLcUsers((previous) =>
+    setManagedUsers((previous) =>
       previous.map((user) =>
         user.id === selectedUser.id ? { ...user, temporaryPassword: tempPassword } : user
       )
@@ -445,18 +509,34 @@ export default function RpmPage({
     setSaveMessage(`Temporary password generated for ${selectedUser.fullName}.`);
   };
 
+  const openDeleteDialog = () => {
+    if (!selectedUser) return;
+    setPendingDeleteUser(selectedUser);
+  };
+
+  const deleteAccount = () => {
+    if (!pendingDeleteUser) return;
+
+    const deletedUser = pendingDeleteUser;
+    setManagedUsers((previous) => previous.filter((user) => user.id !== deletedUser.id));
+    setGeneratedCodes((previous) => previous.filter((code) => code.id !== deletedUser.id));
+    setSaveMessage(`Deleted account for ${deletedUser.fullName}.`);
+    setPendingDeleteUser(null);
+    setSelectedUserId(null);
+  };
+
   if (authLoading || !isAuthenticated || !hasLoadedAuthUser) {
     return (
       <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
-          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading RPM view...</p>
+          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading admin view...</p>
         </div>
       </div>
     );
   }
 
-  if (isLcUser) {
+  if (!isAdminUser) {
     return (
       <div
         className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
@@ -470,17 +550,16 @@ export default function RpmPage({
               activeView={activeView}
               onViewChange={onViewChange}
               showRpm={showRpmNav}
-              showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
             />
           )}
 
           <main className="mx-auto max-w-[900px] px-4 py-8 sm:px-6">
             <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] p-6 text-center shadow-[0_12px_28px_rgba(0,53,84,0.12)]">
               <h1 className="text-2xl font-black tracking-tight text-[var(--brand-ink)]">
-                RPM View Unavailable
+                Admin View Unavailable
               </h1>
               <p className="mt-2 text-sm text-[var(--brand-body)]">
-                This view is restricted to RPM accounts.
+                This view is restricted to admin accounts.
               </p>
               <div className="mt-5">
                 {embedded && onViewChange ? (
@@ -524,18 +603,21 @@ export default function RpmPage({
             activeView={activeView}
             onViewChange={onViewChange}
             showRpm={showRpmNav}
-            showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
+            showAdmin
           />
         )}
 
         <main className="mx-auto max-w-[1020px] px-4 py-6 sm:px-6">
           <section className="rpm-command-panel rounded-3xl p-6">
-            
+            <p className="inline-flex items-center gap-2 rounded-full border border-[rgba(201,18,41,0.35)] bg-[rgba(201,18,41,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-danger)]">
+              <ShieldPlus className="h-3.5 w-3.5" />
+              Admin Controls
+            </p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--brand-ink)]">
-              Local Coordinator Dashboard
+              Admin Panel
             </h1>
             <p className="mt-1.5 text-sm text-[var(--brand-body)]">
-              Manage each LC user&apos;s states and maintain personal notes per user.
+              Create RPM accounts and manage account lifecycle actions across all user types.
             </p>
 
             {saveMessage ? (
@@ -547,15 +629,15 @@ export default function RpmPage({
             <div className="mt-4">
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                  Search LC Users
+                  Search Accounts
                 </span>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--brand-muted)]" />
                   <input
                     type="text"
-                    value={lcSearchQuery}
-                    onChange={(event) => setLcSearchQuery(event.target.value)}
-                    placeholder="Search by name or email address"
+                    value={userSearchQuery}
+                    onChange={(event) => setUserSearchQuery(event.target.value)}
+                    placeholder="Search by name, email, or account type"
                     className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] pl-9 pr-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
                   />
                 </div>
@@ -565,15 +647,15 @@ export default function RpmPage({
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
               <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                  LC Users
+                  User Accounts
                 </h2>
                 <div className="mt-3 divide-y divide-[var(--brand-border-soft)] rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.8)]">
-                  {filteredLcUsers.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <p className="px-4 py-3 text-sm text-[var(--brand-muted)]">
-                      No LC users match your search.
+                      No accounts match your search.
                     </p>
                   ) : (
-                    filteredLcUsers.map((user) => (
+                    filteredUsers.map((user) => (
                       <div
                         key={user.id}
                         className="flex items-center justify-between gap-3 px-4 py-3"
@@ -582,6 +664,13 @@ export default function RpmPage({
                           <p className="truncate text-sm font-semibold text-[var(--brand-ink)]">
                             {user.fullName}
                           </p>
+                          <span
+                            className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getAccountTypeClassName(
+                              user.accountType
+                            )}`}
+                          >
+                            {getAccountTypeLabel(user.accountType)}
+                          </span>
                           <span
                             className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusClassName(
                               user.accountStatus
@@ -606,15 +695,15 @@ export default function RpmPage({
 
               <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                  Signup Codes
+                  RPM Signup Codes
                 </h2>
                 <button
                   type="button"
-                  onClick={openNewLcWizard}
+                  onClick={openNewRpmWizard}
                   className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.12)] px-4 text-sm font-semibold text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
                 >
                   <Plus className="h-4 w-4" />
-                  Generate New Signup Code
+                  Create RPM Account
                 </button>
 
                 <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.8)] px-3 py-2">
@@ -629,7 +718,7 @@ export default function RpmPage({
                 <div className="mt-3 space-y-2">
                   {generatedCodes.length === 0 ? (
                     <p className="text-xs text-[var(--brand-muted)]">
-                      Generate a code to start the signup queue.
+                      Create an RPM account to start the signup queue.
                     </p>
                   ) : (
                     generatedCodes.map((entry) => (
@@ -671,10 +760,10 @@ export default function RpmPage({
         <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
-              New LC Wizard
+              New RPM Wizard
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--brand-body)]">
-              Enter the local coordinator&apos;s name and email, then assign states.
+              Enter user details and assign states to generate an RPM signup code.
             </DialogDescription>
           </DialogHeader>
 
@@ -773,7 +862,7 @@ export default function RpmPage({
             </button>
             <button
               type="button"
-              onClick={createNewLcSignupCode}
+              onClick={createNewRpmSignupCode}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -793,10 +882,10 @@ export default function RpmPage({
         <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
-              {selectedUser ? selectedUser.fullName : "Manage LC User"}
+              {selectedUser ? selectedUser.fullName : "Manage Account"}
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--brand-body)]">
-              Update state assignments and keep an optional internal note.
+              Update account type, state assignments, notes, and lifecycle actions.
             </DialogDescription>
           </DialogHeader>
 
@@ -804,6 +893,13 @@ export default function RpmPage({
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.9)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-body)]">
                 {selectedUser.email}
+              </span>
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getAccountTypeClassName(
+                  selectedUser.accountType
+                )}`}
+              >
+                {getAccountTypeLabel(selectedUser.accountType)}
               </span>
               <span
                 className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusClassName(
@@ -830,6 +926,25 @@ export default function RpmPage({
               </p>
             </div>
           ) : null}
+
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
+              Account Type
+            </span>
+            <select
+              value={draftAccountType}
+              onChange={(event) => {
+                setDraftAccountType(event.target.value as ManagedAccountType);
+              }}
+              className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+            >
+              {ACCOUNT_TYPE_OPTIONS.map((typeOption) => (
+                <option key={typeOption} value={typeOption}>
+                  {getAccountTypeLabel(typeOption)}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
@@ -874,7 +989,7 @@ export default function RpmPage({
               value={draftNote}
               onChange={(event) => setDraftNote(event.target.value)}
               rows={4}
-              placeholder="Add context for this LC user (optional)"
+              placeholder="Add context for this account (optional)"
               className="w-full resize-none rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 py-2 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
             />
           </label>
@@ -915,6 +1030,57 @@ export default function RpmPage({
                 Reset Password
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={openDeleteDialog}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-danger)] transition-colors hover:bg-[rgba(201,18,41,0.2)]"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Account
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pendingDeleteUser !== null}
+        onOpenChange={(open) => {
+          if (open) return;
+          setPendingDeleteUser(null);
+        }}
+      >
+        <DialogContent className="max-w-md border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
+              Delete User Account
+            </DialogTitle>
+            <DialogDescription className="text-sm text-[var(--brand-body)]">
+              This action removes the selected account from the admin list.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendingDeleteUser ? (
+            <p className="rounded-xl border border-[rgba(201,18,41,0.35)] bg-[rgba(201,18,41,0.08)] px-3 py-2 text-sm text-[var(--brand-body)]">
+              Delete <span className="font-semibold">{pendingDeleteUser.fullName}</span>?
+            </p>
+          ) : null}
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setPendingDeleteUser(null)}
+              className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={deleteAccount}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-danger)] transition-colors hover:bg-[rgba(201,18,41,0.2)]"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

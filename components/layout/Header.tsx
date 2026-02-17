@@ -8,6 +8,7 @@ import {
   Bell,
   MessageSquareText,
   ShieldCheck,
+  ShieldPlus,
   RefreshCw,
   LogOut,
 } from "lucide-react"
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 import { HeaderSettingsDialog } from "@/components/layout/header-settings-dialog"
 
-export type HeaderView = "search" | "newsFeed" | "rpm" | "feedback"
+export type HeaderView = "search" | "newsFeed" | "rpm" | "feedback" | "admin"
 
 interface HeaderProps {
   firstName: string
@@ -27,6 +28,7 @@ interface HeaderProps {
   activeView?: HeaderView
   onViewChange?: (view: HeaderView) => void
   showRpm?: boolean
+  showAdmin?: boolean
 }
 
 type HeaderNavItem = {
@@ -46,6 +48,7 @@ export default function Header({
   activeView,
   onViewChange,
   showRpm = false,
+  showAdmin = false,
 }: HeaderProps) {
   const pathname = usePathname()
   const { unreadCount, markAllAsRead } = useNotifications()
@@ -67,6 +70,12 @@ export default function Header({
           icon: ShieldCheck,
         },
         {
+          view: "admin" as const,
+          href: "/admin",
+          label: "Admin",
+          icon: ShieldPlus,
+        },
+        {
           view: "feedback" as const,
           href: "/feedback",
           label: "Feedback",
@@ -82,6 +91,7 @@ export default function Header({
           clearOnClick: true,
         },
         { href: "/rpm", label: "RPM", icon: ShieldCheck },
+        { href: "/admin", label: "Admin", icon: ShieldPlus },
         {
           href: "/feedback",
           label: "Feedback",
@@ -91,7 +101,11 @@ export default function Header({
 
   const navItems: HeaderNavItem[] = baseNavItems.filter((item) => {
     const isRpmItem = item.view === "rpm" || item.href === "/rpm"
+    const isAdminItem = item.view === "admin" || item.href === "/admin"
     if (isRpmItem && !showRpm) {
+      return false
+    }
+    if (isAdminItem && !showAdmin) {
       return false
     }
 

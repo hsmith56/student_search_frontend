@@ -9,11 +9,12 @@ import { useAuth } from "@/contexts/auth-context";
 import FeedbackPage from "@/features/feedback/feedback-page";
 import NewsFeedPage from "@/features/news-feed/news-feed-page";
 import RpmPage from "@/features/rpm/rpm-page";
+import AdminPage from "@/features/admin/admin-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
-import { ENABLE_RPM } from "@/lib/feature-flags";
+import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 
@@ -26,11 +27,18 @@ export default function HomePage() {
   const [hasLoadedAuthUser, setHasLoadedAuthUser] = useState(false);
   const [updateTime, setUpdateTime] = useState("");
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
-  const isLcUser = accountType.toLowerCase() === "lc";
+  const normalizedAccountType = accountType.toLowerCase();
+  const isLcUser = normalizedAccountType === "lc";
+  const isAdminUser = normalizedAccountType.includes("admin");
   const canShowRpm = ENABLE_RPM && !isLcUser;
+  const canShowAdmin = ENABLE_ADMIN_PANEL && isAdminUser;
 
   const handleViewChange = (view: HeaderView) => {
     if (view === "rpm" && !canShowRpm) {
+      setActiveView("search");
+      return;
+    }
+    if (view === "admin" && !canShowAdmin) {
       setActiveView("search");
       return;
     }
@@ -43,7 +51,10 @@ export default function HomePage() {
     if (!canShowRpm && activeView === "rpm") {
       setActiveView("search");
     }
-  }, [activeView, canShowRpm]);
+    if (!canShowAdmin && activeView === "admin") {
+      setActiveView("search");
+    }
+  }, [activeView, canShowAdmin, canShowRpm]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -169,6 +180,12 @@ export default function HomePage() {
     );
   }
 
+  if (activeView === "admin") {
+    content = (
+      <AdminPage activeView={activeView} onViewChange={handleViewChange} embedded />
+    );
+  }
+
   return (
     <div className="brand-page-gradient min-h-screen">
       <Header
@@ -180,6 +197,7 @@ export default function HomePage() {
         activeView={activeView}
         onViewChange={handleViewChange}
         showRpm={canShowRpm}
+        showAdmin={canShowAdmin}
       />
       {content}
       <Footer />
