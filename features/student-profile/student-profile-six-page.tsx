@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   BadgeCheck,
   BookOpen,
@@ -48,6 +48,7 @@ export default function StudentProfileSixPage() {
   const studentId = searchParams?.get("id") ?? "";
   const { student, loading, error, authLoading, isAuthenticated } =
     useStudentProfile(studentId);
+  const [copiedUsahsId, setCopiedUsahsId] = useState(false);
 
   if (!studentId) {
     return (
@@ -87,6 +88,8 @@ export default function StudentProfileSixPage() {
   const additionalInterests = cleanList(student.free_text_interests);
   const healthNotes = cleanList(student.health_comments);
   const narratives = collectNarratives(student);
+  const usahsIdValue = student.usahsid?.toString().trim() ?? "";
+  const canCopyUsahsId = usahsIdValue.length > 0;
   const hasAllergy = hasContent(student.allergy_comments);
   const hasDietary = hasContent(student.dietary_restrictions);
   const status = statusTone(student.placement_status);
@@ -118,7 +121,39 @@ export default function StudentProfileSixPage() {
                 <span className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.44)] bg-[rgba(255,255,255,0.18)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]">
                   USAHS ID {textOrDash(student.usahsid)}
                 </span>
-                
+                <button
+                  type="button"
+                  disabled={!canCopyUsahsId}
+                  onClick={async () => {
+                    if (!canCopyUsahsId) return;
+
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(usahsIdValue);
+                      } else {
+                        const textarea = document.createElement("textarea");
+                        textarea.value = usahsIdValue;
+                        textarea.setAttribute("readonly", "");
+                        textarea.style.position = "absolute";
+                        textarea.style.left = "-9999px";
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(textarea);
+                      }
+
+                      setCopiedUsahsId(true);
+                      window.setTimeout(() => setCopiedUsahsId(false), 1400);
+                    } catch (copyError) {
+                      console.error("Unable to copy USAHS ID:", copyError);
+                    }
+                  }}
+                  className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.44)] bg-[rgba(255,255,255,0.18)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors hover:bg-[rgba(255,255,255,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Copy USAHS ID"
+                  aria-label="Copy USAHS ID"
+                >
+                  {copiedUsahsId ? "Copied" : "Copy to Clipboard"}
+                </button>
               </div>
             </div>
 
