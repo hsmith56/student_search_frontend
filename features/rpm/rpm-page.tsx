@@ -41,7 +41,7 @@ const ASSIGNABLE_STATE_OPTIONS = states.filter(
   (stateOption) => !EXCLUDED_STATE_VALUES.has(stateOption.value)
 );
 
-type RpmDashboardPageProps = {
+type RpmPageProps = {
   activeView?: HeaderView;
   onViewChange?: (view: HeaderView) => void;
   embedded?: boolean;
@@ -266,11 +266,11 @@ function toneForDaysSince(daysSinceLastPlacement: number | null): string {
   return "border-[rgba(201,18,41,0.45)] bg-[rgba(201,18,41,0.12)] text-[var(--brand-danger)]";
 }
 
-export default function RpmDashboardPage({
+export default function RpmPage({
   activeView,
   onViewChange,
   embedded = false,
-}: RpmDashboardPageProps) {
+}: RpmPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
@@ -294,7 +294,7 @@ export default function RpmDashboardPage({
   const [saveMessage, setSaveMessage] = useState<SaveMessage | null>(null);
 
   const normalizedAccountType = accountType.trim().toLowerCase();
-  const isRpmUser = normalizedAccountType.includes("rpm");
+  const isLcUser = normalizedAccountType.includes("lc");
 
   const fetchLcUsers = useCallback(async (manualRefresh = false) => {
     if (manualRefresh) {
@@ -401,9 +401,9 @@ export default function RpmDashboardPage({
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || !hasLoadedAuthUser || !isRpmUser) return;
+    if (!isAuthenticated || !hasLoadedAuthUser || isLcUser) return;
     void fetchLcUsers(false);
-  }, [fetchLcUsers, hasLoadedAuthUser, isAuthenticated, isRpmUser]);
+  }, [fetchLcUsers, hasLoadedAuthUser, isAuthenticated, isLcUser]);
 
   const editingUser = useMemo(
     () => lcUsers.find((user) => user.id === editingUserId) ?? null,
@@ -565,13 +565,13 @@ export default function RpmDashboardPage({
       <div className="brand-page-gradient min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--brand-primary)]" />
-          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading RPM dashboard...</p>
+          <p className="mt-4 font-medium text-[var(--brand-body)]">Loading RPM view...</p>
         </div>
       </div>
     );
   }
 
-  if (!isRpmUser) {
+  if (isLcUser) {
     return (
       <div
         className={`${embedded ? "brand-page-gradient" : "brand-page-gradient min-h-screen"} text-[var(--brand-ink)]`}
@@ -584,8 +584,7 @@ export default function RpmDashboardPage({
               updateTime={updateTime}
               activeView={activeView}
               onViewChange={onViewChange}
-              showDashboard={false}
-              showRpm={false}
+              showRpm
             />
           )}
 
@@ -642,7 +641,6 @@ export default function RpmDashboardPage({
             updateTime={updateTime}
             activeView={activeView}
             onViewChange={onViewChange}
-            showDashboard={false}
             showRpm
           />
         )}

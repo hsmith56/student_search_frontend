@@ -59,9 +59,4 @@ export const TOOL_TUTORIAL_STEPS: ToolTutorialStep[] = [
     description:
       "Use the Feedback section to submit requests or to notify me (the developer) of any mistakes or things that could be improved.",
   },
-  // {
-  //   title: "Review performance trends",
-  //   description:
-  //     "Use Dashboard and RPM views to track placement momentum and stale segments. Watch trend changes over time to prioritize outreach.",
-  // },
 ]

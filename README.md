@@ -3,7 +3,6 @@
 Next.js frontend for:
 - student search and filtering
 - student profile dialog/details
-- dashboard analytics mockup
 - news feed events
 - auth/login/register and favorites
 
@@ -12,11 +11,9 @@ Next.js frontend for:
 - React 19
 - TypeScript
 - Tailwind CSS v4
-- Recharts
 
 ## Main Routes
 - `/` - Student Search
-- `/dashboard` - Dashboard view
 - `/newsFeed` - News Feed
 - `/feedback` - Feedback board
 - `/StudentProfile` - Full student profile page

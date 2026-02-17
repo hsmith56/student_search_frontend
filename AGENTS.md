@@ -2,17 +2,17 @@
 
 ## Project Overview
 - Project: `Student_Search/Frontend` (Next.js 15 + React 19 + TypeScript + Tailwind CSS v4).
-- Purpose: internal student placement tooling with authenticated search, news feed alerts, feedback board, dashboard analytics, and full student profile views.
+- Purpose: internal student placement tooling with authenticated search, news feed alerts, feedback board, RPM operations, and full student profile views.
 - App style: primarily client-rendered feature pages with shared auth and notification providers.
 
 ## Architecture And Structure
 - `app/`: App Router route entry points and global layout.
   - `app/layout.tsx`: global providers (`AuthProvider`, `NotificationsProvider`) and global CSS.
   - `app/page.tsx`: authenticated shell that switches between search/news/feedback in an embedded view mode.
-  - `app/login/page.tsx`, `app/newsFeed/page.tsx`, `app/feedback/page.tsx`, `app/dashboard/page.tsx`, `app/StudentProfile/page.tsx`: route-level pages.
+  - `app/login/page.tsx`, `app/newsFeed/page.tsx`, `app/feedback/page.tsx`, `app/rpm/page.tsx`, `app/StudentProfile/page.tsx`: route-level pages.
 - `features/`: domain feature modules (primary location for page behavior and business logic).
   - `features/student-search/`: largest feature (controller hook, filters, dialogs, results UI, constants/types).
-  - `features/news-feed/`, `features/feedback/`, `features/dashboard/`: route-level feature pages.
+  - `features/news-feed/`, `features/feedback/`, `features/rpm/`: route-level feature pages.
 - `components/`: reusable UI and layout primitives.
   - `components/ui/`: shadcn-style primitives.
   - `components/layout/`: shared `Header` and `Footer`.
@@ -69,7 +69,7 @@
   - Dialogs: student details, filters, feedback dialog behavior.
   - News Feed: load, refresh, event list rendering, open student detail.
   - Feedback page: load list, refresh, delete behavior.
-  - Dashboard and StudentProfile route render without runtime errors.
+  - RPM and StudentProfile route render without runtime errors.
 
 ## Security Considerations
 - Auth/session:

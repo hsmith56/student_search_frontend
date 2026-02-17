@@ -36,12 +36,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "app/dashboard/**",
-    "app/dashv2/**",
-    "features/dashboard/**",
-    "features/manager-dashboard/**",
-    "app/rpm/**",
-    "features/rpm-dashboard/**"
+    "node_modules"
   ]
 }

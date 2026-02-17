@@ -8,11 +8,12 @@ import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import FeedbackPage from "@/features/feedback/feedback-page";
 import NewsFeedPage from "@/features/news-feed/news-feed-page";
+import RpmPage from "@/features/rpm/rpm-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
-import { ENABLE_DASHBOARD, ENABLE_RPM } from "@/lib/feature-flags";
+import { ENABLE_RPM } from "@/lib/feature-flags";
 
 const API_URL = "/api";
 
@@ -26,19 +27,9 @@ export default function HomePage() {
   const [updateTime, setUpdateTime] = useState("");
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
   const isLcUser = accountType.toLowerCase() === "lc";
-  const isRpmUser = accountType.toLowerCase().includes("rpm");
-  const canShowDashboard = ENABLE_DASHBOARD && !isLcUser;
-  const canShowRpm = ENABLE_RPM && isRpmUser;
+  const canShowRpm = ENABLE_RPM && !isLcUser;
 
   const handleViewChange = (view: HeaderView) => {
-    if (view === "dashboard" && !ENABLE_DASHBOARD) {
-      setActiveView("search");
-      return;
-    }
-    if (view === "dashboard" && isLcUser) {
-      setActiveView("search");
-      return;
-    }
     if (view === "rpm" && !canShowRpm) {
       setActiveView("search");
       return;
@@ -49,17 +40,10 @@ export default function HomePage() {
   const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   useEffect(() => {
-    if (!ENABLE_DASHBOARD && activeView === "dashboard") {
-      setActiveView("search");
-      return;
-    }
-    if (isLcUser && activeView === "dashboard") {
-      setActiveView("search");
-    }
     if (!canShowRpm && activeView === "rpm") {
       setActiveView("search");
     }
-  }, [activeView, canShowRpm, isLcUser]);
+  }, [activeView, canShowRpm]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -179,6 +163,12 @@ export default function HomePage() {
     );
   }
 
+  if (activeView === "rpm") {
+    content = (
+      <RpmPage activeView={activeView} onViewChange={handleViewChange} embedded />
+    );
+  }
+
   return (
     <div className="brand-page-gradient min-h-screen">
       <Header
@@ -189,7 +179,6 @@ export default function HomePage() {
         isUpdatingDatabase={isUpdatingDatabase}
         activeView={activeView}
         onViewChange={handleViewChange}
-        showDashboard={canShowDashboard}
         showRpm={canShowRpm}
       />
       {content}

@@ -7,9 +7,7 @@ import {
   Search,
   Bell,
   MessageSquareText,
-  LayoutDashboard,
   ShieldCheck,
-  BarChart3,
   RefreshCw,
   LogOut,
 } from "lucide-react"
@@ -18,7 +16,7 @@ import { cn } from "@/lib/utils"
 import { useNotifications } from "@/contexts/notifications-context"
 import { HeaderSettingsDialog } from "@/components/layout/header-settings-dialog"
 
-export type HeaderView = "search" | "newsFeed" | "dashboard" | "rpm" | "feedback"
+export type HeaderView = "search" | "newsFeed" | "rpm" | "feedback"
 
 interface HeaderProps {
   firstName: string
@@ -28,7 +26,6 @@ interface HeaderProps {
   isUpdatingDatabase?: boolean
   activeView?: HeaderView
   onViewChange?: (view: HeaderView) => void
-  showDashboard?: boolean
   showRpm?: boolean
 }
 
@@ -48,7 +45,6 @@ export default function Header({
   isUpdatingDatabase = false,
   activeView,
   onViewChange,
-  showDashboard = true,
   showRpm = false,
 }: HeaderProps) {
   const pathname = usePathname()
@@ -63,12 +59,6 @@ export default function Header({
           label: "News Feed",
           icon: Bell,
           clearOnClick: true,
-        },
-        {
-          view: "dashboard" as const,
-          href: "/dashboard",
-          label: "Dashboard",
-          icon: LayoutDashboard,
         },
         {
           view: "rpm" as const,
@@ -91,9 +81,7 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/rpm", label: "RPM", icon: ShieldCheck },
-        { href: "/dashv2", label: "Dash v2", icon: BarChart3 },
         {
           href: "/feedback",
           label: "Feedback",
@@ -102,12 +90,6 @@ export default function Header({
       ]
 
   const navItems: HeaderNavItem[] = baseNavItems.filter((item) => {
-    const isDashboardItem =
-      item.view === "dashboard" || item.href === "/dashboard" || item.href === "/dashv2"
-    if (isDashboardItem && !showDashboard) {
-      return false
-    }
-
     const isRpmItem = item.view === "rpm" || item.href === "/rpm"
     if (isRpmItem && !showRpm) {
       return false
