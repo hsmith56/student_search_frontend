@@ -5,11 +5,13 @@ import type { QuickStatsCard } from "@/features/student-search/types";
 
 type QuickStatsSectionProps = {
   cards: QuickStatsCard[];
+  searchTips: string[];
   onOpenFeedback: () => void;
 };
 
 export function QuickStatsSection({
   cards,
+  searchTips,
   onOpenFeedback,
 }: QuickStatsSectionProps) {
   return (
