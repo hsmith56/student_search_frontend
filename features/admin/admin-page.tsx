@@ -247,6 +247,7 @@ export default function AdminPage({
   }, [userSearchQuery, managedUsers]);
 
   const latestCode = generatedCodes[0] ?? null;
+  const requiresWizardStates = wizardAccountType === "lc";
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -487,6 +488,7 @@ export default function AdminPage({
     const trimmedFirstName = wizardFirstName.trim();
     const trimmedLastName = wizardLastName.trim();
     const trimmedEmail = wizardEmail.trim().toLowerCase();
+    const selectedAccountType = wizardAccountType;
 
     if (!trimmedFirstName || !trimmedLastName) {
       setWizardError("First and last name are required.");
@@ -498,12 +500,11 @@ export default function AdminPage({
       return;
     }
 
-    if (wizardStates.length === 0) {
+    if (selectedAccountType === "lc" && wizardStates.length === 0) {
       setWizardError("Select at least one state.");
       return;
     }
 
-    const selectedAccountType = wizardAccountType;
     const payload = {
       first_name: trimmedFirstName,
       last_name: trimmedLastName,
@@ -586,26 +587,6 @@ export default function AdminPage({
     } finally {
       setIsCreatingAccount(false);
     }
-  };
-
-  const markAccountCreated = () => {
-    if (!selectedUser) return;
-
-    setManagedUsers((previous) =>
-      previous.map((user) =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              accountStatus: "account_created",
-              signupCode: null,
-              signupCodeCreatedAt: null,
-            }
-          : user
-      )
-    );
-
-    setSaveMessage(`Marked ${selectedUser.fullName} as account created.`);
-    setSelectedUserId(null);
   };
 
   const resetPasswordToTemporary = () => {
@@ -914,7 +895,7 @@ export default function AdminPage({
               New Account
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--brand-body)]">
-              Enter user details (email optional), choose account type, and assign states.
+              Enter user details (email optional), choose account type, and assign states (required for LC).
             </DialogDescription>
           </DialogHeader>
 
@@ -1033,7 +1014,7 @@ export default function AdminPage({
             <button
               type="button"
               onClick={createNewAccountSignupCode}
-              disabled={isCreatingAccount || wizardStates.length === 0}
+              disabled={isCreatingAccount || (requiresWizardStates && wizardStates.length === 0)}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[rgba(0,94,184,0.12)]"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -1182,15 +1163,6 @@ export default function AdminPage({
               <Save className="h-3.5 w-3.5" />
               Save
             </button>
-            {selectedUser?.accountStatus === "signup_code_unused" ? (
-              <button
-                type="button"
-                onClick={markAccountCreated}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-[rgba(0,144,63,0.38)] bg-[rgba(0,144,63,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-success-deep)] transition-colors hover:bg-[rgba(0,144,63,0.2)]"
-              >
-                Mark Account Created
-              </button>
-            ) : null}
             {selectedUser?.accountStatus === "account_created" ? (
               <button
                 type="button"

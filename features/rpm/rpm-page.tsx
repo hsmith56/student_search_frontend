@@ -126,6 +126,15 @@ function getStatusClassName(status: LcAccountStatus): string {
   return "border-[rgba(255,194,62,0.52)] bg-[rgba(255,194,62,0.24)] text-[var(--brand-primary-deep)]";
 }
 
+function hasProvidedEmail(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === "n/a") {
+    return false;
+  }
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 function toSortableTimestamp(createdAtIso: string): number {
   const timestamp = new Date(normalizeTimestamp(createdAtIso)).getTime();
   if (Number.isNaN(timestamp)) {
@@ -193,6 +202,7 @@ export default function RpmPage({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [manageError, setManageError] = useState<string | null>(null);
   const [isSavingUserSettings, setIsSavingUserSettings] = useState(false);
+  const [isResendingInvitation, setIsResendingInvitation] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lcSearchQuery, setLcSearchQuery] = useState("");
 
@@ -245,6 +255,10 @@ export default function RpmPage({
   }, [lcSearchQuery, lcUsers]);
 
   const latestCode = generatedCodes[0] ?? null;
+  const hasWizardEmail = wizardEmail.trim().length > 0;
+  const selectedUserHasEmail = hasProvidedEmail(selectedUser?.email ?? "");
+  const canResendInvitation =
+    selectedUser?.accountStatus === "signup_code_unused" && selectedUserHasEmail;
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -379,6 +393,7 @@ export default function RpmPage({
       setDraftStateQuery("");
       setManageError(null);
       setIsSavingUserSettings(false);
+      setIsResendingInvitation(false);
       return;
     }
 
@@ -386,6 +401,7 @@ export default function RpmPage({
     setDraftNote(selectedUser.note);
     setDraftStateQuery("");
     setManageError(null);
+    setIsResendingInvitation(false);
   }, [selectedUser]);
 
   const openManageDialog = (user: LcUserRecord) => {
@@ -586,6 +602,50 @@ export default function RpmPage({
       )
     );
     setSaveMessage(`Temporary password generated for ${selectedUser.fullName}.`);
+  };
+
+  const resendInvitationEmail = async () => {
+    if (!selectedUser) return;
+
+    if (!hasProvidedEmail(selectedUser.email)) {
+      setManageError("A valid email is required to resend an invitation.");
+      return;
+    }
+
+    setManageError(null);
+    setIsResendingInvitation(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/rpm/register/${encodeURIComponent(selectedUser.id)}/resend-invitation`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        let message = `Failed to resend invitation (${response.status}).`;
+        try {
+          const errorBody = (await response.json()) as { detail?: unknown };
+          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+            message = errorBody.detail;
+          }
+        } catch {
+          // Keep default message when backend body is not JSON.
+        }
+
+        setManageError(message);
+        return;
+      }
+
+      setSaveMessage(`Resent signup email to ${selectedUser.fullName}.`);
+    } catch {
+      setManageError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsResendingInvitation(false);
+    }
   };
 
   if (authLoading || !isAuthenticated || !hasLoadedAuthUser) {
@@ -927,8 +987,14 @@ export default function RpmPage({
               disabled={wizardStates.length === 0 || isCreatingSignupCode}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[rgba(0,94,184,0.12)]"
             >
-              <Plus className="h-3.5 w-3.5" />
-              {isCreatingSignupCode ? "Creating..." : "Create Signup Code"}
+              {!hasWizardEmail ? <Plus className="h-3.5 w-3.5" /> : null}
+              {isCreatingSignupCode
+                ? hasWizardEmail
+                  ? "Sending..."
+                  : "Creating..."
+                : hasWizardEmail
+                  ? "Send signup code"
+                  : "Create Signup Code"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -1037,6 +1103,16 @@ export default function RpmPage({
           </label>
 
           <DialogFooter>
+            {canResendInvitation ? (
+              <button
+                type="button"
+                onClick={resendInvitationEmail}
+                disabled={isResendingInvitation}
+                className="inline-flex h-9 items-center justify-center rounded-full border border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[rgba(0,94,184,0.12)] sm:mr-auto"
+              >
+                {isResendingInvitation ? "Resending..." : "Resend email"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => setSelectedUserId(null)}
