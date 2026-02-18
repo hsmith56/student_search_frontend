@@ -563,15 +563,12 @@ export default function NewsFeedPage({
           <section className="rounded-3xl border border-[rgba(0,94,184,0.3)] bg-[rgba(253,254,255,0.9)] p-6 shadow-[0_16px_40px_rgba(0,53,84,0.14)] backdrop-blur-md">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[rgba(0,94,184,0.3)] bg-[rgba(0,94,184,0.09)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-primary-deep)]">
-                  <RadioTower className="h-3.5 w-3.5" />
-                  Real-Time Updates
-                </p>
+                
                 <h1 className="text-3xl font-black tracking-tight text-[var(--brand-ink)]">
                   News Feed
                 </h1>
                 <p className="mt-1 text-sm text-[var(--brand-body)]">
-                  Placement change events loaded from `/api/news_feed`.
+                  Overview of past placement change events.
                 </p>
               </div>
 
@@ -670,10 +667,10 @@ export default function NewsFeedPage({
               </label>
             </div>
 
-            <p className="mt-2 text-xs text-[var(--brand-muted)]">
+            {/* <p className="mt-2 text-xs text-[var(--brand-muted)]">
               Querying{" "}
               <code>{`/api/news_feed?${buildNewsFeedRequest(appliedFilters).queryString}`}</code>
-            </p>
+            </p> */}
           </section>
 
           <section className="mt-5 space-y-3">
