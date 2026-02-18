@@ -27,7 +27,7 @@ export default function LoginOnePage() {
   const [verifyPassword, setVerifyPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
-  const [code, setCode] = useState("");
+  const [signupCode, setSignupCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showErrorToast, setShowErrorToast] = useState(false);
@@ -67,7 +67,7 @@ export default function LoginOnePage() {
     setVerifyPassword("");
     setShowPassword(false);
     setShowVerifyPassword(false);
-    setCode("");
+    setSignupCode("");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -90,7 +90,7 @@ export default function LoginOnePage() {
     setIsLoading(true);
 
     if (mode === "register") {
-      const result = await register(firstName, username, password, code);
+      const result = await register(firstName, username, password, signupCode);
       if (result.success) {
         setSuccess("Account created successfully! Please sign in.");
         setMode("login");
@@ -99,7 +99,7 @@ export default function LoginOnePage() {
         setVerifyPassword("");
         setShowPassword(false);
         setShowVerifyPassword(false);
-        setCode("");
+        setSignupCode("");
       } else {
         setError(result.error || "Failed to create account. Please try again.");
       }
@@ -286,15 +286,15 @@ export default function LoginOnePage() {
                 </button>
               </div>
 
-              <label htmlFor="login-one-code">Sign Up Code</label>
+              <label htmlFor="login-one-signup-code">Signup Code</label>
               <div className={styles.loginOneField}>
                 <KeyRound size={18} aria-hidden />
                 <input
-                  id="login-one-code"
+                  id="login-one-signup-code"
                   type="text"
-                  value={code}
-                  onChange={(event) => setCode(event.target.value)}
-                  placeholder="Verification phrase"
+                  value={signupCode}
+                  onChange={(event) => setSignupCode(event.target.value)}
+                  placeholder="Signup code"
                   disabled={mode !== "register" || isLoading}
                   required={mode === "register"}
                 />

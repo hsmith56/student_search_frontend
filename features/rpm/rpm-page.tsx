@@ -66,22 +66,25 @@ type SignupCodeRecord = {
   createdAt: string;
 };
 
-type RpmSignupRequestItem = {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  states: string[];
+type RpmSignupApiItem = {
+  id: string | number;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  states?: unknown;
   notes_text?: string | null;
-  account_type: "lc" | "rpm";
-  code_used: boolean;
-  submitter_id: string;
-  created_at: string;
-  used_at: string | null;
-  auth_code: string;
+  account_type?: string | null;
+  code_used?: boolean;
+  submitter_id?: string | null;
+  created_at?: string | null;
+  used_at?: string | null;
+  auth_code?: string | null;
+  is_registered?: boolean;
+  manager_id?: string | number | null;
+  signup_code?: string | null;
 };
 
-type RpmSignupRegisterResponse = RpmSignupRequestItem;
+type RpmSignupRegisterResponse = RpmSignupApiItem;
 
 function randomCodeChunk(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -96,12 +99,26 @@ function buildTemporaryPassword(): string {
   return `Temp-${randomCodeChunk(4)}${Math.floor(100 + Math.random() * 900)}`;
 }
 
-function normalizeTimestamp(value: string): string {
-  return value.includes(" ") ? value.replace(" ", "T") : value;
+function normalizeTimestamp(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.includes(" ") ? trimmed.replace(" ", "T") : trimmed;
 }
 
-function formatCreatedAt(createdAtIso: string): string {
-  const timestamp = new Date(normalizeTimestamp(createdAtIso));
+function formatCreatedAt(createdAtIso: unknown): string {
+  const normalizedTimestamp = normalizeTimestamp(createdAtIso);
+  if (!normalizedTimestamp) {
+    return "Unknown time";
+  }
+
+  const timestamp = new Date(normalizedTimestamp);
   if (Number.isNaN(timestamp.getTime())) {
     return "Unknown time";
   }
@@ -135,50 +152,100 @@ function hasProvidedEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 }
 
-function toSortableTimestamp(createdAtIso: string): number {
-  const timestamp = new Date(normalizeTimestamp(createdAtIso)).getTime();
+function toSortableTimestamp(createdAtIso: unknown): number {
+  const normalizedTimestamp = normalizeTimestamp(createdAtIso);
+  if (!normalizedTimestamp) {
+    return 0;
+  }
+
+  const timestamp = new Date(normalizedTimestamp).getTime();
   if (Number.isNaN(timestamp)) {
     return 0;
   }
   return timestamp;
 }
 
-function mapSignupRequestToUserRecord(item: RpmSignupRequestItem): LcUserRecord {
-  const firstName = item.first_name.trim();
-  const lastName = item.last_name.trim();
-  const fullName = `${firstName} ${lastName}`.trim();
+function getSignupCode(item: RpmSignupApiItem): string | null {
+  if (typeof item.signup_code === "string" && item.signup_code.trim()) {
+    return item.signup_code.trim();
+  }
+
+  if (typeof item.auth_code === "string" && item.auth_code.trim()) {
+    return item.auth_code.trim();
+  }
+
+  return null;
+}
+
+function getAccountStatus(item: RpmSignupApiItem): LcAccountStatus {
+  if (typeof item.is_registered === "boolean") {
+    return item.is_registered ? "account_created" : "signup_code_unused";
+  }
+
+  if (typeof item.code_used === "boolean") {
+    return item.code_used ? "account_created" : "signup_code_unused";
+  }
+
+  return getSignupCode(item) ? "signup_code_unused" : "account_created";
+}
+
+function mapSignupRequestToUserRecord(item: RpmSignupApiItem): LcUserRecord {
+  const firstName = typeof item.first_name === "string" ? item.first_name.trim() : "";
+  const lastName = typeof item.last_name === "string" ? item.last_name.trim() : "";
+  const fullName = `${firstName} ${lastName}`.trim() || "Unknown user";
   const email = typeof item.email === "string" ? item.email : "";
-  const unusedCode = item.code_used ? null : item.auth_code;
+  const accountStatus = getAccountStatus(item);
+  const signupCode = getSignupCode(item);
+  const fallbackId = `${fullName}:${email}:${signupCode ?? ""}`;
+  const id =
+    typeof item.id === "string" || typeof item.id === "number"
+      ? String(item.id)
+      : fallbackId;
+  const statesList = Array.isArray(item.states)
+    ? item.states.filter((entry): entry is string => typeof entry === "string")
+    : [];
 
   return {
-    id: String(item.id),
+    id,
     firstName,
     lastName,
     email,
     fullName,
-    states: Array.isArray(item.states) ? item.states : [],
+    states: statesList,
     note: typeof item.notes_text === "string" ? item.notes_text : "",
-    accountStatus: item.code_used ? "account_created" : "signup_code_unused",
-    signupCode: unusedCode,
-    signupCodeCreatedAt: item.code_used ? null : item.created_at,
+    accountStatus,
+    signupCode: accountStatus === "signup_code_unused" ? signupCode : null,
+    signupCodeCreatedAt:
+      accountStatus === "signup_code_unused" && typeof item.created_at === "string"
+        ? item.created_at
+        : null,
     temporaryPassword: null,
   };
 }
 
-function mapSignupRequestToCodeRecord(item: RpmSignupRequestItem): SignupCodeRecord | null {
-  if (item.code_used) {
+function mapSignupRequestToCodeRecord(item: RpmSignupApiItem): SignupCodeRecord | null {
+  const accountStatus = getAccountStatus(item);
+  const code = getSignupCode(item);
+  if (accountStatus === "account_created" || !code) {
     return null;
   }
 
-  const fullName = `${item.first_name.trim()} ${item.last_name.trim()}`.trim();
+  const firstName = typeof item.first_name === "string" ? item.first_name.trim() : "";
+  const lastName = typeof item.last_name === "string" ? item.last_name.trim() : "";
+  const fullName = `${firstName} ${lastName}`.trim() || "Unknown user";
   const email = typeof item.email === "string" ? item.email : "";
+  const fallbackId = `${fullName}:${email}:${code}`;
+  const id =
+    typeof item.id === "string" || typeof item.id === "number"
+      ? String(item.id)
+      : fallbackId;
 
   return {
-    id: String(item.id),
+    id,
     fullName,
     email,
-    code: item.auth_code,
-    createdAt: item.created_at,
+    code,
+    createdAt: typeof item.created_at === "string" ? item.created_at : "",
   };
 }
 
@@ -354,12 +421,18 @@ export default function RpmPage({
         }
 
         const payload = (await response.json()) as unknown;
-        const rows = Array.isArray(payload) ? (payload as RpmSignupRequestItem[]) : [];
+        const rows = Array.isArray(payload) ? (payload as RpmSignupApiItem[]) : [];
         const sortedRows = [...rows].sort(
           (left, right) =>
             toSortableTimestamp(right.created_at) - toSortableTimestamp(left.created_at)
         );
-        const lcRows = sortedRows.filter((row) => row.account_type === "lc");
+        const lcRows = sortedRows.filter((row) => {
+          if (typeof row.account_type !== "string") {
+            return true;
+          }
+
+          return row.account_type.trim().toLowerCase() === "lc";
+        });
 
         const users = lcRows.map((row) => mapSignupRequestToUserRecord(row));
         const signupCodes = lcRows
@@ -555,22 +628,16 @@ export default function RpmPage({
       }
 
       const created = (await response.json()) as RpmSignupRegisterResponse;
-      const createdItem: RpmSignupRequestItem = {
-        id: created.id,
-        first_name: created.first_name,
-        last_name: created.last_name,
-        email: created.email ?? payload.email,
+      const createdItem: RpmSignupApiItem = {
+        ...created,
+        first_name:
+          typeof created.first_name === "string" ? created.first_name : payload.first_name,
+        last_name: typeof created.last_name === "string" ? created.last_name : payload.last_name,
+        email: typeof created.email === "string" ? created.email : payload.email,
         states: Array.isArray(created.states) ? created.states : wizardStates,
-        notes_text:
-          "notes_text" in created && typeof created.notes_text === "string"
-            ? created.notes_text
-            : "",
-        account_type: created.account_type,
-        code_used: created.code_used,
-        submitter_id: created.submitter_id,
-        created_at: created.created_at,
-        used_at: created.used_at,
-        auth_code: created.auth_code,
+        notes_text: typeof created.notes_text === "string" ? created.notes_text : "",
+        account_type:
+          typeof created.account_type === "string" ? created.account_type : payload.account_type,
       };
       const newUser = mapSignupRequestToUserRecord(createdItem);
       const newCode = mapSignupRequestToCodeRecord(createdItem);
@@ -738,7 +805,7 @@ export default function RpmPage({
               Local Coordinator Dashboard
             </h1>
             <p className="mt-1.5 text-sm text-[var(--brand-body)]">
-              Manage each LC user&apos;s states and maintain personal notes per user.
+              Manage each LC user&apos;s states and maintain personal notes per user. If you provide an email address, the code will automatically be sent to their inbox. If no email is provided, then you will need to manually share the code with them.
             </p>
 
             {saveMessage ? (

@@ -21,7 +21,7 @@ interface AuthContextType {
     first_name: string,
     username: string,
     password: string,
-    code: string,
+    signup_code: string,
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     first_name: string,
     username: string,
     password: string,
-    code: string,
+    signup_code: string,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log("Attempting registration for user:", username);
@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           accept: "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ username, password, first_name, code }),
+        body: JSON.stringify({ username, password, first_name, signup_code }),
       });
 
       console.log("Registration response status:", response.status);

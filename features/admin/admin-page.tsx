@@ -55,6 +55,7 @@ type ManagedUserRecord = {
   email: string;
   fullName: string;
   states: string[];
+  managerId: string | null;
   note: string;
   accountType: ManagedAccountType;
   accountStatus: AccountStatus;
@@ -72,35 +73,30 @@ type SignupCodeRecord = {
   createdAt: string;
 };
 
-type AdminUsersApiItem = {
-  id: string | number;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  states: string[];
-  account_type: string;
-  code_used: boolean;
-  submitter_id: string;
-  created_at: string;
-  used_at: string | null;
-  auth_code: string;
-  notes_text: string | null;
+type RpmOption = {
+  id: string;
+  name: string;
 };
 
-type AdminSignupRegisterResponse = {
-  id: number | string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  states: string[];
-  account_type: string;
-  code_used: boolean;
-  submitter_id: string;
-  created_at: string;
-  used_at: string | null;
-  auth_code: string;
-  notes_text: string | null;
+type AdminUserApiItem = {
+  id: string | number;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  states?: unknown;
+  account_type?: string | null;
+  code_used?: boolean;
+  submitter_id?: string | null;
+  created_at?: string | null;
+  used_at?: string | null;
+  auth_code?: string | null;
+  notes_text?: string | null;
+  is_registered?: boolean;
+  manager_id?: string | number | null;
+  signup_code?: string | null;
 };
+
+type AdminSignupRegisterResponse = AdminUserApiItem;
 
 function randomCodeChunk(length: number): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -115,10 +111,25 @@ function buildTemporaryPassword(): string {
   return `Temp-${randomCodeChunk(4)}${Math.floor(100 + Math.random() * 900)}`;
 }
 
-function formatCreatedAt(createdAtIso: string): string {
-  const normalizedTimestamp = createdAtIso.includes(" ")
-    ? createdAtIso.replace(" ", "T")
-    : createdAtIso;
+function normalizeTimestamp(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.includes(" ") ? trimmed.replace(" ", "T") : trimmed;
+}
+
+function formatCreatedAt(createdAtIso: unknown): string {
+  const normalizedTimestamp = normalizeTimestamp(createdAtIso);
+  if (!normalizedTimestamp) {
+    return "Unknown time";
+  }
+
   const timestamp = new Date(normalizedTimestamp);
   if (Number.isNaN(timestamp.getTime())) {
     return "Unknown time";
@@ -173,6 +184,195 @@ function normalizeManagedAccountType(
   return fallback;
 }
 
+function normalizeManagerId(value: unknown): string | null {
+  if (typeof value === "string" || typeof value === "number") {
+    const trimmed = String(value).trim();
+    return trimmed ? trimmed : null;
+  }
+
+  return null;
+}
+
+function toSortableTimestamp(createdAtIso: unknown): number {
+  const normalizedTimestamp = normalizeTimestamp(createdAtIso);
+  if (!normalizedTimestamp) {
+    return 0;
+  }
+
+  const timestamp = new Date(normalizedTimestamp).getTime();
+  if (Number.isNaN(timestamp)) {
+    return 0;
+  }
+
+  return timestamp;
+}
+
+function getSignupCode(item: AdminUserApiItem): string | null {
+  if (typeof item.signup_code === "string" && item.signup_code.trim()) {
+    return item.signup_code.trim();
+  }
+
+  if (typeof item.auth_code === "string" && item.auth_code.trim()) {
+    return item.auth_code.trim();
+  }
+
+  return null;
+}
+
+function parseRpmOptions(payload: unknown): RpmOption[] {
+  const options: RpmOption[] = [];
+
+  const pushOption = (idValue: unknown, nameValue: unknown) => {
+    const id = normalizeManagerId(idValue);
+    const name = typeof nameValue === "string" ? nameValue.trim() : "";
+    if (!id) return;
+
+    options.push({
+      id,
+      name: name || `RPM ${id}`,
+    });
+  };
+
+  const readObjectEntry = (entry: Record<string, unknown>) => {
+    const hasStructuredKeys =
+      "id" in entry ||
+      "rpm_id" in entry ||
+      "manager_id" in entry ||
+      "user_id" in entry ||
+      "uuid" in entry;
+
+    if (hasStructuredKeys) {
+      const idValue = entry.id ?? entry.rpm_id ?? entry.manager_id ?? entry.user_id ?? entry.uuid;
+      const firstName = typeof entry.first_name === "string" ? entry.first_name.trim() : "";
+      const lastName = typeof entry.last_name === "string" ? entry.last_name.trim() : "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      const nameValue = entry.name ?? entry.full_name ?? fullName;
+      pushOption(idValue, nameValue);
+      return;
+    }
+
+    Object.entries(entry).forEach(([id, value]) => {
+      pushOption(id, value);
+    });
+  };
+
+  if (Array.isArray(payload)) {
+    payload.forEach((entry) => {
+      if (Array.isArray(entry)) {
+        pushOption(entry[0], entry[1]);
+        return;
+      }
+
+      if (entry && typeof entry === "object") {
+        readObjectEntry(entry as Record<string, unknown>);
+      }
+    });
+  } else if (payload && typeof payload === "object") {
+    const item = payload as Record<string, unknown>;
+    const looksLikeSingleItem =
+      "id" in item || "rpm_id" in item || "manager_id" in item || "user_id" in item || "uuid" in item;
+
+    if (looksLikeSingleItem) {
+      readObjectEntry(item);
+    } else {
+      Object.entries(item).forEach(([id, value]) => {
+        pushOption(id, value);
+      });
+    }
+  }
+
+  const deduped = new Map<string, RpmOption>();
+  options.forEach((option) => {
+    if (!deduped.has(option.id)) {
+      deduped.set(option.id, option);
+    }
+  });
+
+  return [...deduped.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function getAccountStatus(item: AdminUserApiItem): AccountStatus {
+  if (typeof item.is_registered === "boolean") {
+    return item.is_registered ? "account_created" : "signup_code_unused";
+  }
+
+  if (typeof item.code_used === "boolean") {
+    return item.code_used ? "account_created" : "signup_code_unused";
+  }
+
+  return getSignupCode(item) ? "signup_code_unused" : "account_created";
+}
+
+function mapAdminApiItemToManagedUser(
+  item: AdminUserApiItem,
+  fallbackAccountType: ManagedAccountType
+): ManagedUserRecord {
+  const firstName = typeof item.first_name === "string" ? item.first_name.trim() : "";
+  const lastName = typeof item.last_name === "string" ? item.last_name.trim() : "";
+  const fullName = `${firstName} ${lastName}`.trim() || "Unknown user";
+  const email = typeof item.email === "string" ? item.email : "";
+  const accountType = normalizeManagedAccountType(item.account_type, fallbackAccountType);
+  const accountStatus = getAccountStatus(item);
+  const signupCode = getSignupCode(item);
+  const fallbackId = `${fullName}:${email}:${signupCode ?? ""}`;
+  const id =
+    typeof item.id === "string" || typeof item.id === "number"
+      ? String(item.id)
+      : fallbackId;
+  const states = Array.isArray(item.states)
+    ? item.states.filter((entry): entry is string => typeof entry === "string")
+    : [];
+
+  return {
+    id,
+    firstName,
+    lastName,
+    email,
+    fullName,
+    states,
+    managerId: normalizeManagerId(item.manager_id),
+    note: typeof item.notes_text === "string" ? item.notes_text : "",
+    accountType,
+    accountStatus,
+    signupCode: accountStatus === "signup_code_unused" ? signupCode : null,
+    signupCodeCreatedAt:
+      accountStatus === "signup_code_unused" && typeof item.created_at === "string"
+        ? item.created_at
+        : null,
+    temporaryPassword: null,
+  };
+}
+
+function mapAdminApiItemToSignupCode(
+  item: AdminUserApiItem,
+  fallbackAccountType: ManagedAccountType
+): SignupCodeRecord | null {
+  const accountStatus = getAccountStatus(item);
+  const code = getSignupCode(item);
+  if (accountStatus === "account_created" || !code) {
+    return null;
+  }
+
+  const firstName = typeof item.first_name === "string" ? item.first_name.trim() : "";
+  const lastName = typeof item.last_name === "string" ? item.last_name.trim() : "";
+  const fullName = `${firstName} ${lastName}`.trim() || "Unknown user";
+  const email = typeof item.email === "string" ? item.email : "";
+  const fallbackId = `${fullName}:${email}:${code}`;
+  const id =
+    typeof item.id === "string" || typeof item.id === "number"
+      ? String(item.id)
+      : fallbackId;
+
+  return {
+    id,
+    fullName,
+    email,
+    accountType: normalizeManagedAccountType(item.account_type, fallbackAccountType),
+    code,
+    createdAt: typeof item.created_at === "string" ? item.created_at : "",
+  };
+}
+
 export default function AdminPage({
   activeView,
   onViewChange,
@@ -187,10 +387,14 @@ export default function AdminPage({
   const [updateTime, setUpdateTime] = useState("");
 
   const [managedUsers, setManagedUsers] = useState<ManagedUserRecord[]>([]);
+  const [rpmOptions, setRpmOptions] = useState<RpmOption[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [draftStates, setDraftStates] = useState<string[]>([]);
+  const [draftManagerId, setDraftManagerId] = useState("");
   const [draftNote, setDraftNote] = useState("");
   const [draftAccountType, setDraftAccountType] = useState<ManagedAccountType>("rpm");
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [isSavingUserSettings, setIsSavingUserSettings] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -218,6 +422,18 @@ export default function AdminPage({
     () => managedUsers.find((user) => user.id === selectedUserId) ?? null,
     [managedUsers, selectedUserId]
   );
+  const rpmNameById = useMemo(() => {
+    return new Map(rpmOptions.map((option) => [option.id, option.name]));
+  }, [rpmOptions]);
+  const selectedUserManagerName = useMemo(() => {
+    const managerId = selectedUser?.managerId;
+    if (!managerId) {
+      return "Unassigned";
+    }
+
+    return rpmNameById.get(managerId) ?? managerId;
+  }, [selectedUser?.managerId, rpmNameById]);
+  const shouldShowManagerField = draftAccountType === "lc";
   const filteredWizardStateOptions = useMemo(() => {
     const query = wizardStateQuery.trim().toLowerCase();
     if (!query) return ASSIGNABLE_STATE_OPTIONS;
@@ -318,7 +534,7 @@ export default function AdminPage({
 
     let isActive = true;
 
-    getCachedValue<AdminUsersApiItem[]>(
+    getCachedValue<AdminUserApiItem[]>(
       "admin:rpm_admin_get",
       async () => {
         const response = await fetch(`${API_URL}/rpm/admin_get`, {
@@ -332,65 +548,25 @@ export default function AdminPage({
         }
 
         const payload = (await response.json()) as unknown;
-        return Array.isArray(payload) ? (payload as AdminUsersApiItem[]) : [];
+        return Array.isArray(payload) ? (payload as AdminUserApiItem[]) : [];
       },
       CACHE_TTL_SHORT_MS
     )
       .then((rows) => {
         if (!isActive) return;
 
-        const sortedRows = [...rows].sort((left, right) => {
-          const leftTs = new Date(
-            left.created_at.includes(" ")
-              ? left.created_at.replace(" ", "T")
-              : left.created_at
-          ).getTime();
-          const rightTs = new Date(
-            right.created_at.includes(" ")
-              ? right.created_at.replace(" ", "T")
-              : right.created_at
-          ).getTime();
-          return rightTs - leftTs;
-        });
+        const sortedRows = [...rows].sort(
+          (left, right) =>
+            toSortableTimestamp(right.created_at) - toSortableTimestamp(left.created_at)
+        );
 
-        const mappedUsers = sortedRows.map((item) => {
-          const normalizedFirstName = item.first_name.trim();
-          const normalizedLastName = item.last_name.trim();
-          const fullName = `${normalizedFirstName} ${normalizedLastName}`.trim();
-          const normalizedAccountType = normalizeManagedAccountType(
-            item.account_type,
-            "lc"
-          );
-          const email = typeof item.email === "string" ? item.email : "";
-
-          return {
-            id: String(item.id),
-            firstName: normalizedFirstName,
-            lastName: normalizedLastName,
-            email,
-            fullName: fullName || normalizedFirstName || normalizedLastName || "Unknown user",
-            states: Array.isArray(item.states) ? item.states : [],
-            note: typeof item.notes_text === "string" ? item.notes_text : "",
-            accountType: normalizedAccountType,
-            accountStatus: (item.code_used
-              ? "account_created"
-              : "signup_code_unused") as AccountStatus,
-            signupCode: item.code_used ? null : item.auth_code,
-            signupCodeCreatedAt: item.code_used ? null : item.created_at,
-            temporaryPassword: null,
-          };
-        });
+        const mappedUsers = sortedRows.map((item) =>
+          mapAdminApiItemToManagedUser(item, "lc")
+        );
 
         const mappedCodes = sortedRows
-          .filter((item) => !item.code_used)
-          .map((item) => ({
-            id: String(item.id),
-            fullName: `${item.first_name.trim()} ${item.last_name.trim()}`.trim(),
-            email: typeof item.email === "string" ? item.email : "",
-            accountType: normalizeManagedAccountType(item.account_type, "lc"),
-            code: item.auth_code,
-            createdAt: item.created_at,
-          }))
+          .map((item) => mapAdminApiItemToSignupCode(item, "lc"))
+          .filter((item): item is SignupCodeRecord => item !== null)
           .slice(0, 8);
 
         setLoadError(null);
@@ -409,23 +585,68 @@ export default function AdminPage({
   }, [isAuthenticated, hasLoadedAuthUser, isAdminUser]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasLoadedAuthUser || !isAdminUser) {
+      return;
+    }
+
+    let isActive = true;
+
+    getCachedValue<RpmOption[]>(
+      "admin:get_rpms",
+      async () => {
+        const response = await fetch(`${API_URL}/admin/get_rpms`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load RPM list (${response.status}).`);
+        }
+
+        const payload = (await response.json()) as unknown;
+        return parseRpmOptions(payload);
+      },
+      CACHE_TTL_SHORT_MS
+    )
+      .then((rows) => {
+        if (!isActive) return;
+        setRpmOptions(rows);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setRpmOptions([]);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, hasLoadedAuthUser, isAdminUser]);
+
+  useEffect(() => {
     if (!selectedUser) {
       setDraftStates([]);
+      setDraftManagerId("");
       setDraftNote("");
       setDraftStateQuery("");
       setDraftAccountType("rpm");
+      setManageError(null);
+      setIsSavingUserSettings(false);
       return;
     }
 
     setDraftStates(selectedUser.states);
+    setDraftManagerId(selectedUser.managerId ?? "");
     setDraftNote(selectedUser.note);
     setDraftAccountType(selectedUser.accountType);
     setDraftStateQuery("");
+    setManageError(null);
   }, [selectedUser]);
 
   const openManageDialog = (user: ManagedUserRecord) => {
     setSelectedUserId(user.id);
     setSaveMessage(null);
+    setManageError(null);
   };
 
   const toggleDraftState = (stateValue: string) => {
@@ -464,24 +685,64 @@ export default function AdminPage({
     setIsWizardOpen(true);
   };
 
-  const saveUserSettings = () => {
+  const saveUserSettings = async () => {
     if (!selectedUser) return;
+    const trimmedNote = draftNote.trim();
+    const nextManagerId = draftManagerId.trim();
+    setManageError(null);
+    setIsSavingUserSettings(true);
 
-    setManagedUsers((previous) =>
-      previous.map((user) =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              accountType: draftAccountType,
+    try {
+      if (draftAccountType === "lc") {
+        const response = await fetch(
+          `${API_URL}/rpm/admin_patch/${encodeURIComponent(selectedUser.id)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              manager_id: nextManagerId || null,
               states: draftStates,
-              note: draftNote.trim(),
-            }
-          : user
-      )
-    );
+            }),
+          }
+        );
 
-    setSaveMessage(`Saved updates for ${selectedUser.fullName}.`);
-    setSelectedUserId(null);
+        if (!response.ok) {
+          let message = `Failed to update LC assignment (${response.status}).`;
+          try {
+            const errorBody = (await response.json()) as { detail?: unknown };
+            if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
+              message = errorBody.detail;
+            }
+          } catch {
+            // Keep default message when backend body is not JSON.
+          }
+          setManageError(message);
+          return;
+        }
+      }
+
+      setManagedUsers((previous) =>
+        previous.map((user) =>
+          user.id === selectedUser.id
+            ? {
+                ...user,
+                accountType: draftAccountType,
+                states: draftStates,
+                managerId: draftAccountType === "lc" ? nextManagerId || null : null,
+                note: trimmedNote,
+              }
+            : user
+        )
+      );
+
+      setSaveMessage(`Saved updates for ${selectedUser.fullName}.`);
+      setSelectedUserId(null);
+    } catch {
+      setManageError("Unable to reach the server. Please try again.");
+    } finally {
+      setIsSavingUserSettings(false);
+    }
   };
 
   const createNewAccountSignupCode = async () => {
@@ -539,39 +800,24 @@ export default function AdminPage({
       }
 
       const created = (await response.json()) as AdminSignupRegisterResponse;
-      const createdAccountType = normalizeManagedAccountType(
-        created.account_type,
-        selectedAccountType
-      );
-      const fullName = `${created.first_name} ${created.last_name}`.trim();
-      const createdEmail =
-        typeof created.email === "string" ? created.email : payload.email;
-
-      const newUser: ManagedUserRecord = {
-        id: String(created.id),
-        firstName: created.first_name,
-        lastName: created.last_name,
-        email: createdEmail,
-        fullName,
+      const createdItem: AdminUserApiItem = {
+        ...created,
+        first_name:
+          typeof created.first_name === "string" ? created.first_name : payload.first_name,
+        last_name: typeof created.last_name === "string" ? created.last_name : payload.last_name,
+        email: typeof created.email === "string" ? created.email : payload.email,
         states: Array.isArray(created.states) ? created.states : wizardStates,
-        note: typeof created.notes_text === "string" ? created.notes_text : "",
-        accountType: createdAccountType,
-        accountStatus: created.code_used ? "account_created" : "signup_code_unused",
-        signupCode: created.code_used ? null : created.auth_code,
-        signupCodeCreatedAt: created.code_used ? null : created.created_at,
-        temporaryPassword: null,
+        notes_text: typeof created.notes_text === "string" ? created.notes_text : "",
+        account_type:
+          typeof created.account_type === "string"
+            ? created.account_type
+            : selectedAccountType,
       };
 
-      const newCode: SignupCodeRecord | null = created.code_used
-        ? null
-        : {
-            id: String(created.id),
-            fullName,
-            email: createdEmail,
-            accountType: createdAccountType,
-            code: created.auth_code,
-            createdAt: created.created_at,
-          };
+      const newUser = mapAdminApiItemToManagedUser(createdItem, selectedAccountType);
+      const newCode = mapAdminApiItemToSignupCode(createdItem, selectedAccountType);
+      const fullName = newUser.fullName;
+      const createdAccountType = newUser.accountType;
 
       setManagedUsers((previous) => [newUser, ...previous]);
       setGeneratedCodes((previous) =>
@@ -1041,6 +1287,12 @@ export default function AdminPage({
             </DialogDescription>
           </DialogHeader>
 
+          {manageError ? (
+            <div className="rounded-xl border border-[rgba(201,18,41,0.4)] bg-[rgba(201,18,41,0.1)] px-3 py-2 text-sm font-semibold text-[var(--brand-danger)]">
+              {manageError}
+            </div>
+          ) : null}
+
           {selectedUser ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.9)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-body)]">
@@ -1065,6 +1317,11 @@ export default function AdminPage({
                   {selectedUser.signupCode}
                 </span>
               ) : null}
+              {selectedUser.accountType === "lc" ? (
+                <span className="rounded-full border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.9)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-body)]">
+                  RPM: {selectedUserManagerName}
+                </span>
+              ) : null}
             </div>
           ) : null}
 
@@ -1086,7 +1343,11 @@ export default function AdminPage({
             <select
               value={draftAccountType}
               onChange={(event) => {
-                setDraftAccountType(event.target.value as ManagedAccountType);
+                const nextType = event.target.value as ManagedAccountType;
+                setDraftAccountType(nextType);
+                if (nextType !== "lc") {
+                  setDraftManagerId("");
+                }
               }}
               className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
             >
@@ -1097,6 +1358,26 @@ export default function AdminPage({
               ))}
             </select>
           </label>
+
+          {shouldShowManagerField ? (
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
+                RPM
+              </span>
+              <select
+                value={draftManagerId}
+                onChange={(event) => setDraftManagerId(event.target.value)}
+                className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+              >
+                <option value="">Unassigned</option>
+                {rpmOptions.map((rpmOption) => (
+                  <option key={rpmOption.id} value={rpmOption.id}>
+                    {rpmOption.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
@@ -1157,11 +1438,11 @@ export default function AdminPage({
             <button
               type="button"
               onClick={saveUserSettings}
-              disabled={!selectedUser}
+              disabled={!selectedUser || isSavingUserSettings}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(0,94,184,0.38)] bg-[rgba(0,94,184,0.12)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-3.5 w-3.5" />
-              Save
+              {isSavingUserSettings ? "Saving..." : "Save"}
             </button>
             {selectedUser?.accountStatus === "account_created" ? (
               <button
