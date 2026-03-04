@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_URL } from "@/features/student-search/constants";
 import type { StudentRecord } from "@/features/student-search/types";
 import { extractMediaLink } from "@/features/student-search/utils";
+import { getStudentById } from "@/lib/api/students";
 
 export function useSelectedStudentMedia(selectedStudent: StudentRecord | null) {
   const [selectedStudentMediaLink, setSelectedStudentMediaLink] = useState("");
@@ -23,17 +23,8 @@ export function useSelectedStudentMedia(selectedStudent: StudentRecord | null) {
 
     const controller = new AbortController();
 
-    fetch(`${API_URL}/students/full/${selectedStudent.app_id}`, {
-      method: "GET",
-      headers: { accept: "application/json" },
-      credentials: "include",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Status ${response.status}`);
-        }
-        const fullStudent = await response.json();
+    getStudentById<StudentRecord>(selectedStudent.app_id, controller.signal)
+      .then((fullStudent) => {
         setSelectedStudentMediaLink(extractMediaLink(fullStudent));
       })
       .catch((error) => {

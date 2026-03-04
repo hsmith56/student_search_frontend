@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import type { StudentData } from "@/features/student-profile/types";
+import { ApiError } from "@/lib/api/api-client";
+import { getStudentById } from "@/lib/api/students";
 
 type UseStudentProfileResult = {
   student: StudentData | null;
@@ -12,8 +14,6 @@ type UseStudentProfileResult = {
   authLoading: boolean;
   isAuthenticated: boolean;
 };
-
-const API_BASE_URL = "/api";
 
 export function useStudentProfile(studentId: string): UseStudentProfileResult {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -46,27 +46,19 @@ export function useStudentProfile(studentId: string): UseStudentProfileResult {
     setLoading(true);
     setError(null);
 
-    fetch(`${API_BASE_URL}/students/full/${studentId}`, {
-      method: "GET",
-      headers: { accept: "application/json" },
-      credentials: "include",
-      signal: controller.signal,
+    getStudentById<StudentData>(studentId, controller.signal).then((response) => {
+      setStudent(response);
     })
-      .then(async (response) => {
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            setStudent(null);
-            setError("Session expired. Redirecting to login...");
-            return;
-          }
-          throw new Error(`Status ${response.status}`);
-        }
-
-        const payload = (await response.json()) as StudentData;
-        setStudent(payload);
-      })
       .catch((fetchError) => {
         if (controller.signal.aborted) {
+          return;
+        }
+        if (
+          fetchError instanceof ApiError &&
+          (fetchError.status === 401 || fetchError.status === 403)
+        ) {
+          setStudent(null);
+          setError("Session expired. Redirecting to login...");
           return;
         }
         console.error("Error fetching student profile:", fetchError);

@@ -4,7 +4,6 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { states as ALL_STATE_OPTIONS } from "@/components/search/states";
 import {
-  API_URL,
   RESULTS_PER_PAGE_STORAGE_KEY,
   STATUS_OPTIONS,
 } from "@/features/student-search/constants";
@@ -23,6 +22,24 @@ import {
   invalidateClientCache,
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
+import { getCurrentUser } from "@/lib/api/auth";
+import {
+  addFavorite,
+  getFavorites,
+  getFavoriteStates,
+  removeFavorite,
+} from "@/lib/api/favorites";
+import {
+  getAvailableNow,
+  getCountries,
+  getLastUpdateTime,
+  getPlaced,
+  getUnassignedNow,
+} from "@/lib/api/misc";
+import {
+  searchStudents as searchStudentsApi,
+  updateStudentDatabase,
+} from "@/lib/api/students";
 
 type UseStudentSearchControllerArgs = {
   isAuthenticated: boolean;
@@ -49,6 +66,13 @@ const SPECIAL_STATE_FILTER_VALUES = new Set([
 type StateFilterOption = {
   value: string;
   label: string;
+};
+
+type StudentSearchResponse = {
+  results?: StudentRecord[];
+  page?: number;
+  total_pages?: number;
+  total_results?: number;
 };
 
 const hasSameValues = (left: string[], right: string[]) => {
@@ -276,10 +300,6 @@ export function useStudentSearchController({
     [isLcUser]
   );
 
-  const getHeaders = useCallback(() => ({
-    "Content-Type": "application/json",
-  }), []);
-
   const animateResultsRefresh = () => {
     setResultsAnimationKey((prev) => prev + 1);
   };
@@ -288,21 +308,7 @@ export function useStudentSearchController({
     try {
       const data = await getCachedValue<unknown[]>(
         "misc:last_update_time",
-        async () => {
-          const response = await fetch(`${API_URL}/misc/last_update_time`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch last update time: ${response.status}`);
-          }
-
-          return (await response.json()) as unknown[];
-        },
+        () => getLastUpdateTime(),
         CACHE_TTL_SHORT_MS
       );
       setUpdateTime(Array.isArray(data) ? (data?.[0] as string) ?? "" : "");
@@ -314,26 +320,14 @@ export function useStudentSearchController({
   const fetchFavoriteStatesForFilter = useCallback(async () => {
     const data = await getCachedValue<unknown>(
       "user:states",
-      async () => {
-        const response = await fetch(`${API_URL}/user/states`, {
-          method: "GET",
-          headers: getHeaders(),
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch user states: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown;
-      },
+      () => getFavoriteStates<unknown>(),
       CACHE_TTL_SHORT_MS
     );
 
     const parsedStateValues = parseStateValuesResponse(data);
     setLocalCoordinatorStates(parsedStateValues);
     return parsedStateValues;
-  }, [getHeaders]);
+  }, []);
 
   const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
     const sanitizedStateValue = sanitizeStateFilterValue(stateValue);
@@ -367,25 +361,21 @@ export function useStudentSearchController({
         : effectiveStatusOptions.map((status) => status.toLowerCase()).join(",");
       const resolvedStateValue = await resolveStateFilterValue(filters.state);
 
-      const response = await fetch(
-        `${API_URL}/students/search?page=${page}&page_size=${pageSize}&order_by=${sortBy}&descending=${sortDesc}`,
-        {
-          method: "POST",
-          headers: getHeaders(),
-          credentials: "include",
-          body: JSON.stringify({
-            ...filters,
-            state: resolvedStateValue,
-            country_of_origin: getCountryFilterPayload(filters.country_of_origin),
-            status: statusValue,
-            free_text: query,
-            usahsId: usahsIdQuery,
-            photo_search: photoQuery,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const data = await searchStudentsApi<StudentSearchResponse>({
+        page,
+        pageSize,
+        orderBy: sortBy,
+        descending: sortDesc,
+        filters: {
+          ...filters,
+          state: resolvedStateValue,
+          country_of_origin: getCountryFilterPayload(filters.country_of_origin),
+          status: statusValue,
+          free_text: query,
+          usahsId: usahsIdQuery,
+          photo_search: photoQuery,
+        },
+      });
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
       setStudents(data.results || []);
@@ -403,27 +393,23 @@ export function useStudentSearchController({
       const resolvedStateValue = await resolveStateFilterValue(
         sanitizedDefaultStateValue
       );
-      const response = await fetch(
-        `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
-        {
-          method: "POST",
-          headers: getHeaders(),
-          credentials: "include",
-          body: JSON.stringify({
-            ...defaultFilters,
-            state: resolvedStateValue,
-            country_of_origin: getCountryFilterPayload(defaultFilters.country_of_origin),
-            status: "Allocated",
-            free_text: "",
-            usahsId: "",
-            photo_search: "",
-            order_by: orderBy,
-            descending,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const data = await searchStudentsApi<StudentSearchResponse>({
+        page: 1,
+        pageSize: resultsPerPage,
+        orderBy,
+        descending,
+        filters: {
+          ...defaultFilters,
+          state: resolvedStateValue,
+          country_of_origin: getCountryFilterPayload(defaultFilters.country_of_origin),
+          status: "Allocated",
+          free_text: "",
+          usahsId: "",
+          photo_search: "",
+          order_by: orderBy,
+          descending,
+        },
+      });
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
       setStudents(data.results || []);
@@ -455,40 +441,21 @@ export function useStudentSearchController({
       const cacheKey = `students:status:${statusKey}:state:${resolvedStateToken}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
         filters
       )}`;
-      const data = await getCachedValue<{
-        results?: StudentRecord[];
-        page?: number;
-        total_pages?: number;
-        total_results?: number;
-      }>(
+      const data = await getCachedValue<StudentSearchResponse>(
         cacheKey,
-        async () => {
-          const response = await fetch(
-            `${API_URL}/students/search?page=1&page_size=${resultsPerPage}&order_by=${orderBy}&descending=${descending}`,
-            {
-              method: "POST",
-              headers: getHeaders(),
-              credentials: "include",
-              body: JSON.stringify({
-                ...filters,
-                state: resolvedStateValue,
-                country_of_origin: getCountryFilterPayload(filters.country_of_origin),
-                statusOptions: sanitizedStatus,
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch students by status: ${response.status}`);
-          }
-
-          return (await response.json()) as {
-            results?: StudentRecord[];
-            page?: number;
-            total_pages?: number;
-            total_results?: number;
-          };
-        },
+        () =>
+          searchStudentsApi<StudentSearchResponse>({
+            page: 1,
+            pageSize: resultsPerPage,
+            orderBy,
+            descending,
+            filters: {
+              ...filters,
+              state: resolvedStateValue,
+              country_of_origin: getCountryFilterPayload(filters.country_of_origin),
+              statusOptions: sanitizedStatus,
+            },
+          }),
         CACHE_TTL_SHORT_MS
       );
       setStudents(data.results || []);
@@ -517,21 +484,7 @@ export function useStudentSearchController({
     try {
       const data = await getCachedValue<{ first_name?: string; account_type?: string }>(
         "auth:me",
-        async () => {
-          const response = await fetch(`${API_URL}/auth/me`, {
-            headers: getHeaders(),
-            credentials: "include",
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch auth user: ${response.status}`);
-          }
-
-          return (await response.json()) as {
-            first_name?: string;
-            account_type?: string;
-          };
-        },
+        () => getCurrentUser({ redirectOnUnauthorized: false }),
         CACHE_TTL_MEDIUM_MS
       );
       setFirstName(data.first_name ?? "");
@@ -662,19 +615,9 @@ export function useStudentSearchController({
   const handleFavorite = async (appId: string, event?: React.MouseEvent) => {
     event?.stopPropagation();
     try {
-      const response = await fetch(
-        `${API_URL}/user/favorites?app_id=${appId.toString()}`,
-        {
-          method: "PATCH",
-          headers: { accept: "application/json" },
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        setFavoritedStudents((prev) => new Set(prev).add(appId.toString()));
-        invalidateClientCache("user:favorites");
-      }
+      await addFavorite(appId);
+      setFavoritedStudents((prev) => new Set(prev).add(appId.toString()));
+      invalidateClientCache("user:favorites");
     } catch (error) {
       console.error("Error favoriting student:", error);
     }
@@ -686,23 +629,13 @@ export function useStudentSearchController({
   ) => {
     event?.stopPropagation();
     try {
-      const response = await fetch(
-        `${API_URL}/user/favorites?app_id=${appId.toString()}`,
-        {
-          method: "DELETE",
-          headers: { accept: "application/json" },
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        setFavoritedStudents((prev) => {
-          const next = new Set(prev);
-          next.delete(appId.toString());
-          return next;
-        });
-        invalidateClientCache("user:favorites");
-      }
+      await removeFavorite(appId);
+      setFavoritedStudents((prev) => {
+        const next = new Set(prev);
+        next.delete(appId.toString());
+        return next;
+      });
+      invalidateClientCache("user:favorites");
     } catch (error) {
       console.error("Error unfavoriting student:", error);
     }
@@ -713,19 +646,7 @@ export function useStudentSearchController({
       try {
         const data = await getCachedValue<StudentRecord[]>(
           "user:favorites",
-          async () => {
-            const response = await fetch(`${API_URL}/user/favorites`, {
-              method: "GET",
-              headers: { accept: "application/json" },
-              credentials: "include",
-            });
-
-            if (!response.ok) {
-              throw new Error(`Failed to fetch favorites: ${response.status}`);
-            }
-
-            return (await response.json()) as StudentRecord[];
-          },
+          () => getFavorites<StudentRecord[]>(),
           CACHE_TTL_SHORT_MS
         );
 
@@ -752,15 +673,7 @@ export function useStudentSearchController({
     setIsUpdatingDatabase(true);
 
     try {
-      const response = await fetch(`${API_URL}/students/update_db`, {
-        method: "POST",
-        headers: getHeaders(),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update DB: ${response.status}`);
-      }
+      await updateStudentDatabase();
 
       invalidateClientCacheByPrefix("misc:");
       invalidateClientCacheByPrefix("students:status:");
@@ -796,7 +709,6 @@ export function useStudentSearchController({
     if (isAuthenticated) {
       fetchLoggedInUser();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -840,19 +752,7 @@ export function useStudentSearchController({
       try {
         const data = await getCachedValue<StudentRecord[]>(
           "user:favorites",
-          async () => {
-            const response = await fetch(`${API_URL}/user/favorites`, {
-              method: "GET",
-              headers: { accept: "application/json" },
-              credentials: "include",
-            });
-
-            if (!response.ok) {
-              throw new Error(`Failed to fetch favorites: ${response.status}`);
-            }
-
-            return (await response.json()) as StudentRecord[];
-          },
+          () => getFavorites<StudentRecord[]>(),
           CACHE_TTL_SHORT_MS
         );
         const favoritedIds = new Set<string>(
@@ -874,21 +774,7 @@ export function useStudentSearchController({
 
     getCachedValue<unknown>(
       "misc:countries",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/countries`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch countries: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown;
-      },
+      () => getCountries(),
       CACHE_TTL_LONG_MS
     )
       .then((data) => {
@@ -912,21 +798,7 @@ export function useStudentSearchController({
 
     getCachedValue<unknown[]>(
       "misc:available_now",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/available_now`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch available_now: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown[];
-      },
+      () => getAvailableNow(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {
@@ -940,21 +812,7 @@ export function useStudentSearchController({
 
     getCachedValue<unknown[]>(
       "misc:unassigned_now",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/unassigned_now`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch unassigned_now: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown[];
-      },
+      () => getUnassignedNow(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {
@@ -968,21 +826,7 @@ export function useStudentSearchController({
 
     getCachedValue<unknown>(
       "misc:placed",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/placed`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch placed count: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown;
-      },
+      () => getPlaced(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {

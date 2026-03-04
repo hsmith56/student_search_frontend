@@ -15,8 +15,9 @@ import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
-
-const API_URL = "/api";
+import { getCurrentUser } from "@/lib/api/auth";
+import { getLastUpdateTime } from "@/lib/api/misc";
+import { updateStudentDatabase } from "@/lib/api/students";
 
 export default function HomePage() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -67,33 +68,15 @@ export default function HomePage() {
 
     const fetchHeaderData = async () => {
       try {
-        const [userResponse, updateTimeResponse] = await Promise.all([
-          fetch(`${API_URL}/auth/me`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-          }),
-          fetch(`${API_URL}/misc/last_update_time`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-          }),
+        const [userData, updateData] = await Promise.all([
+          getCurrentUser({ redirectOnUnauthorized: false }),
+          getLastUpdateTime(),
         ]);
 
-        if (userResponse.ok) {
-          const userData = (await userResponse.json()) as {
-            first_name?: string;
-            account_type?: string;
-          };
-          setFirstName(userData?.first_name ?? "");
-          setAccountType(userData?.account_type ?? "");
-        }
-
-        if (updateTimeResponse.ok) {
-          const updateData = (await updateTimeResponse.json()) as unknown[];
-          if (Array.isArray(updateData)) {
-            setUpdateTime(String(updateData[0] ?? ""));
-          }
+        setFirstName(userData?.first_name ?? "");
+        setAccountType(userData?.account_type ?? "");
+        if (Array.isArray(updateData)) {
+          setUpdateTime(String(updateData[0] ?? ""));
         }
       } catch (error) {
         console.error("Error loading header data:", error);
@@ -110,31 +93,15 @@ export default function HomePage() {
     setIsUpdatingDatabase(true);
 
     try {
-      const response = await fetch(`${API_URL}/students/update_db`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update DB: ${response.status}`);
-      }
+      await updateStudentDatabase();
 
       invalidateClientCacheByPrefix("misc:");
       invalidateClientCacheByPrefix("students:status:");
       invalidateClientCacheByPrefix("newsFeed:list");
 
-      const latestUpdateResponse = await fetch(`${API_URL}/misc/last_update_time`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-
-      if (latestUpdateResponse.ok) {
-        const latestUpdateData = (await latestUpdateResponse.json()) as unknown[];
-        if (Array.isArray(latestUpdateData)) {
-          setUpdateTime(String(latestUpdateData[0] ?? ""));
-        }
+      const latestUpdateData = await getLastUpdateTime();
+      if (Array.isArray(latestUpdateData)) {
+        setUpdateTime(String(latestUpdateData[0] ?? ""));
       }
     } catch (error) {
       console.error("Error updating student DB:", error);

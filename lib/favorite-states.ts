@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invalidateClientCache } from "@/lib/client-cache";
-
-const API_URL = "/api";
+import { getCurrentUser } from "@/lib/api/auth";
+import { updateFavoriteStates } from "@/lib/api/favorites";
 
 function normalizeFavoriteStates(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -53,17 +53,9 @@ export function useFavoriteStates() {
   const reloadFavoriteStates = useCallback(async () => {
     setIsLoadingFavoriteStates(true);
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load placing states: ${response.status}`);
-      }
-
-      const data = (await response.json()) as {
+      const data = (await getCurrentUser({
+        redirectOnUnauthorized: false,
+      })) as {
         placing_states?: unknown;
         account_type?: unknown;
       };
@@ -123,16 +115,7 @@ export function useFavoriteStates() {
     setIsApplyingFavoriteStates(true);
 
     try {
-      const response = await fetch(`${API_URL}/user/states`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(nextStates),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update favorite states: ${response.status}`);
-      }
+      await updateFavoriteStates(nextStates);
 
       setFavoriteStates(nextStates);
       setSavedFavoriteStates(nextStates);

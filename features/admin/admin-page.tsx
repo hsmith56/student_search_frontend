@@ -27,8 +27,16 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
+import { getRpmManagers } from "@/lib/api/admin";
+import { getCurrentUser } from "@/lib/api/auth";
+import { getLastUpdateTime } from "@/lib/api/misc";
+import {
+  createRpmSignupRequest,
+  deleteRpmAdminUser,
+  getRpmAdminUsers,
+  patchRpmAdminUser,
+} from "@/lib/api/rpm";
 
-const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
 
@@ -470,22 +478,7 @@ export default function AdminPage({
 
     getCachedValue<{ first_name?: string; account_type?: string }>(
       "auth:me",
-      async () => {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch auth user: ${response.status}`);
-        }
-
-        return (await response.json()) as {
-          first_name?: string;
-          account_type?: string;
-        };
-      },
+      () => getCurrentUser({ redirectOnUnauthorized: false }),
       CACHE_TTL_MEDIUM_MS
     )
       .then((data) => {
@@ -502,19 +495,7 @@ export default function AdminPage({
 
     getCachedValue<unknown[]>(
       "misc:last_update_time",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/last_update_time`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch last update time: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown[];
-      },
+      () => getLastUpdateTime(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {
@@ -537,17 +518,7 @@ export default function AdminPage({
     getCachedValue<AdminUserApiItem[]>(
       "admin:rpm_admin_get",
       async () => {
-        const response = await fetch(`${API_URL}/rpm/admin_get`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to load users: ${response.status}`);
-        }
-
-        const payload = (await response.json()) as unknown;
+        const payload = await getRpmAdminUsers<unknown>();
         return Array.isArray(payload) ? (payload as AdminUserApiItem[]) : [];
       },
       CACHE_TTL_SHORT_MS
@@ -594,17 +565,7 @@ export default function AdminPage({
     getCachedValue<RpmOption[]>(
       "admin:get_rpms",
       async () => {
-        const response = await fetch(`${API_URL}/admin/get_rpms`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to load RPM list (${response.status}).`);
-        }
-
-        const payload = (await response.json()) as unknown;
+        const payload = await getRpmManagers<unknown>();
         return parseRpmOptions(payload);
       },
       CACHE_TTL_SHORT_MS
@@ -694,32 +655,10 @@ export default function AdminPage({
 
     try {
       if (draftAccountType === "lc") {
-        const response = await fetch(
-          `${API_URL}/rpm/admin_patch/${encodeURIComponent(selectedUser.id)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              manager_id: nextManagerId || null,
-              states: draftStates,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          let message = `Failed to update LC assignment (${response.status}).`;
-          try {
-            const errorBody = (await response.json()) as { detail?: unknown };
-            if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-              message = errorBody.detail;
-            }
-          } catch {
-            // Keep default message when backend body is not JSON.
-          }
-          setManageError(message);
-          return;
-        }
+        await patchRpmAdminUser(selectedUser.id, {
+          manager_id: nextManagerId || null,
+          states: draftStates,
+        });
       }
 
       setManagedUsers((previous) =>
@@ -778,28 +717,7 @@ export default function AdminPage({
     setIsCreatingAccount(true);
 
     try {
-      const response = await fetch(`${API_URL}/rpm/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let message = `Failed to create account (${response.status}).`;
-        try {
-          const errorBody = (await response.json()) as { detail?: unknown };
-          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when backend body is not JSON.
-        }
-        setWizardError(message);
-        return;
-      }
-
-      const created = (await response.json()) as AdminSignupRegisterResponse;
+      const created = await createRpmSignupRequest<AdminSignupRegisterResponse>(payload);
       const createdItem: AdminUserApiItem = {
         ...created,
         first_name:
@@ -861,28 +779,7 @@ export default function AdminPage({
     setIsDeletingAccount(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/rpm/admin_delete/${encodeURIComponent(String(deletedUser.id))}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        let message = `Failed to delete account (${response.status}).`;
-        try {
-          const errorBody = (await response.json()) as { detail?: unknown };
-          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when backend body is not JSON.
-        }
-        setDeleteError(message);
-        return;
-      }
+      await deleteRpmAdminUser(String(deletedUser.id));
 
       setManagedUsers((previous) => previous.filter((user) => user.id !== deletedUser.id));
       setGeneratedCodes((previous) => previous.filter((code) => code.id !== deletedUser.id));

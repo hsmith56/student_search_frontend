@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
-import { API_URL } from "@/features/student-search/constants";
+import { createFeedback } from "@/lib/api/feedback";
 
 type UseFeedbackFormOptions = {
   onSuccess?: () => void | Promise<void>;
@@ -30,18 +30,7 @@ export function useFeedbackForm(options: UseFeedbackFormOptions = {}) {
     setFeedbackSuccess(null);
 
     try {
-      const response = await fetch(`${API_URL}/feedback/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ comment: trimmedComment }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit feedback");
-      }
+      await createFeedback(trimmedComment);
 
       setFeedbackComment("");
       setFeedbackSuccess("Feedback submitted. Thank you.");

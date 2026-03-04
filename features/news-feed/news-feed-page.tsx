@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Bell,
   Clock3,
-  RadioTower,
   RefreshCw,
   UserRoundCheck,
 } from "lucide-react";
@@ -23,11 +22,15 @@ import {
 } from "@/lib/client-cache";
 import type { HeaderView } from "@/components/layout/Header";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
+import { getCurrentUser } from "@/lib/api/auth";
+import { addFavorite, getFavorites, removeFavorite } from "@/lib/api/favorites";
+import { getLastUpdateTime } from "@/lib/api/misc";
+import { getNewsFeed } from "@/lib/api/news-feed";
+import { getStudentById, updateStudentDatabase } from "@/lib/api/students";
 
-const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
-const NEWS_FEED_LIMIT = 100;
+const NEWS_FEED_LIMIT = 50;
 
 const NEWS_FEED_STATUS_OPTIONS = ["Unassigned", "Allocated", "Placed"] as const;
 
@@ -180,7 +183,6 @@ function buildNewsFeedRequest(filters: NewsFeedFilters) {
   const queryString = searchParams.toString();
   return {
     queryString,
-    requestUrl: `${API_URL}/news_feed?${queryString}`,
     cacheKey: `newsFeed:list:${queryString}`,
   };
 }
@@ -263,19 +265,7 @@ export default function NewsFeedPage({
       const normalized = await getCachedValue<NewsFeedItem[]>(
         newsFeedRequest.cacheKey,
         async () => {
-          const response = await fetch(newsFeedRequest.requestUrl, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch news feed: ${response.status}`);
-          }
-
-          const payload: unknown = await response.json();
+          const payload = await getNewsFeed<unknown>(newsFeedRequest.queryString);
           return normalizeNewsFeedPayload(payload);
         },
         CACHE_TTL_SHORT_MS,
@@ -303,22 +293,7 @@ export default function NewsFeedPage({
 
     getCachedValue<{ first_name?: string; account_type?: string }>(
       "auth:me",
-      async () => {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch auth user: ${response.status}`);
-        }
-
-        return (await response.json()) as {
-          first_name?: string;
-          account_type?: string;
-        };
-      },
+      () => getCurrentUser({ redirectOnUnauthorized: false }),
       CACHE_TTL_MEDIUM_MS
     )
       .then((data) => {
@@ -337,19 +312,7 @@ export default function NewsFeedPage({
 
     getCachedValue<unknown[]>(
       "misc:last_update_time",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/last_update_time`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch last update time: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown[];
-      },
+      () => getLastUpdateTime(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {
@@ -372,19 +335,7 @@ export default function NewsFeedPage({
 
     getCachedValue<StudentRecord[]>(
       "user:favorites",
-      async () => {
-        const response = await fetch(`${API_URL}/user/favorites`, {
-          method: "GET",
-          headers: { accept: "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch favorites: ${response.status}`);
-        }
-
-        return (await response.json()) as StudentRecord[];
-      },
+      () => getFavorites<StudentRecord[]>(),
       CACHE_TTL_SHORT_MS
     )
       .then((data: unknown) => {
@@ -415,35 +366,13 @@ export default function NewsFeedPage({
     setIsUpdatingDatabase(true);
 
     try {
-      const response = await fetch(`${API_URL}/students/update_db`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update DB: ${response.status}`);
-      }
+      await updateStudentDatabase();
 
       invalidateClientCacheByPrefix("misc:");
       invalidateClientCacheByPrefix("newsFeed:list");
       const latestUpdate = await getCachedValue<unknown[]>(
         "misc:last_update_time",
-        async () => {
-          const updateTimeResponse = await fetch(`${API_URL}/misc/last_update_time`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-          });
-
-          if (!updateTimeResponse.ok) {
-            throw new Error(
-              `Failed to fetch last update time: ${updateTimeResponse.status}`
-            );
-          }
-
-          return (await updateTimeResponse.json()) as unknown[];
-        },
+        () => getLastUpdateTime(),
         CACHE_TTL_SHORT_MS
       );
       if (Array.isArray(latestUpdate) && latestUpdate.length > 0) {
@@ -463,19 +392,7 @@ export default function NewsFeedPage({
     try {
       const payload = await getCachedValue<StudentRecord>(
         `student:full:${studentId}`,
-        async () => {
-          const response = await fetch(`${API_URL}/students/full/${studentId}`, {
-            method: "GET",
-            headers: { accept: "application/json" },
-            credentials: "include",
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch student ${studentId}: ${response.status}`);
-          }
-
-          return (await response.json()) as StudentRecord;
-        },
+        () => getStudentById<StudentRecord>(studentId),
         CACHE_TTL_MEDIUM_MS
       );
       const normalizedStudent: StudentRecord = {
@@ -493,16 +410,9 @@ export default function NewsFeedPage({
 
   const handleFavorite = useCallback(async (appId: string) => {
     try {
-      const response = await fetch(`${API_URL}/user/favorites?app_id=${appId}`, {
-        method: "PATCH",
-        headers: { accept: "application/json" },
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        setFavoritedStudents((previous) => new Set(previous).add(appId));
-        invalidateClientCache("user:favorites");
-      }
+      await addFavorite(appId);
+      setFavoritedStudents((previous) => new Set(previous).add(appId));
+      invalidateClientCache("user:favorites");
     } catch (error) {
       console.error("Error favoriting student:", error);
     }
@@ -510,20 +420,13 @@ export default function NewsFeedPage({
 
   const handleUnfavorite = useCallback(async (appId: string) => {
     try {
-      const response = await fetch(`${API_URL}/user/favorites?app_id=${appId}`, {
-        method: "DELETE",
-        headers: { accept: "application/json" },
-        credentials: "include",
+      await removeFavorite(appId);
+      setFavoritedStudents((previous) => {
+        const next = new Set(previous);
+        next.delete(appId);
+        return next;
       });
-
-      if (response.ok) {
-        setFavoritedStudents((previous) => {
-          const next = new Set(previous);
-          next.delete(appId);
-          return next;
-        });
-        invalidateClientCache("user:favorites");
-      }
+      invalidateClientCache("user:favorites");
     } catch (error) {
       console.error("Error unfavoriting student:", error);
     }

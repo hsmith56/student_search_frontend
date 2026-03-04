@@ -26,8 +26,15 @@ import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
 import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
+import { getCurrentUser } from "@/lib/api/auth";
+import { getLastUpdateTime } from "@/lib/api/misc";
+import {
+  createRpmSignupRequest,
+  getRpmSignupRequests,
+  resendRpmInvitation,
+  updateRpmSignupRequest,
+} from "@/lib/api/rpm";
 
-const API_URL = "/api";
 const CACHE_TTL_SHORT_MS = 30_000;
 const CACHE_TTL_MEDIUM_MS = 5 * 60_000;
 
@@ -332,22 +339,7 @@ export default function RpmPage({
 
     getCachedValue<{ first_name?: string; account_type?: string }>(
       "auth:me",
-      async () => {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch auth user: ${response.status}`);
-        }
-
-        return (await response.json()) as {
-          first_name?: string;
-          account_type?: string;
-        };
-      },
+      () => getCurrentUser({ redirectOnUnauthorized: false }),
       CACHE_TTL_MEDIUM_MS
     )
       .then((data) => {
@@ -364,19 +356,7 @@ export default function RpmPage({
 
     getCachedValue<unknown[]>(
       "misc:last_update_time",
-      async () => {
-        const response = await fetch(`${API_URL}/misc/last_update_time`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch last update time: ${response.status}`);
-        }
-
-        return (await response.json()) as unknown[];
-      },
+      () => getLastUpdateTime(),
       CACHE_TTL_SHORT_MS
     )
       .then((data) => {
@@ -400,27 +380,7 @@ export default function RpmPage({
       setLoadError(null);
 
       try {
-        const response = await fetch(`${API_URL}/rpm/register`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          let message = `Failed to load signup requests (${response.status}).`;
-          try {
-            const errorBody = (await response.json()) as { detail?: unknown };
-            if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-              message = errorBody.detail;
-            }
-          } catch {
-            // Keep default message when backend body is not JSON.
-          }
-
-          throw new Error(message);
-        }
-
-        const payload = (await response.json()) as unknown;
+        const payload = await getRpmSignupRequests<unknown>();
         const rows = Array.isArray(payload) ? (payload as RpmSignupApiItem[]) : [];
         const sortedRows = [...rows].sort(
           (left, right) =>
@@ -525,33 +485,10 @@ export default function RpmPage({
     setIsSavingUserSettings(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/rpm/register/${encodeURIComponent(selectedUser.id)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            states: draftStates,
-            notes_text: trimmedNote,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        let message = `Failed to update account (${response.status}).`;
-        try {
-          const errorBody = (await response.json()) as { detail?: unknown };
-          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when backend body is not JSON.
-        }
-
-        setManageError(message);
-        return;
-      }
+      await updateRpmSignupRequest(selectedUser.id, {
+        states: draftStates,
+        notes_text: trimmedNote,
+      });
 
       setLcUsers((previous) =>
         previous.map((user) =>
@@ -606,28 +543,7 @@ export default function RpmPage({
         account_type: "lc" as const,
       };
 
-      const response = await fetch(`${API_URL}/rpm/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let message = `Failed to create signup code (${response.status}).`;
-        try {
-          const errorBody = (await response.json()) as { detail?: unknown };
-          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when backend body is not JSON.
-        }
-        setWizardError(message);
-        return;
-      }
-
-      const created = (await response.json()) as RpmSignupRegisterResponse;
+      const created = await createRpmSignupRequest<RpmSignupRegisterResponse>(payload);
       const createdItem: RpmSignupApiItem = {
         ...created,
         first_name:
@@ -683,29 +599,7 @@ export default function RpmPage({
     setIsResendingInvitation(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/rpm/register/${encodeURIComponent(selectedUser.id)}/resend-invitation`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        let message = `Failed to resend invitation (${response.status}).`;
-        try {
-          const errorBody = (await response.json()) as { detail?: unknown };
-          if (typeof errorBody.detail === "string" && errorBody.detail.trim()) {
-            message = errorBody.detail;
-          }
-        } catch {
-          // Keep default message when backend body is not JSON.
-        }
-
-        setManageError(message);
-        return;
-      }
+      await resendRpmInvitation(selectedUser.id);
 
       setSaveMessage(`Resent signup email to ${selectedUser.fullName}.`);
     } catch {

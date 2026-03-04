@@ -21,8 +21,9 @@ import type { HeaderView } from "@/components/layout/Header";
 import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
 import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-form";
 import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
-
-const API_URL = "/api";
+import { getCurrentUser } from "@/lib/api/auth";
+import { deleteFeedbackItem, getFeedbackItems } from "@/lib/api/feedback";
+import { getLastUpdateTime } from "@/lib/api/misc";
 
 type FeedbackItem = {
   id: number;
@@ -80,15 +81,9 @@ export default function FeedbackPage({
 
     const fetchUser = async () => {
       try {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        if (!response.ok) return;
-        const data = (await response.json()) as {
+        const data = (await getCurrentUser({
+          redirectOnUnauthorized: false,
+        })) as {
           first_name?: string;
           account_type?: string;
         };
@@ -102,16 +97,8 @@ export default function FeedbackPage({
 
     const fetchUpdateTime = async () => {
       try {
-        const response = await fetch(`${API_URL}/misc/last_update_time`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        setUpdateTime(data?.[0] || "");
+        const data = await getLastUpdateTime();
+        setUpdateTime(String(data?.[0] ?? ""));
       } catch (fetchError) {
         console.error("Error loading update time:", fetchError);
       }
@@ -126,19 +113,7 @@ export default function FeedbackPage({
     else setIsLoadingFeedback(true);
 
     try {
-      const response = await fetch(`${API_URL}/feedback/`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to load feedback");
-      }
-
-      const data = await response.json();
+      const data = await getFeedbackItems<unknown>();
       setFeedback(Array.isArray(data) ? data : []);
       setError(null);
     } catch (fetchError) {
@@ -182,14 +157,7 @@ export default function FeedbackPage({
     });
 
     try {
-      const response = await fetch(`${API_URL}/feedback/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete feedback");
-      }
+      await deleteFeedbackItem(id);
 
       setFeedback((prev) => prev.filter((item) => item.id !== id));
       setError(null);

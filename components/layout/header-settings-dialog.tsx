@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFavoriteStates } from "@/lib/favorite-states";
+import { changePassword } from "@/lib/api/auth";
 
-const API_URL = "/api";
 const EXCLUDED_STATE_VALUES = new Set(["all", "no_pref", "state_only", "my_states"]);
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -26,7 +26,6 @@ export function HeaderSettingsDialog({
   const {
     favoriteStates,
     toggleFavoriteState,
-    clearFavoriteStates,
     discardFavoriteStateChanges,
     applyFavoriteStates,
     reloadFavoriteStates,
@@ -94,31 +93,10 @@ export function HeaderSettingsDialog({
 
     setIsResettingPassword(true);
     try {
-      const response = await fetch(`${API_URL}/auth/change_password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          accept: "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          new_password: nextPassword,
-          password: nextPassword,
-        }),
+      await changePassword({
+        new_password: nextPassword,
+        password: nextPassword,
       });
-
-      if (!response.ok) {
-        let errorMessage = "Unable to reset password right now.";
-        try {
-          const errorPayload = (await response.json()) as { detail?: unknown };
-          if (typeof errorPayload.detail === "string" && errorPayload.detail.trim()) {
-            errorMessage = errorPayload.detail;
-          }
-        } catch {
-          // Keep default message when response body is not JSON.
-        }
-        throw new Error(errorMessage);
-      }
 
       resetPasswordFields();
       setPasswordResetSuccess("Password updated successfully.");
