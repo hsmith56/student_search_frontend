@@ -291,6 +291,7 @@ export default function RpmPage({
   const [wizardStateQuery, setWizardStateQuery] = useState("");
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [isCreatingSignupCode, setIsCreatingSignupCode] = useState(false);
+  const [isWizardStatesSectionExpanded, setIsWizardStatesSectionExpanded] = useState(false);
   const [draftStateQuery, setDraftStateQuery] = useState("");
   const [isDraftStatesSectionExpanded, setIsDraftStatesSectionExpanded] = useState(false);
 
@@ -474,12 +475,14 @@ export default function RpmPage({
     setWizardEmail("");
     setWizardStates([]);
     setWizardStateQuery("");
+    setIsWizardStatesSectionExpanded(false);
     setWizardError(null);
   };
 
   const openNewLcWizard = () => {
     setSaveMessage(null);
     setWizardError(null);
+    setIsWizardStatesSectionExpanded(false);
     setIsWizardOpen(true);
   };
 
@@ -532,6 +535,7 @@ export default function RpmPage({
     }
 
     if (wizardStates.length === 0) {
+      setIsWizardStatesSectionExpanded(true);
       setWizardError("Select at least one state.");
       return;
     }
@@ -701,7 +705,7 @@ export default function RpmPage({
           <section className="rpm-command-panel rounded-3xl p-6">
             
             <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--brand-ink)]">
-              Local Coordinator Dashboard
+              LC Dashboard
             </h1>
             <p className="mt-1.5 text-sm text-[var(--brand-body)]">
               Manage each LC user&apos;s states and maintain personal notes per user. If you provide an email address, the code will automatically be sent to their inbox. If no email is provided, then you will need to manually share the code with them.
@@ -844,7 +848,12 @@ export default function RpmPage({
           }
         }}
       >
-        <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
+        <DialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+          className="w-[92vw] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
               New LC Wizard
@@ -901,40 +910,67 @@ export default function RpmPage({
             </label>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-              States
-            </p>
-            <input
-              type="text"
-              value={wizardStateQuery}
-              onChange={(event) => setWizardStateQuery(event.target.value)}
-              placeholder="Search states"
-              className="mt-2 h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
-            />
-            <div className="mt-2 max-h-[150px] space-y-2 overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.58)] p-3">
-              {filteredWizardStateOptions.map((stateOption) => {
-                const isChecked = wizardStates.includes(stateOption.value);
-                return (
-                  <label
-                    key={`wizard-${stateOption.value}`}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-sm font-medium text-[var(--brand-body)]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleWizardState(stateOption.value)}
-                      className="h-4 w-4 accent-[var(--brand-primary)]"
-                    />
-                    {stateOption.label}
-                  </label>
-                );
-              })}
-              {filteredWizardStateOptions.length === 0 ? (
-                <p className="py-2 text-sm text-[var(--brand-muted)]">No states found.</p>
-              ) : null}
-            </div>
-          </div>
+          <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.78)] p-4">
+            <button
+              type="button"
+              onClick={() =>
+                setIsWizardStatesSectionExpanded((current) => !current)
+              }
+              aria-expanded={isWizardStatesSectionExpanded}
+              aria-controls="rpm-wizard-states"
+              className="flex w-full items-start justify-between gap-3 text-left"
+            >
+              <div>
+                <h3 className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
+                  <MapPinned className="h-4 w-4 text-[var(--brand-primary)]" />
+                  States
+                </h3>
+                <p className="mt-1 text-xs font-medium text-[var(--brand-muted)]">
+                  Assign placement states for this LC account.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-[var(--brand-muted)] transition-transform ${
+                  isWizardStatesSectionExpanded ? "rotate-180" : ""
+                }`}
+                aria-hidden
+              />
+            </button>
+
+            {isWizardStatesSectionExpanded ? (
+              <div id="rpm-wizard-states" className="mt-3">
+                <input
+                  type="text"
+                  value={wizardStateQuery}
+                  onChange={(event) => setWizardStateQuery(event.target.value)}
+                  placeholder="Search states"
+                  className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+                />
+                <div className="mt-2 max-h-[150px] space-y-2 overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.58)] p-3">
+                  {filteredWizardStateOptions.map((stateOption) => {
+                    const isChecked = wizardStates.includes(stateOption.value);
+                    return (
+                      <label
+                        key={`wizard-${stateOption.value}`}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-sm font-medium text-[var(--brand-body)]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleWizardState(stateOption.value)}
+                          className="h-4 w-4 accent-[var(--brand-primary)]"
+                        />
+                        {stateOption.label}
+                      </label>
+                    );
+                  })}
+                  {filteredWizardStateOptions.length === 0 ? (
+                    <p className="py-2 text-sm text-[var(--brand-muted)]">No states found.</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </section>
 
           <DialogFooter>
             <button
