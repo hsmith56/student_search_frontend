@@ -14,7 +14,7 @@ import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redire
 import { StudentDetailsDialog } from "@/features/student-search/components/dialogs/student-details-dialog";
 import { useSelectedStudentMedia } from "@/features/student-search/hooks/use-selected-student-media";
 import type { StudentRecord } from "@/features/student-search/types";
-import { getFavoriteStudentId, getStatusBadgeClass } from "@/features/student-search/utils";
+import { getFavoriteStudentId } from "@/features/student-search/utils";
 import {
   getCachedValue,
   invalidateClientCache,
@@ -215,6 +215,20 @@ function resolveNewsFeedStatusBadge(status: string | null | undefined) {
   }
 
   return { label: "Unavailable", themeStatus: "Unassigned" };
+}
+
+function getNewsFeedBorderClass(status: string) {
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes("placed") || normalized.includes("accepted")) {
+    return "border-[rgba(0,144,63,0.38)]";
+  }
+
+  if (normalized.includes("allocated")) {
+    return "border-[rgba(0,94,184,0.44)]";
+  }
+
+  return "border-[rgba(114,125,131,0.42)]";
 }
 
 type NewsFeedPageProps = {
@@ -614,45 +628,30 @@ export default function NewsFeedPage({
                     type="button"
                     onClick={() => void handleSelectStudent(alert.studentId)}
                     disabled={loadingStudentId === alert.studentId}
-                    className="w-full rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] p-4 text-left shadow-[0_8px_20px_rgba(0,53,84,0.09)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,53,84,0.14)] disabled:cursor-wait disabled:opacity-70"
+                    className={`w-full rounded-2xl border bg-[rgba(253,254,255,0.95)] p-4 text-left shadow-[0_8px_20px_rgba(0,53,84,0.09)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,53,84,0.14)] disabled:cursor-wait disabled:opacity-70 ${getNewsFeedBorderClass(
+                      badge.themeStatus
+                    )}`}
                     style={{ animationDelay: `${index * 35}ms` }}
                   >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
-                        <UserRoundCheck className="h-4 w-4 text-[var(--brand-primary)]" />
+                      <p className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-primary-deep)]">
+                        <UserRoundCheck className="h-4 w-4 shrink-0" />
                         {alert.firstName ?? `Student #${alert.studentId ?? "Unknown"}`} moved to{" "}
                         {alert.statusTo ?? "Allocated"}
                       </p>
+
                       <p className="mt-1 text-xs text-[var(--brand-body)]">
-                        {alert.eventType} | Event ID {alert.eventId ?? "N/A"} |{" "}
-                        {alert.statusFrom ?? "Unknown"} to {alert.statusTo ?? alert.placementState ?? "Allocated"}
+                        {alert.statusFrom ?? "Unknown"} {"->"}{" "}
+                        {alert.statusTo ?? alert.placementState ?? "Allocated"}
                       </p>
                     </div>
-
-                    {loadingStudentId === alert.studentId ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(255,194,62,0.62)] bg-[rgba(255,194,62,0.2)] px-2.5 py-1 text-[11px] font-semibold text-[#8a6200]">
-                        Loading profile...
-                      </span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getStatusBadgeClass(
-                          badge.themeStatus
-                        )}`}
-                      >
-                        {badge.label}
-                      </span>
-                    )}
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--brand-muted)]">
                     <span className="inline-flex items-center gap-1">
                       <Clock3 className="h-3.5 w-3.5" />
                       Event: {formatEventTime(alert.eventAt)}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Received: {formatEventTime(alert.receivedAt)}
                     </span>
                   </div>
                 </button>

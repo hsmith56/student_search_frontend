@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   MessageSquareText,
   Plus,
-  RefreshCw,
   CalendarDays,
   UserRound,
   ArrowLeft,
@@ -65,7 +64,6 @@ export default function FeedbackPage({
   const [updateTime, setUpdateTime] = useState("");
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const isAdminUser = accountType.toLowerCase().includes("admin");
@@ -108,9 +106,8 @@ export default function FeedbackPage({
     fetchUpdateTime();
   }, [isAuthenticated]);
 
-  const fetchFeedback = async (isManualRefresh = false) => {
-    if (isManualRefresh) setIsRefreshing(true);
-    else setIsLoadingFeedback(true);
+  const fetchFeedback = async () => {
+    setIsLoadingFeedback(true);
 
     try {
       const data = await getFeedbackItems<unknown>();
@@ -122,13 +119,12 @@ export default function FeedbackPage({
       setFeedback([]);
     } finally {
       setIsLoadingFeedback(false);
-      setIsRefreshing(false);
     }
   };
 
   const feedbackForm = useFeedbackForm({
     onSuccess: async () => {
-      await fetchFeedback(true);
+      await fetchFeedback();
     },
   });
 
@@ -232,17 +228,6 @@ export default function FeedbackPage({
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Feedback
-                  </Button>
-                  <Button
-                    onClick={() => fetchFeedback(true)}
-                    disabled={isRefreshing}
-                    variant="outline"
-                    className="h-9 border-[rgba(255,255,255,0.4)] bg-white text-[var(--brand-primary-deep)] hover:bg-[var(--brand-surface)]"
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`}
-                    />
-                    Refresh
                   </Button>
                 </div>
               </div>
