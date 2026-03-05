@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ChevronDown,
   EllipsisVertical,
   KeyRound,
+  MapPinned,
   Plus,
   Search,
   Save,
@@ -418,6 +420,7 @@ export default function AdminPage({
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [draftStateQuery, setDraftStateQuery] = useState("");
+  const [isDraftStatesSectionExpanded, setIsDraftStatesSectionExpanded] = useState(false);
   const [pendingDeleteUser, setPendingDeleteUser] = useState<ManagedUserRecord | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -590,6 +593,7 @@ export default function AdminPage({
       setDraftManagerId("");
       setDraftNote("");
       setDraftStateQuery("");
+      setIsDraftStatesSectionExpanded(false);
       setDraftAccountType("rpm");
       setManageError(null);
       setIsSavingUserSettings(false);
@@ -601,6 +605,7 @@ export default function AdminPage({
     setDraftNote(selectedUser.note);
     setDraftAccountType(selectedUser.accountType);
     setDraftStateQuery("");
+    setIsDraftStatesSectionExpanded(false);
     setManageError(null);
   }, [selectedUser]);
 
@@ -1276,40 +1281,67 @@ export default function AdminPage({
             </label>
           ) : null}
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-              States
-            </p>
-            <input
-              type="text"
-              value={draftStateQuery}
-              onChange={(event) => setDraftStateQuery(event.target.value)}
-              placeholder="Search states"
-              className="mt-2 h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
-            />
-            <div className="mt-2 max-h-[150px] space-y-2 overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.58)] p-3">
-              {filteredDraftStateOptions.map((stateOption) => {
-                const isChecked = draftStates.includes(stateOption.value);
-                return (
-                  <label
-                    key={stateOption.value}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-sm font-medium text-[var(--brand-body)]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleDraftState(stateOption.value)}
-                      className="h-4 w-4 accent-[var(--brand-primary)]"
-                    />
-                    {stateOption.label}
-                  </label>
-                );
-              })}
-              {filteredDraftStateOptions.length === 0 ? (
-                <p className="py-2 text-sm text-[var(--brand-muted)]">No states found.</p>
-              ) : null}
-            </div>
-          </div>
+          <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.78)] p-4">
+            <button
+              type="button"
+              onClick={() =>
+                setIsDraftStatesSectionExpanded((current) => !current)
+              }
+              aria-expanded={isDraftStatesSectionExpanded}
+              aria-controls="admin-manage-states"
+              className="flex w-full items-start justify-between gap-3 text-left"
+            >
+              <div>
+                <h3 className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
+                  <MapPinned className="h-4 w-4 text-[var(--brand-primary)]" />
+                  States
+                </h3>
+                <p className="mt-1 text-xs font-medium text-[var(--brand-muted)]">
+                  Assign placement states for this account.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-[var(--brand-muted)] transition-transform ${
+                  isDraftStatesSectionExpanded ? "rotate-180" : ""
+                }`}
+                aria-hidden
+              />
+            </button>
+
+            {isDraftStatesSectionExpanded ? (
+              <div id="admin-manage-states" className="mt-3">
+                <input
+                  type="text"
+                  value={draftStateQuery}
+                  onChange={(event) => setDraftStateQuery(event.target.value)}
+                  placeholder="Search states"
+                  className="h-10 w-full rounded-xl border border-[var(--brand-border)] bg-[rgba(255,255,255,0.92)] px-3 text-sm text-[var(--brand-ink)] outline-none transition-shadow placeholder:text-[var(--brand-muted)] focus-visible:ring-2 focus-visible:ring-[rgba(0,94,184,0.35)]"
+                />
+                <div className="mt-2 max-h-[150px] space-y-2 overflow-y-auto rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.58)] p-3">
+                  {filteredDraftStateOptions.map((stateOption) => {
+                    const isChecked = draftStates.includes(stateOption.value);
+                    return (
+                      <label
+                        key={stateOption.value}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.88)] px-3 py-2 text-sm font-medium text-[var(--brand-body)]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleDraftState(stateOption.value)}
+                          className="h-4 w-4 accent-[var(--brand-primary)]"
+                        />
+                        {stateOption.label}
+                      </label>
+                    );
+                  })}
+                  {filteredDraftStateOptions.length === 0 ? (
+                    <p className="py-2 text-sm text-[var(--brand-muted)]">No states found.</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </section>
 
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">

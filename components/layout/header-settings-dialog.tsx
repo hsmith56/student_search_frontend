@@ -177,7 +177,7 @@ export function HeaderSettingsDialog({
                       Database
                     </h3>
                     <p className="mt-1 text-xs font-medium text-[var(--brand-muted)]">
-                      Update student records
+                      Update data, can be done once every 4 hours.
                     </p>
                   </div>
                   <ChevronDown
@@ -191,9 +191,6 @@ export function HeaderSettingsDialog({
 
                 {expandedSection === "database" ? (
                   <div id="settings-database" className="mt-3">
-                    <p className="my-1 text-xs font-medium text-[var(--brand-muted)]">
-                      This is limited to once every 4 hours. Any RPM can click this. Nothing will happen if you click it and it has been less than 4 hours.
-                    </p>
                     <Button
                       type="button"
                       onClick={onUpdateDatabase}

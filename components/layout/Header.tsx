@@ -182,9 +182,10 @@ export default function Header({
                 >
                   <SelectTrigger
                     aria-label="Select view"
-                    className="!inline-flex !h-8 !w-8 !items-center !justify-center !gap-0 !rounded-lg !border-[var(--brand-border-soft)] !bg-[rgba(253,254,255,0.9)] !p-0 !text-[var(--brand-body)] !shadow-sm transition-colors hover:!bg-[rgba(0,94,184,0.08)] hover:!text-[var(--brand-ink)] data-[state=open]:!border-[var(--brand-primary)] data-[state=open]:!bg-[rgba(0,94,184,0.08)] [&>svg:last-child]:hidden"
+                    className="!inline-flex !h-8 !w-8 md:!w-auto !items-center !justify-center !gap-0 md:!gap-2 !rounded-lg !border-[var(--brand-border-soft)] !bg-[rgba(253,254,255,0.9)] !px-0 md:!px-3 !text-[var(--brand-body)] !shadow-sm transition-colors hover:!bg-[rgba(0,94,184,0.08)] hover:!text-[var(--brand-ink)] data-[state=open]:!border-[var(--brand-primary)] data-[state=open]:!bg-[rgba(0,94,184,0.08)] [&>svg:last-child]:hidden"
                   >
                     <PanelTop className="h-4 w-4" />
+                    <span className="hidden text-xs font-semibold md:inline">All Pages</span>
                   </SelectTrigger>
                   <SelectContent className="z-[95] border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)] backdrop-blur-xl">
                     {mobileViewOptions.map((item) => {
