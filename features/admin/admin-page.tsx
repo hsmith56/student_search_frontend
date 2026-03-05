@@ -1179,7 +1179,12 @@ export default function AdminPage({
           setSelectedUserId(null);
         }}
       >
-        <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
+        <DialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+          className="w-[92vw] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
               {selectedUser ? selectedUser.fullName : "Manage Account"}

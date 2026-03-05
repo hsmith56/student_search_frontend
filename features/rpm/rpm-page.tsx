@@ -780,7 +780,7 @@ export default function RpmPage({
 
               <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
-                  Signup Codes
+                  LC Signups
                 </h2>
                 <button
                   type="button"
@@ -788,7 +788,7 @@ export default function RpmPage({
                   className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[rgba(0,94,184,0.35)] bg-[rgba(0,94,184,0.12)] px-4 text-sm font-semibold text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(0,94,184,0.2)]"
                 >
                   <Plus className="h-4 w-4" />
-                  Generate New Signup Code
+                  Add new LC
                 </button>
 
                 <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.8)] px-3 py-2">
@@ -803,7 +803,7 @@ export default function RpmPage({
                 <div className="mt-3 space-y-2">
                   {generatedCodes.length === 0 ? (
                     <p className="text-xs text-[var(--brand-muted)]">
-                      Generate a code to start the signup queue.
+                      Onboard a new LC to start the signup queue.
                     </p>
                   ) : (
                     generatedCodes.map((entry) => (
@@ -973,7 +973,12 @@ export default function RpmPage({
           setSelectedUserId(null);
         }}
       >
-        <DialogContent className="max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]">
+        <DialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+          className="w-[92vw] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.98)]"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
               {selectedUser ? selectedUser.fullName : "Manage LC User"}
