@@ -8,7 +8,6 @@ import {
   MessageSquareText,
   ShieldCheck,
   ShieldPlus,
-  RefreshCw,
   LogOut,
   PanelTop,
 } from "lucide-react"
@@ -154,22 +153,6 @@ export default function Header({
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-muted)]">
                 {updateTime || "Not available"}
               </p>
-              {onUpdateDatabase ? (
-                <button
-                  type="button"
-                  onClick={onUpdateDatabase}
-                  disabled={isUpdatingDatabase}
-                  aria-label={isUpdatingDatabase ? "Updating database" : "Update database"}
-                  title={isUpdatingDatabase ? "Updating database" : "Update database"}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[var(--brand-surface)] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <RefreshCw
-                    className={`h-3.5 w-3.5 ${
-                      isUpdatingDatabase ? "animate-spin" : ""
-                    }`}
-                  />
-                </button>
-              ) : null}
             </div>
             <p className="sr-only">Signed in as {firstName}</p>
           </div>
@@ -199,7 +182,7 @@ export default function Header({
                 >
                   <SelectTrigger
                     aria-label="Select view"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-0 text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[rgba(0,94,184,0.08)] hover:text-[var(--brand-ink)] [&>svg:last-child]:hidden"
+                    className="!inline-flex !h-8 !w-8 !items-center !justify-center !gap-0 !rounded-lg !border-[var(--brand-border-soft)] !bg-[rgba(253,254,255,0.9)] !p-0 !text-[var(--brand-body)] !shadow-sm transition-colors hover:!bg-[rgba(0,94,184,0.08)] hover:!text-[var(--brand-ink)] data-[state=open]:!border-[var(--brand-primary)] data-[state=open]:!bg-[rgba(0,94,184,0.08)] [&>svg:last-child]:hidden"
                   >
                     <PanelTop className="h-4 w-4" />
                   </SelectTrigger>
@@ -218,7 +201,10 @@ export default function Header({
                   </SelectContent>
                 </Select>
               ) : null}
-              <HeaderSettingsDialog />
+              <HeaderSettingsDialog
+                onUpdateDatabase={onUpdateDatabase}
+                isUpdatingDatabase={isUpdatingDatabase}
+              />
               <button
                 type="button"
                 onClick={onLogout}

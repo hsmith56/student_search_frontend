@@ -6,6 +6,7 @@ import {
 import { Camera, ChevronDown, ChevronUp, LayoutGrid, List, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ToolTutorialDialog } from "@/components/layout/tool-tutorial-dialog";
 import { StudentFiltersPanel } from "@/features/student-search/components/panels/student-filters-panel";
 import type { Filters, ViewMode } from "@/features/student-search/types";
 
@@ -160,18 +161,25 @@ export function SearchControls({
           </div>
           <Button
             onClick={onFindStudents}
-            className="h-10 flex-1 whitespace-nowrap bg-gradient-to-r from-[var(--brand-accent)] to-[#ff7b1a] text-white shadow-md shadow-[rgba(255,87,0,0.24)] transition-all duration-200 hover:from-[#ea4f00] hover:to-[var(--brand-accent)] hover:shadow-lg hover:shadow-[rgba(255,87,0,0.3)] font-semibold"
+            className="h-10 w-full sm:w-auto flex-1 whitespace-nowrap bg-gradient-to-r from-[var(--brand-accent)] to-[#ff7b1a] text-white shadow-md shadow-[rgba(255,87,0,0.24)] transition-all duration-200 hover:from-[#ea4f00] hover:to-[var(--brand-accent)] hover:shadow-lg hover:shadow-[rgba(255,87,0,0.3)] font-semibold"
           >
             Find Students
           </Button>
-          <Button
-            onClick={onClearFilters}
-            variant="outline"
-            className="h-10 flex-shrink-0 whitespace-nowrap border-[var(--brand-border)] bg-transparent text-[var(--brand-body)] transition-all duration-200 hover:border-[var(--brand-primary-deep)] hover:bg-[rgba(0,53,84,0.06)] flex items-center justify-center gap-2 font-medium"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Clear Filters
-          </Button>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Button
+              onClick={onClearFilters}
+              variant="outline"
+              className="h-10 flex-1 sm:flex-shrink-0 whitespace-nowrap border-[var(--brand-border)] bg-transparent text-[var(--brand-body)] transition-all duration-200 hover:border-[var(--brand-primary-deep)] hover:bg-[rgba(0,53,84,0.06)] flex items-center justify-center gap-2 font-medium"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Clear Filters
+            </Button>
+            <ToolTutorialDialog
+              triggerLabel="How to use this tool"
+              triggerVariant="icon"
+              triggerClassName="h-10 w-10 shrink-0 rounded-lg border-[var(--brand-border)] bg-transparent text-[var(--brand-body)] hover:border-[var(--brand-primary-deep)] hover:bg-[rgba(0,53,84,0.06)]"
+            />
+          </div>
         </div>
 
         <div className="flex items-center justify-between">

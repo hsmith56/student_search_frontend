@@ -3,12 +3,6 @@ export const ORDER_BY_STORAGE_KEY = "studentSearch.orderBy";
 export const DESCENDING_STORAGE_KEY = "studentSearch.descending";
 export const RESULTS_PER_PAGE_STORAGE_KEY = "studentSearch.resultsPerPage";
 
-export const SEARCH_TIPS = [
-  "Photo search looks for keywords in the photo comment section.",
-  "Click the heart on a profile card to add it to favorites.",
-  "Select any student card to open detailed profile information.",
-];
-
 export const PROGRAM_TYPE_OPTIONS = [
   { id: "10-month-jan", label: "10 month Jan", value: "10-month-jan" },
   { id: "10-month-aug", label: "10 month Aug", value: "10-month-aug" },

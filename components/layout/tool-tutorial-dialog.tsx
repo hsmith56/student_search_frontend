@@ -23,12 +23,14 @@ type ToolTutorialDialogProps = {
   triggerLabel?: string
   triggerClassName?: string
   showTriggerIcon?: boolean
+  triggerVariant?: "default" | "icon"
 }
 
 export function ToolTutorialDialog({
   triggerLabel = "How to use this tool",
   triggerClassName,
   showTriggerIcon = true,
+  triggerVariant = "default",
 }: ToolTutorialDialogProps) {
   const [open, setOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
@@ -55,13 +57,24 @@ export function ToolTutorialDialog({
       <DialogTrigger asChild>
         <button
           type="button"
+          aria-label={triggerVariant === "icon" ? triggerLabel : undefined}
+          title={triggerVariant === "icon" ? triggerLabel : undefined}
           className={cn(
             "inline-flex items-center justify-center gap-1.5 rounded-md border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] px-2 py-1 text-xs font-semibold text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[var(--brand-surface)]",
+            triggerVariant === "icon"
+              ? "h-8 w-8 rounded-lg p-0"
+              : null,
             triggerClassName
           )}
         >
-          {showTriggerIcon ? <BookOpen className="h-3.5 w-3.5" /> : null}
-          <span>{triggerLabel}</span>
+          {triggerVariant === "icon" ? (
+            <span className="text-[17.5px] font-black leading-none">?</span>
+          ) : (
+            <>
+              {showTriggerIcon ? <BookOpen className="h-3.5 w-3.5" /> : null}
+              <span>{triggerLabel}</span>
+            </>
+          )}
         </button>
       </DialogTrigger>
 

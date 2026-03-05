@@ -4,14 +4,11 @@ import { CheckCircle2, Heart, UserCheck as UserLock, Users } from "lucide-react"
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
-import { SEARCH_TIPS } from "@/features/student-search/constants";
-import { FeedbackDialog } from "@/features/student-search/components/dialogs/feedback-dialog";
 import { PaginationControls } from "@/features/student-search/components/pagination-controls";
 import { QuickStatsSection } from "@/features/student-search/components/quick-stats-section";
 import { SearchControls } from "@/features/student-search/components/search-controls";
 import { ResultsSection } from "@/features/student-search/components/results/results-section";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
-import { useFeedbackForm } from "@/features/student-search/hooks/use-feedback-form";
 import { useIsMobile } from "@/features/student-search/hooks/use-is-mobile";
 import { useStudentSearchController } from "@/features/student-search/hooks/use-student-search-controller";
 import type { QuickStatsCard } from "@/features/student-search/types";
@@ -33,7 +30,6 @@ export default function StudentSearchPage({
   useAuthRedirect({ authLoading, isAuthenticated });
 
   const isMobile = useIsMobile();
-  const feedback = useFeedbackForm();
   const controller = useStudentSearchController({ isAuthenticated });
 
   if (authLoading || !isAuthenticated) {
@@ -117,8 +113,6 @@ export default function StudentSearchPage({
           <div className="mx-auto w-full max-w-[1900px]">
             <QuickStatsSection
               cards={quickStatsCards}
-              searchTips={SEARCH_TIPS}
-              onOpenFeedback={feedback.openFeedbackDialog}
             />
 
             <SearchControls
@@ -179,17 +173,6 @@ export default function StudentSearchPage({
 
         {!embedded && <Footer />}
       </div>
-
-      <FeedbackDialog
-        open={feedback.isFeedbackOpen}
-        onOpenChange={feedback.handleFeedbackOpenChange}
-        feedbackComment={feedback.feedbackComment}
-        onFeedbackCommentChange={feedback.setFeedbackComment}
-        feedbackError={feedback.feedbackError}
-        feedbackSuccess={feedback.feedbackSuccess}
-        isSubmittingFeedback={feedback.isSubmittingFeedback}
-        onSubmit={feedback.submitFeedback}
-      />
     </div>
   );
 }

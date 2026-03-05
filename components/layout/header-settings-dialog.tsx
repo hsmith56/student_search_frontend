@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { ChevronDown, Eye, EyeOff, LockKeyhole, Settings, X } from "lucide-react";
+import { ChevronDown, Database, Eye, EyeOff, LockKeyhole, MapPinned, RefreshCw, Settings, X } from "lucide-react";
 
 import { states } from "@/components/search/states";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,9 +13,17 @@ import { changePassword } from "@/lib/api/auth";
 const EXCLUDED_STATE_VALUES = new Set(["all", "no_pref", "state_only", "my_states"]);
 const MIN_PASSWORD_LENGTH = 6;
 
-type SettingsSection = "states" | "account" | null;
+type SettingsSection = "database" | "states" | "account" | null;
 
-export function HeaderSettingsDialog() {
+type HeaderSettingsDialogProps = {
+  onUpdateDatabase?: () => void;
+  isUpdatingDatabase?: boolean;
+};
+
+export function HeaderSettingsDialog({
+  onUpdateDatabase,
+  isUpdatingDatabase = false,
+}: HeaderSettingsDialogProps) {
   const {
     favoriteStates,
     toggleFavoriteState,
@@ -154,6 +162,53 @@ export function HeaderSettingsDialog() {
           </DialogHeader>
 
           <div className="mt-4 max-h-[62vh] space-y-4 overflow-y-auto pr-1">
+            {onUpdateDatabase ? (
+              <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.78)] p-4">
+                <button
+                  type="button"
+                  onClick={() => toggleSection("database")}
+                  aria-expanded={expandedSection === "database"}
+                  aria-controls="settings-database"
+                  className="flex w-full items-start justify-between gap-3 text-left"
+                >
+                  <div>
+                    <h3 className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
+                      <Database className="h-4 w-4 text-[var(--brand-primary)]" />
+                      Database
+                    </h3>
+                    <p className="mt-1 text-xs font-medium text-[var(--brand-muted)]">
+                      Update student records
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-[var(--brand-muted)] transition-transform",
+                      expandedSection === "database" ? "rotate-180" : "",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+
+                {expandedSection === "database" ? (
+                  <div id="settings-database" className="mt-3">
+                    <p className="my-1 text-xs font-medium text-[var(--brand-muted)]">
+                      This is limited to once every 4 hours. Any RPM can click this. Nothing will happen if you click it and it has been less than 4 hours.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={onUpdateDatabase}
+                      disabled={isUpdatingDatabase}
+                      variant="outline"
+                      className="h-10 border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] font-semibold text-[var(--brand-body)] hover:bg-[var(--brand-surface)] disabled:opacity-70"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isUpdatingDatabase ? "animate-spin" : ""}`} />
+                      {isUpdatingDatabase ? "Updating..." : "Update Database"}
+                    </Button>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
             <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.78)] p-4">
               <button
                 type="button"
@@ -163,7 +218,8 @@ export function HeaderSettingsDialog() {
                 className="flex w-full items-start justify-between gap-3 text-left"
               >
                 <div>
-                  <h3 className="text-sm font-bold text-[var(--brand-ink)]">
+                  <h3 className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-ink)]">
+                    <MapPinned className="h-4 w-4 text-[var(--brand-primary)]" />
                     Favorite States
                   </h3>
                   <p className="mt-1 text-xs font-medium text-[var(--brand-muted)]">
