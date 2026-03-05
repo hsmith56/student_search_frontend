@@ -13,16 +13,9 @@ import { changePassword } from "@/lib/api/auth";
 const EXCLUDED_STATE_VALUES = new Set(["all", "no_pref", "state_only", "my_states"]);
 const MIN_PASSWORD_LENGTH = 6;
 
-type HeaderSettingsDialogProps = {
-  desktopTriggerClassName?: string;
-  mobileTriggerClassName?: string;
-};
 type SettingsSection = "states" | "account" | null;
 
-export function HeaderSettingsDialog({
-  desktopTriggerClassName,
-  mobileTriggerClassName,
-}: HeaderSettingsDialogProps) {
+export function HeaderSettingsDialog() {
   const {
     favoriteStates,
     toggleFavoriteState,
@@ -142,23 +135,10 @@ export function HeaderSettingsDialog({
       <DialogTrigger asChild>
         <button
           type="button"
-          className={cn(
-            "hidden md:flex items-center gap-1.5 transition-colors duration-200 hover:text-[var(--brand-primary-deep)]",
-            desktopTriggerClassName,
-          )}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          Settings
-        </button>
-      </DialogTrigger>
-
-      <DialogTrigger asChild>
-        <button
-          type="button"
           aria-label="Open settings"
+          title="Open settings"
           className={cn(
-            "inline-flex md:hidden items-center justify-center rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-2 text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[rgba(0,94,184,0.08)] hover:text-[var(--brand-ink)]",
-            mobileTriggerClassName,
+            "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.9)] p-0 text-[var(--brand-body)] shadow-sm transition-colors hover:bg-[rgba(0,94,184,0.08)] hover:text-[var(--brand-ink)]",
           )}
         >
           <Settings className="h-4 w-4" />
