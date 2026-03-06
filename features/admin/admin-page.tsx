@@ -964,7 +964,10 @@ export default function AdminPage({
                             {getAccountTypeLabel(user.accountType)}
                           </span>
                           <p className="min-w-0 truncate text-sm font-semibold text-[var(--brand-ink)]">
-                            {user.fullName.trim().split(/\s+/)[0] ?? user.fullName}
+                            <span className="md:hidden">
+                              {user.fullName.trim().split(/\s+/)[0] ?? user.fullName}
+                            </span>
+                            <span className="hidden md:inline">{user.fullName}</span>
                           </p>
                           <span
                             className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${
