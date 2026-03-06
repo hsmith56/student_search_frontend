@@ -366,14 +366,10 @@ export default function StudentProfileSixPage() {
                   label="Favorite Subjects"
                   value={textOrDash(student.favorite_subjects)}
                 />
-                <SummaryRow
-                  label="Coordinator"
-                  value={textOrDash(student.local_coordinator)}
-                />
               </Panel>
             </div>
 
-            <Panel title="Messages and Narrative" icon={MessageSquareQuote}>
+            <Panel title="Messages" icon={MessageSquareQuote}>
               {narratives.length > 0 ? (
                 <div className="space-y-3">
                   {narratives.map((entry) => (
