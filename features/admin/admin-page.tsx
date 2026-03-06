@@ -662,12 +662,12 @@ export default function AdminPage({
     setIsSavingUserSettings(true);
 
     try {
-      if (draftAccountType === "lc") {
-        await patchRpmAdminUser(selectedUser.id, {
-          manager_id: nextManagerId || null,
-          states: draftStates,
-        });
-      }
+      await patchRpmAdminUser(selectedUser.id, {
+        account_type: draftAccountType,
+        notes_text: trimmedNote,
+        states: draftStates,
+        manager_id: draftAccountType === "lc" ? nextManagerId || null : null,
+      });
 
       setManagedUsers((previous) =>
         previous.map((user) =>
