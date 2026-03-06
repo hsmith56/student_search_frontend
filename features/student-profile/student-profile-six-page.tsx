@@ -259,12 +259,16 @@ export default function StudentProfileSixPage() {
 
             <Panel title="Placement Flags" icon={Flag}>
               <SummaryRow
-                label="Single Placement"
+                label="SP (placement in a one-person family)"
                 value={boolText(student.single_placement)}
               />
               <SummaryRow
-                label="Double Placement"
+                label="DP (Family hosts 2 students)"
                 value={boolText(student.double_placement)}
+              />
+              <SummaryRow
+                label="Tuition Placement"
+                value={boolText(student.tuition_placement)}
               />
               <SummaryRow
                 label="Live With Pets"

@@ -20,6 +20,7 @@ export interface StudentData {
   early_placement: boolean;
   single_placement: boolean;
   double_placement: boolean;
+  tuition_placement: boolean;
   free_text_interests: string[];
   family_description: string;
   favorite_subjects: string;
