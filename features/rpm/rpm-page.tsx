@@ -702,7 +702,7 @@ export default function RpmPage({
         )}
 
         <main className="mx-auto max-w-[1020px] px-4 py-6 sm:px-6">
-          <section className="rpm-command-panel rounded-3xl p-6">
+          <section className="rpm-command-panel rounded-3xl p-6 max-md:rounded-2xl max-md:p-4">
             
             <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--brand-ink)]">
               LC Dashboard
@@ -740,12 +740,12 @@ export default function RpmPage({
               </label>
             </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
+            <div className="mt-5 grid gap-4 max-md:gap-0 max-md:divide-y max-md:divide-[var(--brand-border-soft)] lg:grid-cols-[minmax(0,1fr)_320px]">
+              <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-0 max-md:py-3">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
                   LC Users
                 </h2>
-                <div className="mt-3 divide-y divide-[var(--brand-border-soft)] rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.8)]">
+                <div className="mt-3 divide-y divide-[var(--brand-border-soft)] rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.8)] max-md:rounded-none max-md:border-0 max-md:bg-transparent">
                   {filteredLcUsers.length === 0 ? (
                     <p className="px-4 py-3 text-sm text-[var(--brand-muted)]">
                       No LC users match your search.
@@ -754,24 +754,26 @@ export default function RpmPage({
                     filteredLcUsers.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between gap-3 px-4 py-3"
+                        className="flex items-start justify-between gap-3 px-4 py-3 max-md:px-0"
                       >
-                        <div className="flex min-w-0 items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-[var(--brand-ink)]">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                          <p className="min-w-0 truncate text-sm font-semibold text-[var(--brand-ink)]">
                             {user.fullName}
                           </p>
                           <span
-                            className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusClassName(
-                              user.accountStatus
-                            )}`}
-                          >
-                            {getStatusLabel(user.accountStatus)}
-                          </span>
+                            className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${
+                              user.accountStatus === "account_created"
+                                ? "bg-[var(--brand-success)]"
+                                : "bg-[var(--brand-highlight)]"
+                            }`}
+                            title={getStatusLabel(user.accountStatus)}
+                            aria-label={getStatusLabel(user.accountStatus)}
+                          />
                         </div>
                         <button
                           type="button"
                           onClick={() => openManageDialog(user)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-full border border-[var(--brand-border)] bg-[var(--brand-surface-elevated)] text-[var(--brand-body)] transition-colors hover:bg-[var(--brand-surface)]"
                           aria-label={`Manage ${user.fullName}`}
                         >
                           <EllipsisVertical className="h-4 w-4" />
@@ -782,7 +784,7 @@ export default function RpmPage({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4">
+              <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.93)] p-4 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-0 max-md:py-3">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--brand-body)]">
                   LC Signups
                 </h2>
@@ -795,7 +797,7 @@ export default function RpmPage({
                   Add new LC
                 </button>
 
-                <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.8)] px-3 py-2">
+                <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(246,247,248,0.8)] px-3 py-2 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-muted)]">
                     Latest code
                   </p>
@@ -804,7 +806,7 @@ export default function RpmPage({
                   </p>
                 </div>
 
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 space-y-2 border-t border-[var(--brand-border-soft)] pt-3">
                   {generatedCodes.length === 0 ? (
                     <p className="text-xs text-[var(--brand-muted)]">
                       Onboard a new LC to start the signup queue.
@@ -813,7 +815,7 @@ export default function RpmPage({
                     generatedCodes.map((entry) => (
                       <div
                         key={entry.id}
-                        className="rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.84)] px-3 py-2"
+                        className="rounded-lg border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.84)] px-3 py-2 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-0"
                       >
                         <p className="text-[11px] font-semibold text-[var(--brand-body)]">
                           {entry.fullName}
@@ -1179,3 +1181,5 @@ export default function RpmPage({
     </div>
   );
 }
+
+

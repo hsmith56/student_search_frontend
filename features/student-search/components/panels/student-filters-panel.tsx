@@ -784,7 +784,7 @@ export function StudentFiltersPanel({
       >
         <div
           onMouseDown={(event) => event.stopPropagation()}
-          className={`relative w-[min(96vw,1100px)] overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white transition-all duration-200 ${
+          className={`relative flex max-h-[80dvh] w-[min(96vw,1100px)] flex-col overflow-hidden rounded-2xl border border-[rgba(255,87,0,0.3)] bg-white transition-all duration-200 md:max-h-[88dvh] ${
             isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
           }`}
         >
@@ -837,7 +837,7 @@ export function StudentFiltersPanel({
             </div>
           )}
 
-          <div className="max-h-[72vh] overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {ledgerLayout}
           </div>
 
