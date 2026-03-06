@@ -55,7 +55,7 @@ const DEFAULT_STATUS_FOR_LC = ["Allocated"];
 const MY_STATES_FILTER_VALUE = "my_states";
 const NO_PREFERENCES_FILTER_VALUE = "no_pref";
 const MY_STATES_FILTER_LABEL = "My States Only";
-const NO_PREFERENCES_FILTER_LABEL = "No Preferences";
+const NO_PREFERENCES_FILTER_LABEL = "No Preference + My States";
 const SPECIAL_STATE_FILTER_VALUES = new Set([
   "all",
   NO_PREFERENCES_FILTER_VALUE,
@@ -258,8 +258,8 @@ export function useStudentSearchController({
       .map((stateName) => ({ value: stateName, label: stateName }));
 
     return [
-      { value: MY_STATES_FILTER_VALUE, label: MY_STATES_FILTER_LABEL },
       { value: NO_PREFERENCES_FILTER_VALUE, label: NO_PREFERENCES_FILTER_LABEL },
+      { value: MY_STATES_FILTER_VALUE, label: MY_STATES_FILTER_LABEL },
       ...coordinatorStateOptions,
       ...fallbackCoordinatorStateOptions,
     ];
@@ -329,15 +329,26 @@ export function useStudentSearchController({
     return parsedStateValues;
   }, []);
 
-  const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
+const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
     const sanitizedStateValue = sanitizeStateFilterValue(stateValue);
+
+    if (sanitizedStateValue === NO_PREFERENCES_FILTER_VALUE) {
+      try {
+        const favoriteStates = await fetchFavoriteStatesForFilter();
+        return [NO_PREFERENCES_FILTER_VALUE, ...favoriteStates];
+      } catch (error) {
+        console.error("Error resolving favorite states filter:", error);
+        return [NO_PREFERENCES_FILTER_VALUE];
+      }
+    }
 
     if (sanitizedStateValue !== MY_STATES_FILTER_VALUE) {
       return toStateFilterPayload(sanitizedStateValue);
     }
 
     try {
-      return await fetchFavoriteStatesForFilter();
+      const favoriteStates = await fetchFavoriteStatesForFilter();
+      return favoriteStates;
     } catch (error) {
       console.error("Error resolving favorite states filter:", error);
       return [];

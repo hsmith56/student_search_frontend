@@ -1,6 +1,6 @@
 export const states = [
+  { value: "no_pref", label: "No Preference + My States" },
   { value: "all", label: "Show All" },
-  { value: "no_pref", label: "No Preference" },
   { value: "state_only", label: "State Requests only" },
   { value: "my_states", label: "My States only" },
   { value: "Alabama", label: "Alabama" },

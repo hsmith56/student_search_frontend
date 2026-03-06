@@ -25,7 +25,7 @@ export type Filters = {
 export const defaultFilters: Filters = {
   country_of_origin: [],
   interests: "all",
-  state: "all",
+  state: "no_pref",
   gender_male: false,
   gender_female: false,
   pets_in_home: "all",
