@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import posthog from "posthog-js";
 import { createFeedback } from "@/lib/api/feedback";
 
 type UseFeedbackFormOptions = {
@@ -34,6 +35,7 @@ export function useFeedbackForm(options: UseFeedbackFormOptions = {}) {
 
       setFeedbackComment("");
       setFeedbackSuccess("Feedback submitted. Thank you.");
+      posthog.capture("feedback_submitted");
       if (onSuccess) {
         await onSuccess();
       }

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import posthog from "posthog-js";
 import {
   BookOpen,
   ChevronRight,
@@ -147,6 +148,15 @@ export default function StudentProfileSixPage() {
   const hasDietary = hasContent(student.dietary_restrictions);
   const status = statusTone(student.placement_status);
   const statusClass = makeStatusPillClass(status);
+  const studentEventProperties = {
+    app_id: student.app_id,
+    pax_id: student.pax_id,
+    usahs_id: student.usahsid,
+    first_name: student.first_name,
+    country: student.country,
+    placement_status: student.placement_status,
+    program_type: student.program_type,
+  };
   const stateSummary =
     states.length > 0 ? states.join(", ") : "No specific state requests";
   const interestSummary =
@@ -223,11 +233,29 @@ export default function StudentProfileSixPage() {
             </div>
 
             <div className="relative z-10 flex flex-wrap gap-2 lg:self-end">
-              <HeroLink href={`https://beacon.ciee.org/participant/${student.app_id}`}>
+              <HeroLink
+                href={`https://beacon.ciee.org/participant/${student.app_id}`}
+                onClick={() => {
+                  posthog.capture("student_profile_beacon_redirect_clicked", {
+                    ...studentEventProperties,
+                    destination_type: "participant",
+                    source_page: "student_profile",
+                    target_url: `https://beacon.ciee.org/participant/${student.app_id}`,
+                  });
+                }}
+              >
                 Open Beacon
               </HeroLink>
               <HeroLink
                 href={`https://beacon.ciee.org/participant/print/${student.app_id}/redacted`}
+                onClick={() => {
+                  posthog.capture("student_profile_beacon_redirect_clicked", {
+                    ...studentEventProperties,
+                    destination_type: "print_view",
+                    source_page: "student_profile",
+                    target_url: `https://beacon.ciee.org/participant/print/${student.app_id}/redacted`,
+                  });
+                }}
               >
                 Print View
               </HeroLink>
@@ -236,6 +264,13 @@ export default function StudentProfileSixPage() {
                   href={student.media_link}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => {
+                    posthog.capture("student_profile_media_redirect_clicked", {
+                      ...studentEventProperties,
+                      source_page: "student_profile",
+                      target_url: student.media_link,
+                    });
+                  }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,194,62,0.65)] bg-[rgba(255,194,62,0.16)] px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[rgba(255,194,62,0.24)]"
                 >
                   <Video className="h-3 w-3" />
@@ -472,12 +507,21 @@ function HeroBadge({
   );
 }
 
-function HeroLink({ href, children }: { href: string; children: ReactNode }) {
+function HeroLink({
+  href,
+  children,
+  onClick,
+}: {
+  href: string;
+  children: ReactNode;
+  onClick?: () => void;
+}) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
+      onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.32)] bg-[rgba(255,255,255,0.1)] px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[rgba(255,255,255,0.2)]"
     >
       {children}

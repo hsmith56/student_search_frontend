@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { clearClientCache } from "@/lib/client-cache";
 import { ApiError } from "@/lib/api/api-client";
 import {
@@ -81,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authVerified = await checkAuth();
 
       if (authVerified) {
+        posthog.identify(username, { username });
+        posthog.capture("user_signed_in", { username });
         return { success: true };
       }
 
@@ -115,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         first_name,
         signup_code,
       });
+      posthog.identify(username, { username, first_name });
+      posthog.capture("user_signed_up", { username, first_name });
       return { success: true };
     } catch (error) {
       console.error("Registration error:", error);
@@ -135,6 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
+      posthog.capture("user_signed_out");
+      posthog.reset();
       clearClientCache();
       setIsAuthenticated(false);
       setUsername(null);

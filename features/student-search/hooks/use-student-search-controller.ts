@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import posthog from "posthog-js";
 import { states as ALL_STATE_OPTIONS } from "@/components/search/states";
 import {
   RESULTS_PER_PAGE_STORAGE_KEY,
@@ -159,6 +160,31 @@ const getActiveFilterCount = (
   }
 
   return count;
+};
+
+const buildFilterAnalyticsPayload = (
+  filters: Filters,
+  activeFilterCount: number
+) => {
+  return {
+    active_filter_count: activeFilterCount,
+    country_of_origin: filters.country_of_origin,
+    interests: filters.interests,
+    state: filters.state,
+    gender_male: filters.gender_male,
+    gender_female: filters.gender_female,
+    pets_in_home: filters.pets_in_home,
+    program_types: filters.program_types,
+    early_placement: filters.early_placement,
+    grants_options: filters.grants_options,
+    has_video: filters.hasVideo,
+    gpa: filters.gpa,
+    adjusted_age: filters.adjusted_age,
+    religious_practice: filters.religiousPractice,
+    double_placement: filters.double_placement,
+    single_placement: filters.single_placement,
+    status_options: filters.statusOptions,
+  };
 };
 
 export function useStudentSearchController({
@@ -521,6 +547,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setCurrentPage(1);
     setShowFavoritesOnly(false);
     fetchStudentsWithDefaults(sanitizedDefaultStateValue);
+    posthog.capture("student_filters_cleared");
   };
 
   const toggleProgramType = (value: string) => {
@@ -571,6 +598,12 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setShowFavoritesOnly(false);
     setCurrentPage(1);
     fetchStudents(1);
+    posthog.capture("student_search_executed", {
+      query: query.trim() || undefined,
+      usahs_id_query: usahsIdQuery.trim() || undefined,
+      photo_query: photoQuery.trim() || undefined,
+      ...buildFilterAnalyticsPayload(filters, activeFilterCount),
+    });
   };
 
   const applyFilters = () => {
@@ -578,6 +611,10 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setCurrentPage(1);
     fetchStudents(1);
     setIsFilterOpen(false);
+    posthog.capture(
+      "student_filters_applied",
+      buildFilterAnalyticsPayload(filters, activeFilterCount)
+    );
   };
 
   const handleSearchInputKeyDown = (
@@ -629,6 +666,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       await addFavorite(appId);
       setFavoritedStudents((prev) => new Set(prev).add(appId.toString()));
       invalidateClientCache("user:favorites");
+      posthog.capture("student_favorited", { app_id: appId });
     } catch (error) {
       console.error("Error favoriting student:", error);
     }
@@ -647,6 +685,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
         return next;
       });
       invalidateClientCache("user:favorites");
+      posthog.capture("student_unfavorited", { app_id: appId });
     } catch (error) {
       console.error("Error unfavoriting student:", error);
     }
@@ -673,6 +712,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
         setTotalPages(1);
         setTotalResults(data?.length || 0);
         animateResultsRefresh();
+        posthog.capture("favorites_viewed", { favorite_count: data?.length || 0 });
       } catch (error) {
         console.error("Error fetching favorites:", error);
       }
@@ -691,8 +731,10 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       invalidateClientCacheByPrefix("newsFeed:list");
 
       await fetchLastUpdateTime();
+      posthog.capture("database_update_triggered");
     } catch (error) {
       console.error("Error updating student DB:", error);
+      posthog.captureException(error);
     } finally {
       setIsUpdatingDatabase(false);
     }
