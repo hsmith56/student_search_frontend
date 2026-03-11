@@ -1,17 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { CheckCircle2, Heart, UserCheck as UserLock, Users } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import { PaginationControls } from "@/features/student-search/components/pagination-controls";
+import { SimilarStudentsDialog } from "@/features/student-search/components/dialogs/similar-students-dialog";
 import { QuickStatsSection } from "@/features/student-search/components/quick-stats-section";
 import { SearchControls } from "@/features/student-search/components/search-controls";
 import { ResultsSection } from "@/features/student-search/components/results/results-section";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { useIsMobile } from "@/features/student-search/hooks/use-is-mobile";
 import { useStudentSearchController } from "@/features/student-search/hooks/use-student-search-controller";
-import type { QuickStatsCard } from "@/features/student-search/types";
+import type { QuickStatsCard, StudentRecord } from "@/features/student-search/types";
 import type { HeaderView } from "@/components/layout/Header";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 
@@ -31,6 +33,8 @@ export default function StudentSearchPage({
 
   const isMobile = useIsMobile();
   const controller = useStudentSearchController({ isAuthenticated });
+  const [studentForSimilarDialog, setStudentForSimilarDialog] =
+    useState<StudentRecord | null>(null);
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -157,6 +161,7 @@ export default function StudentSearchPage({
               onToggleSort={controller.toggleSort}
               onFavorite={controller.handleFavorite}
               onUnfavorite={controller.handleUnfavorite}
+              onOpenSimilarStudents={setStudentForSimilarDialog}
             />
 
             <PaginationControls
@@ -167,6 +172,20 @@ export default function StudentSearchPage({
               onResultsPerPageChange={controller.handleResultsPerPageChange}
               onPreviousPage={controller.goToPreviousPage}
               onNextPage={controller.goToNextPage}
+            />
+
+            <SimilarStudentsDialog
+              open={studentForSimilarDialog !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setStudentForSimilarDialog(null);
+                }
+              }}
+              student={studentForSimilarDialog}
+              students={controller.students}
+              favoritedStudents={controller.favoritedStudents}
+              onFavorite={controller.handleFavorite}
+              onUnfavorite={controller.handleUnfavorite}
             />
           </div>
         </div>

@@ -15,6 +15,7 @@ type ResultsSectionProps = {
   onToggleSort: (field: string) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
+  onOpenSimilarStudents: (student: StudentRecord) => void;
 };
 
 export function ResultsSection({
@@ -29,6 +30,7 @@ export function ResultsSection({
   onToggleSort,
   onFavorite,
   onUnfavorite,
+  onOpenSimilarStudents,
 }: ResultsSectionProps) {
   if (viewMode === "card") {
     return (
@@ -39,6 +41,7 @@ export function ResultsSection({
         favoritedStudents={favoritedStudents}
         onFavorite={onFavorite}
         onUnfavorite={onUnfavorite}
+        onOpenSimilarStudents={onOpenSimilarStudents}
       />
     );
   }
@@ -52,6 +55,7 @@ export function ResultsSection({
         favoritedStudents={favoritedStudents}
         onFavorite={onFavorite}
         onUnfavorite={onUnfavorite}
+        onOpenSimilarStudents={onOpenSimilarStudents}
       />
     );
   }
@@ -67,6 +71,7 @@ export function ResultsSection({
       onToggleSort={onToggleSort}
       onFavorite={onFavorite}
       onUnfavorite={onUnfavorite}
+      onOpenSimilarStudents={onOpenSimilarStudents}
     />
   );
 }

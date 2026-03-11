@@ -1,4 +1,4 @@
-import { Award, Calendar, Heart, MapPin, Star } from "lucide-react";
+import { Award, Calendar, Heart, MapPin, Sparkles, Star } from "lucide-react";
 import type { StudentRecord } from "@/features/student-search/types";
 import {
   animationStyle,
@@ -14,6 +14,7 @@ type CardResultsGridProps = {
   favoritedStudents: Set<string>;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
+  onOpenSimilarStudents: (student: StudentRecord) => void;
 };
 
 export function CardResultsGrid({
@@ -23,6 +24,7 @@ export function CardResultsGrid({
   favoritedStudents,
   onFavorite,
   onUnfavorite,
+  onOpenSimilarStudents,
 }: CardResultsGridProps) {
   return (
     <div
@@ -41,7 +43,6 @@ export function CardResultsGrid({
         const beaconHref = hasAppId
           ? `https://beacon.ciee.org/participant/${encodeURIComponent(appId)}`
           : "";
-
         return (
         <div
           key={student.pax_id.toString()}
@@ -90,7 +91,7 @@ export function CardResultsGrid({
                   </>
                 )}
               </h2>
-              <p className="mt-0.5 font-mono text-xs text-[var(--brand-muted)]">
+              <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs text-[var(--brand-muted)]">
                 {hasAppId ? (
                   <a
                     href={beaconHref}
@@ -101,9 +102,17 @@ export function CardResultsGrid({
                     {String(student.usahsid ?? "")}
                   </a>
                 ) : (
-                  String(student.usahsid ?? "")
+                  <span>{String(student.usahsid ?? "")}</span>
                 )}
-              </p>
+                <button
+                  type="button"
+                  onClick={() => onOpenSimilarStudents(student)}
+                  className="inline-flex items-center gap-1 rounded-full border border-[rgba(0,94,184,0.24)] bg-[rgba(0,94,184,0.08)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--brand-primary-deep)] transition hover:border-[rgba(0,94,184,0.4)] hover:bg-[rgba(0,94,184,0.14)] hover:text-[var(--brand-primary)]"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Similar
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-1 rounded-lg border border-[rgba(0,94,184,0.28)] bg-gradient-to-br from-[rgba(0,94,184,0.08)] to-[rgba(60,159,192,0.08)] px-2.5 py-1.5 text-sm font-semibold text-[var(--brand-primary-deep)] shadow-sm">
               <Award className="w-3.5 h-3.5" />

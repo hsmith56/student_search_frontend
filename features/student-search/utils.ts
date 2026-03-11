@@ -31,6 +31,11 @@ export const getStatusBadgeClass = (status?: string) => {
   return "border border-[rgba(0,94,184,0.44)] bg-[rgba(0,94,184,0.12)] text-[var(--brand-primary-deep)]";
 };
 
+export const isPlacedOrPendingStatus = (status?: string) => {
+  const statusLower = status?.toLowerCase() ?? "";
+  return statusLower.includes("placed") || statusLower.includes("pending");
+};
+
 export const textOrNotProvided = (value: unknown) => {
   const text = String(value ?? "").trim();
   return text ? text : "Not provided";

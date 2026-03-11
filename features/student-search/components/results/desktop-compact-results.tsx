@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Award, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import { Award, ChevronDown, ChevronUp, Heart, Sparkles } from "lucide-react";
 import type { StudentRecord } from "@/features/student-search/types";
 import {
   animationStyle,
@@ -18,6 +18,7 @@ type DesktopCompactResultsProps = {
   onToggleSort: (field: string) => void;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
+  onOpenSimilarStudents: (student: StudentRecord) => void;
 };
 
 const getRowId = (student: StudentRecord) => String(student.pax_id);
@@ -40,6 +41,7 @@ export function DesktopCompactResults({
   onToggleSort,
   onFavorite,
   onUnfavorite,
+  onOpenSimilarStudents,
 }: DesktopCompactResultsProps) {
   const [rowsShowingStates, setRowsShowingStates] = useState<Set<string>>(
     () => new Set()
@@ -165,7 +167,6 @@ export function DesktopCompactResults({
               const beaconHref = hasAppId
                 ? `https://beacon.ciee.org/participant/${encodeURIComponent(appId)}`
                 : "";
-
               return (
               <tr
                 key={student.pax_id.toString()}
@@ -208,19 +209,33 @@ export function DesktopCompactResults({
                   {formatGender(student.gender_desc)}
                 </td>
                 <td className="px-2.5 py-2.5 font-mono text-[12px] text-[rgba(255,87,0,0.72)] md:px-3">
-                  {hasAppId ? (
-                    <a
-                      href={beaconHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(event) => event.stopPropagation()}
-                      className="underline decoration-[rgba(255,87,0,0.4)] underline-offset-2 transition hover:text-[var(--brand-accent)]"
+                  <div className="flex flex-wrap items-center gap-2">
+                    {hasAppId ? (
+                      <a
+                        href={beaconHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="underline decoration-[rgba(255,87,0,0.4)] underline-offset-2 transition hover:text-[var(--brand-accent)]"
+                      >
+                        {String(student.usahsid ?? "")}
+                      </a>
+                    ) : (
+                      <span>{String(student.usahsid ?? "")}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenSimilarStudents(student);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-[rgba(0,94,184,0.24)] bg-[rgba(0,94,184,0.08)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--brand-primary-deep)] transition hover:border-[rgba(0,94,184,0.4)] hover:bg-[rgba(0,94,184,0.14)] hover:text-[var(--brand-primary)]"
+                      title="Find recommended similar students"
                     >
-                      {String(student.usahsid ?? "")}
-                    </a>
-                  ) : (
-                    String(student.usahsid ?? "")
-                  )}
+                      <Sparkles className="h-3 w-3" />
+                      Similar
+                    </button>
+                  </div>
                 </td>
                 <td className={countryBodyCellClass}>
                   {String(student.country ?? "-")}
