@@ -59,6 +59,12 @@ type RecommendedStudent = {
   reasons: RecommendationReasons;
 };
 
+const GENDER_PRIORITY_OPTIONS = [
+  { value: 0 as const, label: "No preference" },
+  { value: 1 as const, label: "Male" },
+  { value: 2 as const, label: "Female" },
+];
+
 const normalizeToken = (value: string) => value.trim().toLowerCase();
 
 const toInterestList = (value: unknown) => {
@@ -109,7 +115,9 @@ export function SimilarStudentsDialog({
   onUnfavorite,
 }: SimilarStudentsDialogProps) {
   const checkboxGroupId = useId();
+  const genderPriorityId = useId();
   const [prioritizedInterests, setPrioritizedInterests] = useState<string[]>([]);
+  const [prioritizedGender, setPrioritizedGender] = useState<0 | 1 | 2>(0);
   const [recommendations, setRecommendations] = useState<RecommendedStudent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -119,6 +127,7 @@ export function SimilarStudentsDialog({
   useEffect(() => {
     if (!open) {
       setPrioritizedInterests([]);
+      setPrioritizedGender(0);
       setRecommendations([]);
       setIsLoading(false);
       setErrorMessage("");
@@ -127,6 +136,7 @@ export function SimilarStudentsDialog({
     }
 
     setPrioritizedInterests([]);
+    setPrioritizedGender(0);
     setRecommendations([]);
     setErrorMessage("");
     setHasRequestedRecommendations(false);
@@ -167,6 +177,7 @@ export function SimilarStudentsDialog({
         limit: 5,
         compare: "allocated",
         priority_interests: prioritizedInterests,
+        gender: prioritizedGender,
       });
 
       setRecommendations(Array.isArray(data) ? data : []);
@@ -208,41 +219,77 @@ export function SimilarStudentsDialog({
               </div>
             </div>
 
-            {studentInterests.length > 0 ? (
+            <div className="space-y-3">
               <div
-                aria-labelledby={checkboxGroupId}
+                aria-labelledby={genderPriorityId}
                 className="flex flex-wrap items-center gap-2.5"
               >
-                <div id={checkboxGroupId} className="sr-only">
-                  Student interests
+                <div
+                  id={genderPriorityId}
+                  className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--brand-muted)]"
+                >
+                  Gender
                 </div>
-                {studentInterests.map((interest) => {
-                  const inputId = `${checkboxGroupId}-${normalizeToken(interest).replace(/\s+/g, "-")}`;
-                  const isChecked = prioritizedInterests.includes(interest);
+                {GENDER_PRIORITY_OPTIONS.map((option) => {
+                  const isChecked = prioritizedGender === option.value;
 
                   return (
                     <button
-                      key={interest}
-                      id={inputId}
+                      key={option.value}
                       type="button"
                       aria-pressed={isChecked}
-                      onClick={() => togglePriorityInterest(interest)}
+                      onClick={() => setPrioritizedGender(option.value)}
                       className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
                         isChecked
                           ? "border-[rgba(0,94,184,0.36)] bg-[linear-gradient(180deg,rgba(0,94,184,0.12),rgba(0,94,184,0.06))] text-[var(--brand-primary-deep)] shadow-[0_12px_24px_-18px_rgba(0,94,184,0.7)]"
                           : "border-[rgba(0,53,84,0.08)] bg-white/82 text-[var(--brand-body)] hover:border-[rgba(0,94,184,0.16)] hover:bg-[rgba(0,94,184,0.04)]"
                       }`}
                     >
-                      <span>{interest}</span>
+                      <span>{option.label}</span>
                     </button>
                   );
                 })}
               </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-[var(--brand-border)] bg-[rgba(246,247,248,0.72)] px-4 py-4 text-sm text-[var(--brand-muted)]">
-                This student does not have interests available to prioritize.
-              </div>
-            )}
+
+              {studentInterests.length > 0 ? (
+                <div
+                  aria-labelledby={checkboxGroupId}
+                  className="flex flex-wrap items-center gap-2.5"
+                >
+                  <div
+                    id={checkboxGroupId}
+                    className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--brand-muted)]"
+                  >
+                    Interests
+                  </div>
+                  {studentInterests.map((interest) => {
+                    const inputId = `${checkboxGroupId}-${normalizeToken(interest).replace(/\s+/g, "-")}`;
+                    const isChecked = prioritizedInterests.includes(interest);
+
+                    return (
+                      <button
+                        key={interest}
+                        id={inputId}
+                        type="button"
+                        aria-pressed={isChecked}
+                        onClick={() => togglePriorityInterest(interest)}
+                        className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                          isChecked
+                            ? "border-[rgba(0,94,184,0.36)] bg-[linear-gradient(180deg,rgba(0,94,184,0.12),rgba(0,94,184,0.06))] text-[var(--brand-primary-deep)] shadow-[0_12px_24px_-18px_rgba(0,94,184,0.7)]"
+                            : "border-[rgba(0,53,84,0.08)] bg-white/82 text-[var(--brand-body)] hover:border-[rgba(0,94,184,0.16)] hover:bg-[rgba(0,94,184,0.04)]"
+                        }`}
+                      >
+                        <span>{interest}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[var(--brand-border)] bg-[rgba(246,247,248,0.72)] px-4 py-4 text-sm text-[var(--brand-muted)]">
+                  This student does not have interests available to prioritize.
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="space-y-4">

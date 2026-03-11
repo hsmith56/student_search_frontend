@@ -7,6 +7,7 @@ export type RecommendationRequest = {
   limit?: number;
   compare?: string;
   priority_interests?: string[];
+  gender?: 0 | 1 | 2;
 };
 
 export function createRecommendations<T>(payload: RecommendationRequest) {
