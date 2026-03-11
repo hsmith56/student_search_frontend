@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
-  BadgeCheck,
   BookOpen,
   ChevronRight,
   ClipboardList,
@@ -14,7 +13,6 @@ import {
   MapPinned,
   MessageSquareQuote,
   ShieldAlert,
-  Sparkles,
   Video,
   type LucideIcon,
 } from "lucide-react";
@@ -329,12 +327,17 @@ export default function StudentProfileSixPage() {
 
             <div className="grid gap-5 md:grid-cols-2">
               <Panel title="Health and Diet" icon={Leaf}>
-                <SummaryRow
-                  label="Allergy Comments"
-                  value={
-                    hasAllergy ? student.allergy_comments : "No allergy comments provided."
-                  }
-                />
+                {hasAllergy ? (
+                  <AlertNotesCard
+                    title="Allergy comments on file"
+                    notes={[student.allergy_comments]}
+                  />
+                ) : (
+                  <SummaryRow
+                    label="Allergy Comments"
+                    value="No allergy comments provided."
+                  />
+                )}
                 <SummaryRow
                   label="Dietary Restrictions"
                   value={
@@ -344,19 +347,11 @@ export default function StudentProfileSixPage() {
                   }
                 />
                 {healthNotes.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.8)] p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--brand-muted)]">
-                      Health comments
-                    </p>
-                    <ul className="mt-2 space-y-1.5 text-sm text-[var(--brand-body)]">
-                      {healthNotes.map((note) => (
-                        <li key={note} className="flex items-start gap-2">
-                          <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand-primary)]" />
-                          <span>{note}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <AlertNotesCard
+                    className="mt-3"
+                    title="Health comments on file"
+                    notes={healthNotes}
+                  />
                 ) : null}
               </Panel>
 
@@ -461,6 +456,65 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <dd className="text-right text-sm font-medium text-[var(--brand-body)]">
         {value}
       </dd>
+    </div>
+  );
+}
+
+function AlertNotesCard({
+  title,
+  notes,
+  className = "",
+}: {
+  title: string;
+  notes: string[];
+  className?: string;
+}) {
+  return (
+    <div
+      className={`${className} relative overflow-hidden rounded-xl border border-[rgba(201,18,41,0.22)] bg-[#fff9f9] shadow-[0_2px_12px_rgba(130,20,32,0.08),0_1px_3px_rgba(130,20,32,0.06)]`}
+    >
+      {/* Left accent bar */}
+      <div className="absolute inset-y-0 left-0 w-[3px] bg-[rgba(201,18,41,0.85)]" />
+
+      {/* Subtle dot-grid texture overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `radial-gradient(circle, rgba(130,20,32,1) 1px, transparent 1px)`,
+          backgroundSize: "16px 16px",
+        }}
+      />
+
+      <div className="px-4 py-3 pl-5">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[rgba(201,18,41,0.1)]">
+            <ShieldAlert className="h-3.5 w-3.5 text-[rgba(180,16,36,1)]" />
+          </div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[rgba(130,20,32,0.9)]">
+            {title}
+          </p>
+          <div className="ml-auto h-px flex-1 bg-[rgba(201,18,41,0.12)]" />
+          <span className="rounded-full bg-[rgba(201,18,41,0.1)] px-2 py-0.5 text-[10px] font-semibold text-[rgba(180,16,36,0.9)]">
+            {notes.length}
+          </span>
+        </div>
+
+        {/* Notes */}
+        <ul className="mt-3 space-y-1.5">
+          {notes.map((note, i) => (
+            <li
+              key={note}
+              className="group flex items-start gap-2.5 rounded-lg border border-transparent bg-white px-3 py-2 shadow-[0_1px_3px_rgba(130,20,32,0.07)] transition-colors hover:border-[rgba(201,18,41,0.15)] hover:bg-[rgba(255,248,248,1)]"
+            >
+              <span className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[rgba(201,18,41,0.08)] text-[9px] font-bold text-[rgba(180,16,36,0.8)]">
+                {i + 1}
+              </span>
+              <span className="text-sm leading-snug text-[rgba(60,20,16,0.85)]">{note}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
