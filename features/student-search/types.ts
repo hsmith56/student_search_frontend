@@ -21,6 +21,7 @@ export type Filters = {
   single_placement: string;
   status?: string;
   statusOptions: string[];
+  onlyFavorites: boolean;
 };
 
 export const defaultFilters: Filters = {
@@ -41,6 +42,7 @@ export const defaultFilters: Filters = {
   double_placement: "all",
   single_placement: "all",
   statusOptions: ["Allocated"],
+  onlyFavorites: false,
 };
 
 export type StudentRecord = {

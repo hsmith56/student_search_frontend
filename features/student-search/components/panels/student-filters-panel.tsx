@@ -78,6 +78,7 @@ const SCHOLARSHIP_LABELS = new Map(
 );
 
 const PANEL_ANIMATION_DURATION_MS = 200;
+const ALL_STATUS_VALUE = "All";
 
 const hasDefaultStatusSelection = (statusOptions: string[]) =>
   statusOptions.length === defaultFilters.statusOptions.length &&
@@ -344,6 +345,15 @@ export function StudentFiltersPanel({
       });
     }
 
+    if (filters.onlyFavorites) {
+      pills.push({
+        key: "only-favorites",
+        group: "Favorites",
+        value: "Only",
+        onRemove: () => setFilters((prev) => ({ ...prev, onlyFavorites: false })),
+      });
+    }
+
     if (filters.gender_male) {
       pills.push({
         key: "gender-male",
@@ -592,17 +602,37 @@ export function StudentFiltersPanel({
 
   const statusFields = (
     <div>
-      <FieldLabel>Status Options</FieldLabel>
-      <div className="flex flex-wrap gap-1.5">
-        {statusOptions.map((status) => (
-          <ToggleChip
-            key={status.id}
-            selected={filters.statusOptions.includes(status.value)}
-            onClick={() => onToggleStatus(status.value)}
-          >
-            {status.label}
-          </ToggleChip>
-        ))}
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
+        <div className="min-w-[260px] flex-1">
+          <FieldLabel>Status Options</FieldLabel>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {statusOptions.map((status) => (
+              <ToggleChip
+                key={status.id}
+                selected={filters.statusOptions.includes(status.value)}
+                onClick={() => onToggleStatus(status.value)}
+              >
+                {status.label}
+              </ToggleChip>
+            ))}
+          </div>
+        </div>
+        <div className="w-full sm:ml-auto sm:w-auto">
+          <FieldLabel>Favorites Only</FieldLabel>
+          <div className="flex items-center">
+            <Switch
+              checked={filters.onlyFavorites}
+              onCheckedChange={(checked) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  onlyFavorites: checked,
+                  statusOptions: checked ? [ALL_STATUS_VALUE] : prev.statusOptions,
+                }))
+              }
+              aria-label="Favorites Only"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

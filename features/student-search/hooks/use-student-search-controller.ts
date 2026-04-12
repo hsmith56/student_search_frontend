@@ -140,11 +140,12 @@ const toInterestsFilterPayload = (interests: string[]) =>
   interests.length > 0 ? interests : ["all"];
 
 const toSearchFiltersPayload = (filters: Filters) => {
-  const { urbanOnly, interests, ...remainingFilters } = filters;
+  const { urbanOnly, interests, onlyFavorites, ...remainingFilters } = filters;
   return {
     ...remainingFilters,
     interests: toInterestsFilterPayload(interests),
     urban_request: urbanOnly,
+    only_favorites: onlyFavorites,
   };
 };
 
@@ -168,6 +169,7 @@ const getActiveFilterCount = (
   if (filters.religiousPractice !== defaultFilters.religiousPractice) count += 1;
   if (filters.double_placement !== defaultFilters.double_placement) count += 1;
   if (filters.single_placement !== defaultFilters.single_placement) count += 1;
+  if (filters.onlyFavorites !== defaultFilters.onlyFavorites) count += 1;
 
   count += filters.program_types.length;
   count += filters.grants_options.length;
@@ -203,6 +205,7 @@ const buildFilterAnalyticsPayload = (
     double_placement: filters.double_placement,
     single_placement: filters.single_placement,
     status_options: filters.statusOptions,
+    only_favorites: filters.onlyFavorites,
   };
 };
 
@@ -432,7 +435,8 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     page = 1,
     orderByParam?: string,
     descendingParam?: boolean,
-    resultsPerPageParam?: number
+    resultsPerPageParam?: number,
+    onlyFavorites = showFavoritesOnly || filters.onlyFavorites
   ) => {
     const sortBy = orderByParam ?? orderBy;
     const sortDesc =
@@ -458,6 +462,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
           free_text: query,
           usahsId: usahsIdQuery,
           photo_search: photoQuery,
+          only_favorites: onlyFavorites,
         },
       });
       setCurrentPage(data.page || 1);
@@ -490,6 +495,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
           free_text: "",
           usahsId: "",
           photo_search: "",
+          only_favorites: false,
           order_by: orderBy,
           descending,
         },
@@ -506,24 +512,26 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
 
   const fetchStudentsByStatus = async (status: string[]) => {
     const sanitizedStatus = sanitizeStatusOptions(status);
+    const nextFilters = {
+      ...filters,
+      statusOptions: sanitizedStatus,
+      onlyFavorites: false,
+    };
     setCurrentPage(1);
     setShowFavoritesOnly(false);
-    setFilters((prev) => ({
-      ...prev,
-      statusOptions: sanitizedStatus,
-    }));
+    setFilters((prev) => ({ ...prev, statusOptions: sanitizedStatus, onlyFavorites: false }));
 
     try {
       const statusKey = sanitizedStatus
         .map((value) => value.toLowerCase())
         .join(",");
-      const resolvedStateValue = await resolveStateFilterValue(filters.state);
+      const resolvedStateValue = await resolveStateFilterValue(nextFilters.state);
       const resolvedStateToken = resolvedStateValue
         .map((value) => value.toLowerCase())
         .sort()
         .join(",");
       const cacheKey = `students:status:${statusKey}:state:${resolvedStateToken}:order:${orderBy}:descending:${descending}:pageSize:${resultsPerPage}:filters:${JSON.stringify(
-        filters
+        nextFilters
       )}`;
       const data = await getCachedValue<StudentSearchResponse>(
         cacheKey,
@@ -534,10 +542,11 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
             orderBy,
             descending,
             filters: {
-              ...toSearchFiltersPayload(filters),
+              ...toSearchFiltersPayload(nextFilters),
               state: resolvedStateValue,
-              country_of_origin: getCountryFilterPayload(filters.country_of_origin),
+              country_of_origin: getCountryFilterPayload(nextFilters.country_of_origin),
               statusOptions: sanitizedStatus,
+              only_favorites: false,
             },
           }),
         CACHE_TTL_SHORT_MS
@@ -739,31 +748,15 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   };
 
   const showFavorites = () => {
-    (async () => {
-      try {
-        const data = await getCachedValue<StudentRecord[]>(
-          "user:favorites",
-          () => getFavorites<StudentRecord[]>(),
-          CACHE_TTL_SHORT_MS
-        );
-
-        setStudents(sortStudentsLocally(data || [], orderBy, descending));
-        const favoritedIds = new Set<string>(
-          (data || [])
-            .map((student: StudentRecord) => getFavoriteStudentId(student))
-            .filter((id) => id.length > 0)
-        );
-        setFavoritedStudents(favoritedIds);
-        setShowFavoritesOnly(true);
-        setCurrentPage(1);
-        setTotalPages(1);
-        setTotalResults(data?.length || 0);
-        animateResultsRefresh();
-        posthog.capture("favorites_viewed", { favorite_count: data?.length || 0 });
-      } catch (error) {
-        console.error("Error fetching favorites:", error);
-      }
-    })();
+    setFilters((prev) => ({
+      ...prev,
+      onlyFavorites: true,
+      statusOptions: [ALL_STATUS],
+    }));
+    setShowFavoritesOnly(true);
+    setCurrentPage(1);
+    void fetchStudents(1, undefined, undefined, undefined, true);
+    posthog.capture("favorites_viewed");
   };
 
   const handleUpdateDatabase = async () => {
