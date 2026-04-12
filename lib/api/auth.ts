@@ -18,7 +18,12 @@ type RegisterPayload = {
 
 type ChangePasswordPayload = {
   new_password: string;
-  password: string;
+  password?: string;
+};
+
+type ResetUserPasswordPayload = {
+  temp_password: string;
+  user_id: string;
 };
 
 export function getCurrentUser(options?: {
@@ -71,3 +76,9 @@ export function changePassword(payload: ChangePasswordPayload) {
   });
 }
 
+export function resetUserPassword(payload: ResetUserPasswordPayload) {
+  return apiFetch<unknown>("/auth/reset_password", {
+    method: "POST",
+    jsonBody: payload,
+  });
+}

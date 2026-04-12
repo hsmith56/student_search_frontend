@@ -30,7 +30,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
 import { getRpmManagers } from "@/lib/api/admin";
-import { getCurrentUser } from "@/lib/api/auth";
+import { getCurrentUser, resetUserPassword } from "@/lib/api/auth";
 import { getLastUpdateTime } from "@/lib/api/misc";
 import {
   createRpmSignupRequest,
@@ -405,6 +405,7 @@ export default function AdminPage({
   const [draftAccountType, setDraftAccountType] = useState<ManagedAccountType>("rpm");
   const [manageError, setManageError] = useState<string | null>(null);
   const [isSavingUserSettings, setIsSavingUserSettings] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -762,17 +763,33 @@ export default function AdminPage({
     }
   };
 
-  const resetPasswordToTemporary = () => {
+  const resetPasswordToTemporary = async () => {
     if (!selectedUser) return;
 
     const tempPassword = buildTemporaryPassword();
+    setManageError(null);
+    setIsResettingPassword(true);
 
-    setManagedUsers((previous) =>
-      previous.map((user) =>
-        user.id === selectedUser.id ? { ...user, temporaryPassword: tempPassword } : user
-      )
-    );
-    setSaveMessage(`Temporary password generated for ${selectedUser.fullName}.`);
+    try {
+      await resetUserPassword({
+        temp_password: tempPassword,
+        user_id: selectedUser.id,
+      });
+
+      setManagedUsers((previous) =>
+        previous.map((user) =>
+          user.id === selectedUser.id ? { ...user, temporaryPassword: tempPassword } : user
+        )
+      );
+      setSaveMessage(`Temporary password generated for ${selectedUser.fullName}.`);
+    } catch (error) {
+      const fallbackError = "Unable to reset password right now.";
+      const message =
+        error instanceof Error && error.message.trim() ? error.message : fallbackError;
+      setManageError(message);
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const openDeleteDialog = () => {
@@ -1437,11 +1454,12 @@ export default function AdminPage({
             {selectedUser?.accountStatus === "account_created" ? (
               <button
                 type="button"
-                onClick={resetPasswordToTemporary}
+                onClick={() => void resetPasswordToTemporary()}
+                disabled={isResettingPassword}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[rgba(255,194,62,0.55)] bg-[rgba(255,194,62,0.2)] px-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary-deep)] transition-colors hover:bg-[rgba(255,194,62,0.32)]"
               >
                 <KeyRound className="h-3.5 w-3.5" />
-                Reset Password
+                {isResettingPassword ? "Resetting..." : "Reset Password"}
               </button>
             ) : null}
             <button
