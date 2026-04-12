@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -241,6 +242,8 @@ export function StudentFiltersPanel({
   const selectContentClass = "z-[120]";
   const weightedThreeColumnGridClass =
     "grid grid-cols-1 gap-y-2.5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.2fr)] md:gap-x-2";
+  const weightedFourColumnGridClass =
+    "grid grid-cols-1 gap-y-2.5 md:grid-cols-4 md:gap-x-2";
 
   const countryOptions = useMemo(
     () =>
@@ -335,6 +338,15 @@ export function StudentFiltersPanel({
         group: "Gender",
         value: "Female",
         onRemove: () => setFilters((prev) => ({ ...prev, gender_female: false })),
+      });
+    }
+
+    if (filters.urbanOnly) {
+      pills.push({
+        key: "urban-only",
+        group: "Urban",
+        value: "Only",
+        onRemove: () => setFilters((prev) => ({ ...prev, urbanOnly: false })),
       });
     }
 
@@ -484,7 +496,7 @@ export function StudentFiltersPanel({
   };
 
   const locationFields = (
-    <div className={weightedThreeColumnGridClass}>
+    <div className={weightedFourColumnGridClass}>
       <div>
         <FieldLabel>Country</FieldLabel>
         <Button
@@ -540,6 +552,18 @@ export function StudentFiltersPanel({
           >
             Female
           </ToggleChip>
+        </div>
+      </div>
+      <div>
+        <FieldLabel>Urban Only</FieldLabel>
+        <div className="flex items-center">
+          <Switch
+            checked={filters.urbanOnly}
+            onCheckedChange={(checked) =>
+              setFilters((prev) => ({ ...prev, urbanOnly: checked }))
+            }
+            aria-label="Urban Only"
+          />
         </div>
       </div>
     </div>

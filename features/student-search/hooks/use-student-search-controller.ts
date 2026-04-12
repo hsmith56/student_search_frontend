@@ -57,11 +57,15 @@ const MY_STATES_FILTER_VALUE = "my_states";
 const NO_PREFERENCES_FILTER_VALUE = "no_pref";
 const MY_STATES_FILTER_LABEL = "My States Only";
 const NO_PREFERENCES_FILTER_LABEL = "No Preference + My States";
-const SPECIAL_STATE_FILTER_VALUES = new Set([
-  "all",
+const DEFAULT_STATE_FILTER_VALUES = [
   NO_PREFERENCES_FILTER_VALUE,
+  "all",
   "state_only",
   MY_STATES_FILTER_VALUE,
+] as const;
+const SPECIAL_STATE_FILTER_VALUES = new Set([
+  ...DEFAULT_STATE_FILTER_VALUES,
+  NO_PREFERENCES_FILTER_VALUE,
 ]);
 
 type StateFilterOption = {
@@ -132,6 +136,14 @@ const toStateFilterPayload = (stateValue: string): string[] => {
   return normalized ? [normalized] : ["all"];
 };
 
+const toSearchFiltersPayload = (filters: Filters) => {
+  const { urbanOnly, ...remainingFilters } = filters;
+  return {
+    ...remainingFilters,
+    urban_request: urbanOnly,
+  };
+};
+
 const getActiveFilterCount = (
   filters: Filters,
   defaultStateValue = defaultFilters.state
@@ -143,6 +155,7 @@ const getActiveFilterCount = (
   if (filters.state !== defaultStateValue) count += 1;
   if (filters.gender_male) count += 1;
   if (filters.gender_female) count += 1;
+  if (filters.urbanOnly !== defaultFilters.urbanOnly) count += 1;
   if (filters.pets_in_home !== defaultFilters.pets_in_home) count += 1;
   if (filters.early_placement !== defaultFilters.early_placement) count += 1;
   if (filters.hasVideo) count += 1;
@@ -173,6 +186,8 @@ const buildFilterAnalyticsPayload = (
     state: filters.state,
     gender_male: filters.gender_male,
     gender_female: filters.gender_female,
+    urban_only: filters.urbanOnly,
+    urban_request: toUrbanRequestValue(filters.urbanOnly),
     pets_in_home: filters.pets_in_home,
     program_types: filters.program_types,
     early_placement: filters.early_placement,
@@ -233,6 +248,7 @@ export function useStudentSearchController({
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
   const isRpmUser = accountType.toLowerCase().includes("rpm");
   const isAdminUser = accountType.toLowerCase().includes("admin");
+  const isRpmOrAdminUser = isRpmUser || isAdminUser;
   const defaultStateFilterValue = isLcUser
     ? NO_PREFERENCES_FILTER_VALUE
     : defaultFilters.state;
@@ -261,10 +277,15 @@ export function useStudentSearchController({
       ]),
     [localCoordinatorStates]
   );
+  const allowedRpmAdminStateFilterValues = useMemo(
+    () => new Set([...DEFAULT_STATE_FILTER_VALUES, ...localCoordinatorStates]),
+    [localCoordinatorStates]
+  );
   const stateOptionsForFilter = useMemo<StateFilterOption[]>(() => {
-    if (!isLcUser) {
-      return ALL_STATE_OPTIONS;
-    }
+    const defaultStateOptions = DEFAULT_STATE_FILTER_VALUES.map((value) => {
+      const matchedOption = ALL_STATE_OPTIONS.find((option) => option.value === value);
+      return matchedOption ?? { value, label: value };
+    });
 
     const coordinatorStateOptions = ALL_STATE_OPTIONS.filter(
       (option) =>
@@ -283,28 +304,50 @@ export function useStudentSearchController({
       .sort((left, right) => left.localeCompare(right))
       .map((stateName) => ({ value: stateName, label: stateName }));
 
+    if (isRpmOrAdminUser) {
+      return [...defaultStateOptions, ...coordinatorStateOptions, ...fallbackCoordinatorStateOptions];
+    }
+
+    if (!isLcUser) {
+      return ALL_STATE_OPTIONS;
+    }
+
     return [
       { value: NO_PREFERENCES_FILTER_VALUE, label: NO_PREFERENCES_FILTER_LABEL },
       { value: MY_STATES_FILTER_VALUE, label: MY_STATES_FILTER_LABEL },
       ...coordinatorStateOptions,
       ...fallbackCoordinatorStateOptions,
     ];
-  }, [isLcUser, localCoordinatorStateSet, localCoordinatorStates]);
+  }, [isLcUser, isRpmOrAdminUser, localCoordinatorStateSet, localCoordinatorStates]);
   const sanitizeStateFilterValue = useCallback(
     (stateValue: string) => {
       const normalizedStateValue = stateValue.trim();
-
-      if (!isLcUser) {
-        return normalizedStateValue || defaultFilters.state;
-      }
 
       if (allowedLcStateFilterValues.has(normalizedStateValue)) {
         return normalizedStateValue;
       }
 
+      if (isRpmOrAdminUser) {
+        if (allowedRpmAdminStateFilterValues.has(normalizedStateValue)) {
+          return normalizedStateValue;
+        }
+
+        return defaultFilters.state;
+      }
+
+      if (!isLcUser) {
+        return normalizedStateValue || defaultFilters.state;
+      }
+
       return defaultStateFilterValue;
     },
-    [allowedLcStateFilterValues, defaultStateFilterValue, isLcUser]
+    [
+      allowedLcStateFilterValues,
+      allowedRpmAdminStateFilterValues,
+      defaultStateFilterValue,
+      isLcUser,
+      isRpmOrAdminUser,
+    ]
   );
 
   const sanitizeStatusOptions = useCallback(
@@ -404,7 +447,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
         orderBy: sortBy,
         descending: sortDesc,
         filters: {
-          ...filters,
+          ...toSearchFiltersPayload(filters),
           state: resolvedStateValue,
           country_of_origin: getCountryFilterPayload(filters.country_of_origin),
           status: statusValue,
@@ -436,7 +479,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
         orderBy,
         descending,
         filters: {
-          ...defaultFilters,
+          ...toSearchFiltersPayload(defaultFilters),
           state: resolvedStateValue,
           country_of_origin: getCountryFilterPayload(defaultFilters.country_of_origin),
           status: "Allocated",
@@ -487,7 +530,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
             orderBy,
             descending,
             filters: {
-              ...filters,
+              ...toSearchFiltersPayload(filters),
               state: resolvedStateValue,
               country_of_origin: getCountryFilterPayload(filters.country_of_origin),
               statusOptions: sanitizedStatus,
@@ -765,15 +808,22 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || !hasLoadedAuthUser || !isLcUser) {
-      if (!isLcUser) {
+    const shouldLoadPreferredStates = isLcUser || isRpmOrAdminUser;
+    if (!isAuthenticated || !hasLoadedAuthUser || !shouldLoadPreferredStates) {
+      if (!shouldLoadPreferredStates) {
         setLocalCoordinatorStates([]);
       }
       return;
     }
 
     void fetchFavoriteStatesForFilter().catch(() => setLocalCoordinatorStates([]));
-  }, [fetchFavoriteStatesForFilter, hasLoadedAuthUser, isAuthenticated, isLcUser]);
+  }, [
+    fetchFavoriteStatesForFilter,
+    hasLoadedAuthUser,
+    isAuthenticated,
+    isLcUser,
+    isRpmOrAdminUser,
+  ]);
 
   useEffect(() => {
     if (!isLcUser) return;
@@ -797,6 +847,22 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       };
     });
   }, [isLcUser, sanitizeStateFilterValue, sanitizeStatusOptions]);
+
+  useEffect(() => {
+    if (!isRpmOrAdminUser || isLcUser) return;
+
+    setFilters((prev) => {
+      const nextStateValue = sanitizeStateFilterValue(prev.state);
+      if (nextStateValue === prev.state) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        state: nextStateValue,
+      };
+    });
+  }, [isLcUser, isRpmOrAdminUser, sanitizeStateFilterValue]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

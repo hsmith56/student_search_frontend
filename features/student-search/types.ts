@@ -8,6 +8,7 @@ export type Filters = {
   state: string;
   gender_male: boolean;
   gender_female: boolean;
+  urbanOnly: boolean;
   pets_in_home: string;
   program_types: string[];
   early_placement: string;
@@ -28,6 +29,7 @@ export const defaultFilters: Filters = {
   state: "no_pref",
   gender_male: false,
   gender_female: false,
+  urbanOnly: false,
   pets_in_home: "all",
   program_types: [],
   early_placement: "all",

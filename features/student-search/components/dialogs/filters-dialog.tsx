@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -187,6 +188,15 @@ export function FiltersDialog({
         group: "Gender",
         value: "Female",
         onRemove: () => setFilters((prev) => ({ ...prev, gender_female: false })),
+      });
+    }
+
+    if (filters.urbanOnly) {
+      pills.push({
+        key: "urban-only",
+        group: "Urban",
+        value: "Only",
+        onRemove: () => setFilters((prev) => ({ ...prev, urbanOnly: false })),
       });
     }
 
@@ -371,7 +381,7 @@ export function FiltersDialog({
                 <MapPin className="h-4 w-4 text-[var(--brand-primary-deep)]" />
                 Location & Demographics
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="mb-1.5 block text-[11px] font-semibold text-[var(--brand-body)]">
                     Country of Origin
@@ -449,6 +459,21 @@ export function FiltersDialog({
                         Female
                       </label>
                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-semibold text-[var(--brand-body)]">
+                    Urban Only
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <Switch
+                      checked={filters.urbanOnly}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({ ...prev, urbanOnly: checked }))
+                      }
+                      aria-label="Urban Only"
+                    />
                   </div>
                 </div>
               </div>
