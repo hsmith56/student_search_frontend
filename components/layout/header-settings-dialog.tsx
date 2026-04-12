@@ -96,7 +96,6 @@ export function HeaderSettingsDialog({
     try {
       await changePassword({
         new_password: nextPassword,
-        password: nextPassword,
       });
 
       resetPasswordFields();
