@@ -1,4 +1,8 @@
+"use client";
+
 import {
+  useEffect,
+  useState,
   type Dispatch,
   type KeyboardEvent as ReactKeyboardEvent,
   type SetStateAction,
@@ -69,6 +73,25 @@ export function SearchControls({
   viewMode,
   onViewModeChange,
 }: SearchControlsProps) {
+  const freeTextPlaceholders = [
+    "Free text - hockey & ice skating & snow (ie. likes winter sports)",
+    "Free text - dancing | ballet # (dancing or ballet)",
+    "Free text - basketball & baseball (both are mentioned)",
+    "Free text - music",
+    "Free text - soccer | volleyball # (soccer or volleyball)",
+  ];
+  const [freeTextPlaceholderIndex, setFreeTextPlaceholderIndex] = useState(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setFreeTextPlaceholderIndex(
+        (currentIndex) => (currentIndex + 1) % freeTextPlaceholders.length
+      );
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [freeTextPlaceholders.length]);
+
   return (
     <div className="sticky top-[60px] z-40 mb-3 overflow-visible rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.92)] backdrop-blur-xl shadow-[0_10px_24px_rgba(0,53,84,0.08)]">
       <button
@@ -97,7 +120,7 @@ export function SearchControls({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-muted)]" />
             <Input
-              placeholder="Free Text Search"
+              placeholder={freeTextPlaceholders[freeTextPlaceholderIndex]}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               onKeyDown={onSearchInputKeyDown}
