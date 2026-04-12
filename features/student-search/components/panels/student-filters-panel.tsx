@@ -167,6 +167,7 @@ export function StudentFiltersPanel({
   defaultStateValue,
 }: StudentFiltersPanelProps) {
   const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [isInterestOpen, setIsInterestOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(open);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -197,6 +198,7 @@ export function StudentFiltersPanel({
     if (!open) {
       const timeoutId = window.setTimeout(() => {
         setIsCountryOpen(false);
+        setIsInterestOpen(false);
       }, PANEL_ANIMATION_DURATION_MS);
 
       return () => {
@@ -256,6 +258,17 @@ export function StudentFiltersPanel({
         })),
     [countries]
   );
+  const interestOptions = useMemo(
+    () =>
+      interests
+        .filter((interest) => interest.value !== "all")
+        .map((interest, index) => ({
+          id: `interest-${index}`,
+          label: interest.label,
+          value: interest.value,
+        })),
+    []
+  );
   const stateLabels = useMemo(
     () =>
       new Map(
@@ -273,6 +286,14 @@ export function StudentFiltersPanel({
       country_of_origin: prev.country_of_origin.includes(country)
         ? prev.country_of_origin.filter((item) => item !== country)
         : [...prev.country_of_origin, country],
+    }));
+  };
+  const toggleInterest = (interestValue: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interestValue)
+        ? prev.interests.filter((value) => value !== interestValue)
+        : [...prev.interests, interestValue],
     }));
   };
 
@@ -303,14 +324,14 @@ export function StudentFiltersPanel({
       });
     }
 
-    if (filters.interests !== defaultFilters.interests) {
+    filters.interests.forEach((interest) => {
       pills.push({
-        key: `interest-${filters.interests}`,
+        key: `interest-${interest}`,
         group: "Interest",
-        value: INTEREST_LABELS.get(filters.interests) ?? filters.interests,
-        onRemove: () => setFilters((prev) => ({ ...prev, interests: defaultFilters.interests })),
+        value: INTEREST_LABELS.get(interest) ?? interest,
+        onRemove: () => toggleInterest(interest),
       });
-    }
+    });
 
     if (!hasDefaultStatusSelection(filters.statusOptions)) {
       filters.statusOptions.forEach((status) => {
@@ -629,21 +650,17 @@ export function StudentFiltersPanel({
       </div>
       <div>
         <FieldLabel>Interests</FieldLabel>
-        <Select
-          value={filters.interests}
-          onValueChange={(value) => setFilters((prev) => ({ ...prev, interests: value }))}
+        <Button
+          type="button"
+          variant="outline"
+          className={`${selectTriggerClass} justify-between px-3 font-normal`}
+          onClick={() => setIsInterestOpen(true)}
         >
-          <SelectTrigger className={selectTriggerClass}>
-            <SelectValue placeholder="Show All" />
-          </SelectTrigger>
-          <SelectContent className={selectContentClass}>
-            {interests.map((interest) => (
-              <SelectItem key={interest.value} value={interest.value}>
-                {interest.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <span className="truncate text-left text-[13px] text-[var(--brand-body)]">
+            {filters.interests.length === 0 ? "Show All" : `${filters.interests.length} selected`}
+          </span>
+          <ChevronRight className="h-4 w-4 text-[var(--brand-muted)]" />
+        </Button>
       </div>
     </div>
   );
@@ -899,6 +916,17 @@ export function StudentFiltersPanel({
         showSearch
         searchPlaceholder="Search countries"
         emptyResultsLabel="No countries found."
+      />
+      <MultiSelectDialog
+        open={isInterestOpen}
+        onOpenChange={setIsInterestOpen}
+        title="Select Interests"
+        options={interestOptions}
+        selectedValues={filters.interests}
+        onToggle={toggleInterest}
+        showSearch
+        searchPlaceholder="Search interests"
+        emptyResultsLabel="No interests found."
       />
     </>,
     document.body

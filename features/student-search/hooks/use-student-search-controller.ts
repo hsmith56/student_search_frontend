@@ -136,10 +136,14 @@ const toStateFilterPayload = (stateValue: string): string[] => {
   return normalized ? [normalized] : ["all"];
 };
 
+const toInterestsFilterPayload = (interests: string[]) =>
+  interests.length > 0 ? interests : ["all"];
+
 const toSearchFiltersPayload = (filters: Filters) => {
-  const { urbanOnly, ...remainingFilters } = filters;
+  const { urbanOnly, interests, ...remainingFilters } = filters;
   return {
     ...remainingFilters,
+    interests: toInterestsFilterPayload(interests),
     urban_request: urbanOnly,
   };
 };
@@ -151,7 +155,7 @@ const getActiveFilterCount = (
   let count = 0;
 
   count += filters.country_of_origin.length;
-  if (filters.interests !== defaultFilters.interests) count += 1;
+  if (!hasSameValues(filters.interests, defaultFilters.interests)) count += 1;
   if (filters.state !== defaultStateValue) count += 1;
   if (filters.gender_male) count += 1;
   if (filters.gender_female) count += 1;
@@ -187,7 +191,7 @@ const buildFilterAnalyticsPayload = (
     gender_male: filters.gender_male,
     gender_female: filters.gender_female,
     urban_only: filters.urbanOnly,
-    urban_request: toUrbanRequestValue(filters.urbanOnly),
+    urban_request: filters.urbanOnly,
     pets_in_home: filters.pets_in_home,
     program_types: filters.program_types,
     early_placement: filters.early_placement,

@@ -4,7 +4,7 @@ export type ViewMode = "card" | "compact";
 
 export type Filters = {
   country_of_origin: string[];
-  interests: string;
+  interests: string[];
   state: string;
   gender_male: boolean;
   gender_female: boolean;
@@ -25,7 +25,7 @@ export type Filters = {
 
 export const defaultFilters: Filters = {
   country_of_origin: [],
-  interests: "all",
+  interests: [],
   state: "no_pref",
   gender_male: false,
   gender_female: false,

@@ -95,6 +95,7 @@ export function FiltersDialog({
   statusOptions,
 }: FiltersDialogProps) {
   const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [isInterestOpen, setIsInterestOpen] = useState(false);
   const sectionClass =
     "rounded-xl border border-[rgba(0,53,84,0.12)] bg-[rgba(253,254,255,0.98)] p-3";
   const sectionTitleClass =
@@ -115,6 +116,17 @@ export function FiltersDialog({
         })),
     [countries]
   );
+  const interestOptions = useMemo(
+    () =>
+      interests
+        .filter((interest) => interest.value !== "all")
+        .map((interest, index) => ({
+          id: `interest-${index}`,
+          label: interest.label,
+          value: interest.value,
+        })),
+    []
+  );
 
   const toggleCountry = (country: string) => {
     setFilters((prev) => ({
@@ -122,6 +134,14 @@ export function FiltersDialog({
       country_of_origin: prev.country_of_origin.includes(country)
         ? prev.country_of_origin.filter((item) => item !== country)
         : [...prev.country_of_origin, country],
+    }));
+  };
+  const toggleInterest = (interestValue: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interestValue)
+        ? prev.interests.filter((value) => value !== interestValue)
+        : [...prev.interests, interestValue],
     }));
   };
 
@@ -153,14 +173,14 @@ export function FiltersDialog({
       });
     }
 
-    if (filters.interests !== defaultFilters.interests) {
+    filters.interests.forEach((interest) => {
       pills.push({
-        key: `interest-${filters.interests}`,
+        key: `interest-${interest}`,
         group: "Interest",
-        value: INTEREST_LABELS.get(filters.interests) ?? filters.interests,
-        onRemove: () => setFilters((prev) => ({ ...prev, interests: defaultFilters.interests })),
+        value: INTEREST_LABELS.get(interest) ?? interest,
+        onRemove: () => toggleInterest(interest),
       });
-    }
+    });
 
     if (!hasDefaultStatusSelection(filters.statusOptions)) {
       filters.statusOptions.forEach((status) => {
@@ -536,23 +556,18 @@ export function FiltersDialog({
                   <label className="mb-1.5 block text-[11px] font-semibold text-[var(--brand-body)]">
                     Interests
                   </label>
-                  <Select
-                    value={filters.interests}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, interests: value }))
-                    }
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsInterestOpen(true)}
+                    className={multiSelectButtonClass}
                   >
-                    <SelectTrigger className={fieldControlClass}>
-                      <SelectValue placeholder="Show All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {interests.map((interest) => (
-                        <SelectItem key={interest.value} value={interest.value}>
-                          {interest.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <span className="text-[var(--brand-body)]">
+                      {filters.interests.length > 0
+                        ? `${filters.interests.length} selected`
+                        : "Show All"}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-[var(--brand-muted)]" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -772,6 +787,18 @@ export function FiltersDialog({
         showSearch
         searchPlaceholder="Search countries"
         emptyResultsLabel="No countries found."
+      />
+
+      <MultiSelectDialog
+        open={isInterestOpen}
+        onOpenChange={setIsInterestOpen}
+        title="Select Interests"
+        options={interestOptions}
+        selectedValues={filters.interests}
+        onToggle={toggleInterest}
+        showSearch
+        searchPlaceholder="Search interests"
+        emptyResultsLabel="No interests found."
       />
 
       <MultiSelectDialog
