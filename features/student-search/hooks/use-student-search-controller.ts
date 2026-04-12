@@ -436,18 +436,24 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     orderByParam?: string,
     descendingParam?: boolean,
     resultsPerPageParam?: number,
-    onlyFavorites = showFavoritesOnly || filters.onlyFavorites
+    onlyFavorites = showFavoritesOnly || filters.onlyFavorites,
+    filtersOverride?: Filters
   ) => {
     const sortBy = orderByParam ?? orderBy;
     const sortDesc =
       typeof descendingParam === "boolean" ? descendingParam : descending;
     const pageSize = resultsPerPageParam ?? resultsPerPage;
+    const effectiveFilters = filtersOverride ?? filters;
     try {
-      const effectiveStatusOptions = sanitizeStatusOptions(filters.statusOptions);
+      const effectiveStatusOptions = sanitizeStatusOptions(
+        effectiveFilters.statusOptions
+      );
       const statusValue = effectiveStatusOptions.includes(ALL_STATUS)
         ? "allocated"
         : effectiveStatusOptions.map((status) => status.toLowerCase()).join(",");
-      const resolvedStateValue = await resolveStateFilterValue(filters.state);
+      const resolvedStateValue = await resolveStateFilterValue(
+        effectiveFilters.state
+      );
 
       const data = await searchStudentsApi<StudentSearchResponse>({
         page,
@@ -455,9 +461,11 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
         orderBy: sortBy,
         descending: sortDesc,
         filters: {
-          ...toSearchFiltersPayload(filters),
+          ...toSearchFiltersPayload(effectiveFilters),
           state: resolvedStateValue,
-          country_of_origin: getCountryFilterPayload(filters.country_of_origin),
+          country_of_origin: getCountryFilterPayload(
+            effectiveFilters.country_of_origin
+          ),
           status: statusValue,
           free_text: query,
           usahsId: usahsIdQuery,
@@ -748,14 +756,15 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   };
 
   const showFavorites = () => {
-    setFilters((prev) => ({
-      ...prev,
+    const nextFilters = {
+      ...filters,
       onlyFavorites: true,
       statusOptions: [ALL_STATUS],
-    }));
+    };
+    setFilters(nextFilters);
     setShowFavoritesOnly(true);
     setCurrentPage(1);
-    void fetchStudents(1, undefined, undefined, undefined, true);
+    void fetchStudents(1, undefined, undefined, undefined, true, nextFilters);
     posthog.capture("favorites_viewed");
   };
 
