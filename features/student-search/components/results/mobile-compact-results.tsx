@@ -11,7 +11,6 @@ import {
 type MobileCompactResultsProps = {
   students: StudentRecord[];
   shouldAnimateResults: boolean;
-  resultsAnimationKey: number;
   favoritedStudents: Set<string>;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
@@ -21,7 +20,6 @@ type MobileCompactResultsProps = {
 export function MobileCompactResults({
   students,
   shouldAnimateResults,
-  resultsAnimationKey,
   favoritedStudents,
   onFavorite,
   onUnfavorite,
@@ -29,7 +27,6 @@ export function MobileCompactResults({
 }: MobileCompactResultsProps) {
   return (
     <div
-      key={`mobile-results-${resultsAnimationKey}`}
       className={`space-y-3 mb-8 ${
         shouldAnimateResults ? "results-refresh-container" : ""
       }`}

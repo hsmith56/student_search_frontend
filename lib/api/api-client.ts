@@ -1,5 +1,7 @@
 "use client";
 
+import { elapsedMs, logPerf, now } from "@/lib/perf-logger";
+
 const API_BASE_PATH = "/api";
 
 export class ApiError extends Error {
@@ -94,6 +96,7 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
+  const requestStart = now();
   const {
     jsonBody,
     redirectOnUnauthorized = true,
@@ -103,7 +106,10 @@ export async function apiFetch<T>(
   } = options;
 
   const hasJsonBody = jsonBody !== undefined;
-  const response = await fetch(normalizePath(path), {
+  const normalizedPath = normalizePath(path);
+  const method = (requestInit.method ?? "GET").toUpperCase();
+
+  const response = await fetch(normalizedPath, {
     ...requestInit,
     credentials: credentials ?? "include",
     headers: buildHeaders(headers, hasJsonBody),
@@ -111,6 +117,13 @@ export async function apiFetch<T>(
   });
 
   if (response.status === 401) {
+    logPerf("apiFetch", {
+      method,
+      path: normalizedPath,
+      status: response.status,
+      ok: false,
+      duration_ms: elapsedMs(requestStart),
+    });
     if (
       redirectOnUnauthorized &&
       typeof window !== "undefined" &&
@@ -124,11 +137,29 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
+    logPerf("apiFetch", {
+      method,
+      path: normalizedPath,
+      status: response.status,
+      ok: false,
+      duration_ms: elapsedMs(requestStart),
+    });
     const payload = await parseResponseBody(response);
     throw new ApiError(getErrorMessage(response.status, payload), response.status, payload);
   }
 
   const payload = await parseResponseBody(response);
+
+  logPerf("apiFetch", {
+    method,
+    path: normalizedPath,
+    status: response.status,
+    ok: true,
+    duration_ms: elapsedMs(requestStart),
+    payload_type: Array.isArray(payload) ? "array" : typeof payload,
+    payload_items: Array.isArray(payload) ? payload.length : undefined,
+  });
+
   return payload as T;
 }
 

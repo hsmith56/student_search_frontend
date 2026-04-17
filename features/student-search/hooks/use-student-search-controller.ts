@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import posthog from "posthog-js";
 import { states as ALL_STATE_OPTIONS } from "@/components/search/states";
 import {
@@ -41,9 +41,13 @@ import {
   searchStudents as searchStudentsApi,
   updateStudentDatabase,
 } from "@/lib/api/students";
+import { elapsedMs, logPerf, now } from "@/lib/perf-logger";
 
 type UseStudentSearchControllerArgs = {
   isAuthenticated: boolean;
+  accountTypeOverride?: string;
+  hasLoadedAuthUserOverride?: boolean;
+  suppressHeaderMetadataFetch?: boolean;
 };
 
 const CACHE_TTL_SHORT_MS = 30_000;
@@ -211,6 +215,9 @@ const buildFilterAnalyticsPayload = (
 
 export function useStudentSearchController({
   isAuthenticated,
+  accountTypeOverride,
+  hasLoadedAuthUserOverride,
+  suppressHeaderMetadataFetch = false,
 }: UseStudentSearchControllerArgs) {
   const [query, setQuery] = useState("");
   const [updateTime, setUpdateTime] = useState("");
@@ -252,6 +259,7 @@ export function useStudentSearchController({
   const [localCoordinatorStates, setLocalCoordinatorStates] = useState<string[]>(
     []
   );
+  const hasBootstrappedInitialResults = useRef(false);
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
   const isRpmUser = accountType.toLowerCase().includes("rpm");
   const isAdminUser = accountType.toLowerCase().includes("admin");
@@ -265,12 +273,16 @@ export function useStudentSearchController({
   );
   const canShowUnassigned = hasLoadedAuthUser && !isLcUser;
   const canUpdateDatabase = hasLoadedAuthUser && !isLcUser;
-  const statusOptionsForFilter = canShowUnassigned
-    ? STATUS_OPTIONS
-    : STATUS_OPTIONS.filter(
-        (status) =>
-          status.value !== UNASSIGNED_STATUS && status.value !== ALL_STATUS
-      );
+  const statusOptionsForFilter = useMemo(
+    () =>
+      canShowUnassigned
+        ? STATUS_OPTIONS
+        : STATUS_OPTIONS.filter(
+            (status) =>
+              status.value !== UNASSIGNED_STATUS && status.value !== ALL_STATUS
+          ),
+    [canShowUnassigned]
+  );
   const localCoordinatorStateSet = useMemo(
     () => new Set(localCoordinatorStates),
     [localCoordinatorStates]
@@ -376,11 +388,11 @@ export function useStudentSearchController({
     [isLcUser]
   );
 
-  const animateResultsRefresh = () => {
+  const animateResultsRefresh = useCallback(() => {
     setResultsAnimationKey((prev) => prev + 1);
-  };
+  }, []);
 
-  const fetchLastUpdateTime = async () => {
+  const fetchLastUpdateTime = useCallback(async () => {
     try {
       const data = await getCachedValue<unknown[]>(
         "misc:last_update_time",
@@ -391,7 +403,7 @@ export function useStudentSearchController({
     } catch {
       setUpdateTime("");
     }
-  };
+  }, []);
 
   const fetchFavoriteStatesForFilter = useCallback(async () => {
     const data = await getCachedValue<unknown>(
@@ -401,49 +413,71 @@ export function useStudentSearchController({
     );
 
     const parsedStateValues = parseStateValuesResponse(data);
-    setLocalCoordinatorStates(parsedStateValues);
+    setLocalCoordinatorStates((prev) =>
+      hasSameValues(prev, parsedStateValues) ? prev : parsedStateValues
+    );
     return parsedStateValues;
   }, []);
 
-const resolveStateFilterValue = async (stateValue: string): Promise<string[]> => {
-    const sanitizedStateValue = sanitizeStateFilterValue(stateValue);
+  const resolveStateFilterValue = useCallback(
+    async (stateValue: string): Promise<string[]> => {
+      const sanitizedStateValue = sanitizeStateFilterValue(stateValue);
 
-    if (sanitizedStateValue === NO_PREFERENCES_FILTER_VALUE) {
+      if (sanitizedStateValue === NO_PREFERENCES_FILTER_VALUE) {
+        if (localCoordinatorStates.length > 0) {
+          return [NO_PREFERENCES_FILTER_VALUE, ...localCoordinatorStates];
+        }
+
+        try {
+          const favoriteStates = await fetchFavoriteStatesForFilter();
+          return [NO_PREFERENCES_FILTER_VALUE, ...favoriteStates];
+        } catch (error) {
+          console.error("Error resolving favorite states filter:", error);
+          return [NO_PREFERENCES_FILTER_VALUE];
+        }
+      }
+
+      if (sanitizedStateValue !== MY_STATES_FILTER_VALUE) {
+        return toStateFilterPayload(sanitizedStateValue);
+      }
+
+      if (localCoordinatorStates.length > 0) {
+        return localCoordinatorStates;
+      }
+
       try {
         const favoriteStates = await fetchFavoriteStatesForFilter();
-        return [NO_PREFERENCES_FILTER_VALUE, ...favoriteStates];
+        return favoriteStates;
       } catch (error) {
         console.error("Error resolving favorite states filter:", error);
-        return [NO_PREFERENCES_FILTER_VALUE];
+        return [];
       }
-    }
+    },
+    [fetchFavoriteStatesForFilter, localCoordinatorStates, sanitizeStateFilterValue]
+  );
 
-    if (sanitizedStateValue !== MY_STATES_FILTER_VALUE) {
-      return toStateFilterPayload(sanitizedStateValue);
-    }
-
-    try {
-      const favoriteStates = await fetchFavoriteStatesForFilter();
-      return favoriteStates;
-    } catch (error) {
-      console.error("Error resolving favorite states filter:", error);
-      return [];
-    }
-  };
-
-  const fetchStudents = async (
+  const fetchStudents = useCallback(async (
     page = 1,
     orderByParam?: string,
     descendingParam?: boolean,
     resultsPerPageParam?: number,
     onlyFavorites = showFavoritesOnly || filters.onlyFavorites,
-    filtersOverride?: Filters
+    filtersOverride?: Filters,
+    searchOverrides?: {
+      query?: string;
+      usahsIdQuery?: string;
+      photoQuery?: string;
+    }
   ) => {
+    const searchStart = now();
     const sortBy = orderByParam ?? orderBy;
     const sortDesc =
       typeof descendingParam === "boolean" ? descendingParam : descending;
     const pageSize = resultsPerPageParam ?? resultsPerPage;
     const effectiveFilters = filtersOverride ?? filters;
+    const effectiveQuery = searchOverrides?.query ?? query;
+    const effectiveUsahsIdQuery = searchOverrides?.usahsIdQuery ?? usahsIdQuery;
+    const effectivePhotoQuery = searchOverrides?.photoQuery ?? photoQuery;
     try {
       const effectiveStatusOptions = sanitizeStatusOptions(
         effectiveFilters.statusOptions
@@ -451,10 +485,13 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       const statusValue = effectiveStatusOptions.includes(ALL_STATUS)
         ? "allocated"
         : effectiveStatusOptions.map((status) => status.toLowerCase()).join(",");
+      const stateResolutionStart = now();
       const resolvedStateValue = await resolveStateFilterValue(
         effectiveFilters.state
       );
+      const stateResolutionDuration = elapsedMs(stateResolutionStart);
 
+      const apiStart = now();
       const data = await searchStudentsApi<StudentSearchResponse>({
         page,
         pageSize,
@@ -467,22 +504,50 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
             effectiveFilters.country_of_origin
           ),
           status: statusValue,
-          free_text: query,
-          usahsId: usahsIdQuery,
-          photo_search: photoQuery,
+          free_text: effectiveQuery,
+          usahsId: effectiveUsahsIdQuery,
+          photo_search: effectivePhotoQuery,
           only_favorites: onlyFavorites,
         },
       });
+      const apiDuration = elapsedMs(apiStart);
       setCurrentPage(data.page || 1);
       setTotalPages(data.total_pages || 1);
       setStudents(data.results || []);
       setTotalResults(data.total_results || data.results?.length || 0);
+
+      logPerf("studentSearch.fetchStudents", {
+        page,
+        page_size: pageSize,
+        results_count: data.results?.length ?? 0,
+        total_results: data.total_results ?? 0,
+        duration_ms: elapsedMs(searchStart),
+        state_resolution_ms: stateResolutionDuration,
+        api_ms: apiDuration,
+        only_favorites: onlyFavorites,
+      });
     } catch (error) {
+      logPerf("studentSearch.fetchStudents.error", {
+        page,
+        page_size: pageSize,
+        duration_ms: elapsedMs(searchStart),
+      });
       console.error("Error:", error);
     }
-  };
+  }, [
+    descending,
+    filters,
+    orderBy,
+    photoQuery,
+    query,
+    resolveStateFilterValue,
+    resultsPerPage,
+    sanitizeStatusOptions,
+    showFavoritesOnly,
+    usahsIdQuery,
+  ]);
 
-  const fetchStudentsWithDefaults = async (
+  const fetchStudentsWithDefaults = useCallback(async (
     defaultStateValue = defaultStateFilterValue
   ) => {
     try {
@@ -516,9 +581,10 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       console.error("Error:", error);
       setStudents([]);
     }
-  };
+  }, [defaultStateFilterValue, descending, orderBy, resolveStateFilterValue, resultsPerPage, sanitizeStateFilterValue]);
 
-  const fetchStudentsByStatus = async (status: string[]) => {
+  const fetchStudentsByStatus = useCallback(async (status: string[]) => {
+    const statusFetchStart = now();
     const sanitizedStatus = sanitizeStatusOptions(status);
     const nextFilters = {
       ...filters,
@@ -527,13 +593,25 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     };
     setCurrentPage(1);
     setShowFavoritesOnly(false);
-    setFilters((prev) => ({ ...prev, statusOptions: sanitizedStatus, onlyFavorites: false }));
+    setFilters((prev) => {
+      const sameStatusOptions =
+        prev.statusOptions.length === sanitizedStatus.length &&
+        prev.statusOptions.every((value, index) => value === sanitizedStatus[index]);
+
+      if (sameStatusOptions && !prev.onlyFavorites) {
+        return prev;
+      }
+
+      return { ...prev, statusOptions: sanitizedStatus, onlyFavorites: false };
+    });
 
     try {
       const statusKey = sanitizedStatus
         .map((value) => value.toLowerCase())
         .join(",");
+      const stateResolutionStart = now();
       const resolvedStateValue = await resolveStateFilterValue(nextFilters.state);
+      const stateResolutionDuration = elapsedMs(stateResolutionStart);
       const resolvedStateToken = resolvedStateValue
         .map((value) => value.toLowerCase())
         .sort()
@@ -564,13 +642,25 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       setTotalPages(data.total_pages || 1);
       setTotalResults(data.total_results || data.results?.length || 0);
       animateResultsRefresh();
+
+      logPerf("studentSearch.fetchByStatus", {
+        status: sanitizedStatus,
+        results_count: data.results?.length ?? 0,
+        total_results: data.total_results ?? 0,
+        duration_ms: elapsedMs(statusFetchStart),
+        state_resolution_ms: stateResolutionDuration,
+      });
     } catch (error) {
+      logPerf("studentSearch.fetchByStatus.error", {
+        status: sanitizedStatus,
+        duration_ms: elapsedMs(statusFetchStart),
+      });
       console.error("Error:", error);
       setStudents([]);
     }
-  };
+  }, [animateResultsRefresh, descending, filters, orderBy, resolveStateFilterValue, resultsPerPage, sanitizeStatusOptions]);
 
-  const handleResultsPerPageChange = (value: number) => {
+  const handleResultsPerPageChange = useCallback((value: number) => {
     setResultsPerPage(value);
     if (typeof window !== "undefined") {
       localStorage.setItem(RESULTS_PER_PAGE_STORAGE_KEY, String(value));
@@ -579,9 +669,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setCurrentPage(1);
     setShowFavoritesOnly(false);
     fetchStudents(1, undefined, undefined, value);
-  };
+  }, [fetchStudents]);
 
-  const fetchLoggedInUser = async () => {
+  const fetchLoggedInUser = useCallback(async () => {
     try {
       const data = await getCachedValue<{ first_name?: string; account_type?: string }>(
         "auth:me",
@@ -595,9 +685,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     } finally {
       setHasLoadedAuthUser(true);
     }
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     const sanitizedDefaultStateValue = sanitizeStateFilterValue(
       defaultStateFilterValue
     );
@@ -612,27 +702,27 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setShowFavoritesOnly(false);
     fetchStudentsWithDefaults(sanitizedDefaultStateValue);
     posthog.capture("student_filters_cleared");
-  };
+  }, [defaultStateFilterValue, fetchStudentsWithDefaults, sanitizeStateFilterValue]);
 
-  const toggleProgramType = (value: string) => {
+  const toggleProgramType = useCallback((value: string) => {
     setFilters((prev) => ({
       ...prev,
       program_types: prev.program_types.includes(value)
         ? prev.program_types.filter((item) => item !== value)
         : [...prev.program_types, value],
     }));
-  };
+  }, []);
 
-  const toggleScholarship = (value: string) => {
+  const toggleScholarship = useCallback((value: string) => {
     setFilters((prev) => ({
       ...prev,
       grants_options: prev.grants_options.includes(value)
         ? prev.grants_options.filter((item) => item !== value)
         : [...prev.grants_options, value],
     }));
-  };
+  }, []);
 
-  const toggleStatus = (value: string) => {
+  const toggleStatus = useCallback((value: string) => {
     if (isLcUser && (value === UNASSIGNED_STATUS || value === ALL_STATUS)) {
       return;
     }
@@ -656,21 +746,43 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
 
       return { ...prev, statusOptions: newStatusOptions };
     });
-  };
+  }, [isLcUser]);
 
-  const handleFindStudents = () => {
+  const handleFindStudents = useCallback((searchOverrides?: {
+    query?: string;
+    usahsIdQuery?: string;
+    photoQuery?: string;
+  }) => {
+    const nextQuery = searchOverrides?.query ?? query;
+    const nextUsahsIdQuery = searchOverrides?.usahsIdQuery ?? usahsIdQuery;
+    const nextPhotoQuery = searchOverrides?.photoQuery ?? photoQuery;
+
+    if (searchOverrides?.query !== undefined) {
+      setQuery(searchOverrides.query);
+    }
+    if (searchOverrides?.usahsIdQuery !== undefined) {
+      setUsahsIdQuery(searchOverrides.usahsIdQuery);
+    }
+    if (searchOverrides?.photoQuery !== undefined) {
+      setPhotoQuery(searchOverrides.photoQuery);
+    }
+
     setShowFavoritesOnly(false);
     setCurrentPage(1);
-    fetchStudents(1);
+    fetchStudents(1, undefined, undefined, undefined, undefined, undefined, {
+      query: nextQuery,
+      usahsIdQuery: nextUsahsIdQuery,
+      photoQuery: nextPhotoQuery,
+    });
     posthog.capture("student_search_executed", {
-      query: query.trim() || undefined,
-      usahs_id_query: usahsIdQuery.trim() || undefined,
-      photo_query: photoQuery.trim() || undefined,
+      query: nextQuery.trim() || undefined,
+      usahs_id_query: nextUsahsIdQuery.trim() || undefined,
+      photo_query: nextPhotoQuery.trim() || undefined,
       ...buildFilterAnalyticsPayload(filters, activeFilterCount),
     });
-  };
+  }, [activeFilterCount, fetchStudents, filters, photoQuery, query, usahsIdQuery]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     setShowFavoritesOnly(false);
     setCurrentPage(1);
     fetchStudents(1);
@@ -679,17 +791,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
       "student_filters_applied",
       buildFilterAnalyticsPayload(filters, activeFilterCount)
     );
-  };
+  }, [activeFilterCount, fetchStudents, filters]);
 
-  const handleSearchInputKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    handleFindStudents();
-  };
-
-  const toggleSort = (field: string) => {
+  const toggleSort = useCallback((field: string) => {
     let newDescending = true;
     if (orderBy === field) {
       newDescending = !descending;
@@ -708,23 +812,23 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     }
 
     fetchStudents(1, field, newDescending);
-  };
+  }, [descending, fetchStudents, orderBy, setDescending, setOrderBy, showFavoritesOnly]);
 
-  const goToNextPage = () => {
+  const goToNextPage = useCallback(() => {
     if (currentPage >= totalPages) return;
     const nextPage = currentPage + 1;
     setCurrentPage(nextPage);
     fetchStudents(nextPage);
-  };
+  }, [currentPage, fetchStudents, totalPages]);
 
-  const goToPreviousPage = () => {
+  const goToPreviousPage = useCallback(() => {
     if (currentPage <= 1) return;
     const previousPage = currentPage - 1;
     setCurrentPage(previousPage);
     fetchStudents(previousPage);
-  };
+  }, [currentPage, fetchStudents]);
 
-  const handleFavorite = async (appId: string, event?: React.MouseEvent) => {
+  const handleFavorite = useCallback(async (appId: string, event?: React.MouseEvent) => {
     event?.stopPropagation();
     try {
       await addFavorite(appId);
@@ -734,9 +838,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     } catch (error) {
       console.error("Error favoriting student:", error);
     }
-  };
+  }, []);
 
-  const handleUnfavorite = async (
+  const handleUnfavorite = useCallback(async (
     appId: string,
     event?: React.MouseEvent
   ) => {
@@ -753,9 +857,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     } catch (error) {
       console.error("Error unfavoriting student:", error);
     }
-  };
+  }, []);
 
-  const showFavorites = () => {
+  const showFavorites = useCallback(() => {
     const nextFilters = {
       ...filters,
       onlyFavorites: true,
@@ -766,9 +870,9 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     setCurrentPage(1);
     void fetchStudents(1, undefined, undefined, undefined, true, nextFilters);
     posthog.capture("favorites_viewed");
-  };
+  }, [fetchStudents, filters]);
 
-  const handleUpdateDatabase = async () => {
+  const handleUpdateDatabase = useCallback(async () => {
     if (isUpdatingDatabase) return;
     setIsUpdatingDatabase(true);
 
@@ -787,7 +891,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     } finally {
       setIsUpdatingDatabase(false);
     }
-  };
+  }, [fetchLastUpdateTime, isUpdatingDatabase]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -801,15 +905,64 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   }, [usahsIdQuery]);
 
   useEffect(() => {
-    if (!isAuthenticated || !hasLoadedAuthUser) return;
+    if (!isAuthenticated || !hasLoadedAuthUser || hasBootstrappedInitialResults.current) {
+      return;
+    }
 
-    fetchStudentsByStatus(["Allocated"]);
+    let cancelled = false;
+
+    const bootstrapInitialResults = async () => {
+      const shouldLoadPreferredStates = isLcUser || isRpmOrAdminUser;
+
+      if (shouldLoadPreferredStates && localCoordinatorStates.length === 0) {
+        try {
+          await fetchFavoriteStatesForFilter();
+        } catch {
+          // no-op: initial students fetch can proceed without preferred states
+        }
+      }
+
+      if (cancelled) return;
+
+      hasBootstrappedInitialResults.current = true;
+      await fetchStudentsByStatus(["Allocated"]);
+    };
+
+    void bootstrapInitialResults();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, hasLoadedAuthUser]);
+  }, [
+    fetchFavoriteStatesForFilter,
+    hasLoadedAuthUser,
+    isAuthenticated,
+    isLcUser,
+    isRpmOrAdminUser,
+    localCoordinatorStates.length,
+  ]);
 
   useEffect(() => {
+    if (typeof hasLoadedAuthUserOverride === "boolean") {
+      if (!hasLoadedAuthUserOverride) {
+        setHasLoadedAuthUser(false);
+        return;
+      }
+
+      setAccountType(accountTypeOverride ?? "");
+      setHasLoadedAuthUser(true);
+      return;
+    }
+
     if (isAuthenticated) {
       fetchLoggedInUser();
+    }
+  }, [accountTypeOverride, fetchLoggedInUser, hasLoadedAuthUserOverride, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasBootstrappedInitialResults.current = false;
     }
   }, [isAuthenticated]);
 
@@ -961,10 +1114,10 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!suppressHeaderMetadataFetch && isAuthenticated) {
       fetchLastUpdateTime();
     }
-  }, [isAuthenticated]);
+  }, [fetchLastUpdateTime, isAuthenticated, suppressHeaderMetadataFetch]);
 
   return {
     firstName,
@@ -986,7 +1139,6 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     toggleProgramType,
     toggleScholarship,
     applyFilters,
-    handleSearchInputKeyDown,
     handleFindStudents,
     clearFilters,
     activeFilterCount,

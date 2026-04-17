@@ -11,7 +11,6 @@ import {
 type DesktopCompactResultsProps = {
   students: StudentRecord[];
   shouldAnimateResults: boolean;
-  resultsAnimationKey: number;
   favoritedStudents: Set<string>;
   orderBy: string;
   descending: boolean;
@@ -34,7 +33,6 @@ const toStringList = (value: unknown) =>
 export function DesktopCompactResults({
   students,
   shouldAnimateResults,
-  resultsAnimationKey,
   favoritedStudents,
   orderBy,
   descending,
@@ -62,7 +60,6 @@ export function DesktopCompactResults({
 
   return (
     <div
-      key={`desktop-results-${resultsAnimationKey}`}
       className={`mb-8 overflow-hidden rounded-xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.95)] shadow-lg shadow-[rgba(0,53,84,0.08)] backdrop-blur-sm ${
         shouldAnimateResults ? "results-refresh-container" : ""
       }`}

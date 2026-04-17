@@ -23,6 +23,7 @@ import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
 import { getCurrentUser } from "@/lib/api/auth";
 import { deleteFeedbackItem, getFeedbackItems } from "@/lib/api/feedback";
 import { getLastUpdateTime } from "@/lib/api/misc";
+import { getCachedValue } from "@/lib/client-cache";
 
 type FeedbackItem = {
   id: number;
@@ -31,6 +32,9 @@ type FeedbackItem = {
   comment: string;
   comment_date: string;
 };
+
+const AUTH_USER_CACHE_TTL_MS = 5 * 60_000;
+const LAST_UPDATE_CACHE_TTL_MS = 30_000;
 
 const formatCommentDate = (value: string) => {
   const date = new Date(value);
@@ -79,9 +83,14 @@ export default function FeedbackPage({
 
     const fetchUser = async () => {
       try {
-        const data = (await getCurrentUser({
-          redirectOnUnauthorized: false,
-        })) as {
+        const data = (await getCachedValue(
+          "auth:me",
+          () =>
+            getCurrentUser({
+              redirectOnUnauthorized: false,
+            }),
+          AUTH_USER_CACHE_TTL_MS
+        )) as {
           first_name?: string;
           account_type?: string;
         };
@@ -95,7 +104,11 @@ export default function FeedbackPage({
 
     const fetchUpdateTime = async () => {
       try {
-        const data = await getLastUpdateTime();
+        const data = await getCachedValue(
+          "misc:last_update_time",
+          () => getLastUpdateTime(),
+          LAST_UPDATE_CACHE_TTL_MS
+        );
         setUpdateTime(String(data?.[0] ?? ""));
       } catch (fetchError) {
         console.error("Error loading update time:", fetchError);

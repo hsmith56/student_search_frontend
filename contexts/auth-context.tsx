@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
-import { clearClientCache } from "@/lib/client-cache";
+import { clearClientCache, getCachedValue } from "@/lib/client-cache";
 import { ApiError } from "@/lib/api/api-client";
 import {
   getCurrentUser,
@@ -35,6 +35,8 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
+const AUTH_USER_CACHE_TTL_MS = 5 * 60_000;
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -45,7 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const data = await getCurrentUser({ redirectOnUnauthorized: false });
+      const data = await getCachedValue(
+        "auth:me",
+        () => getCurrentUser({ redirectOnUnauthorized: false }),
+        AUTH_USER_CACHE_TTL_MS
+      );
       setIsAuthenticated(true);
       setUsername(data.username ?? null);
       return true;

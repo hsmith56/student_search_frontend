@@ -152,15 +152,15 @@ export function HeaderSettingsDialog({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="z-[90] mx-auto w-[92vw] max-w-[720px] max-h-[84vh] rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.96)] p-0 backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)]">
-        <div className="p-5 sm:p-6">
+      <DialogContent className="z-[90] mx-auto flex max-h-[84dvh] w-[92vw] max-w-[720px] flex-col overflow-hidden rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(253,254,255,0.96)] p-0 backdrop-blur-xl shadow-[0_20px_42px_-28px_rgba(0,53,84,0.8)]">
+        <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--brand-ink)]">
               Settings
             </DialogTitle>
           </DialogHeader>
 
-          <div className="mt-4 max-h-[62vh] space-y-4 overflow-y-auto pr-1">
+          <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {onUpdateDatabase ? (
               <section className="rounded-2xl border border-[var(--brand-border-soft)] bg-[rgba(255,255,255,0.78)] p-4">
                 <button

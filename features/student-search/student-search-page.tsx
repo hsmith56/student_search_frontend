@@ -16,23 +16,33 @@ import { useStudentSearchController } from "@/features/student-search/hooks/use-
 import type { QuickStatsCard, StudentRecord } from "@/features/student-search/types";
 import type { HeaderView } from "@/components/layout/Header";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
+import PerfTrace from "@/components/dev/perf-trace";
 
 type StudentSearchPageProps = {
   activeView?: HeaderView;
   onViewChange?: (view: HeaderView) => void;
   embedded?: boolean;
+  accountTypeOverride?: string;
+  hasLoadedAuthUserOverride?: boolean;
 };
 
 export default function StudentSearchPage({
   activeView,
   onViewChange,
   embedded = false,
+  accountTypeOverride,
+  hasLoadedAuthUserOverride,
 }: StudentSearchPageProps) {
   const { isAuthenticated, logout, isLoading: authLoading } = useAuth();
   useAuthRedirect({ authLoading, isAuthenticated });
 
   const isMobile = useIsMobile();
-  const controller = useStudentSearchController({ isAuthenticated });
+  const controller = useStudentSearchController({
+    isAuthenticated,
+    accountTypeOverride,
+    hasLoadedAuthUserOverride,
+    suppressHeaderMetadataFetch: embedded,
+  });
   const [studentForSimilarDialog, setStudentForSimilarDialog] =
     useState<StudentRecord | null>(null);
 
@@ -115,64 +125,83 @@ export default function StudentSearchPage({
 
         <div className="w-full px-4 sm:px-6 lg:px-8 2xl:px-10 py-5">
           <div className="mx-auto w-full max-w-[1900px]">
-            <QuickStatsSection
-              cards={quickStatsCards}
-            />
+            <PerfTrace id="search.quickStats" metadata={{ total_results: controller.totalResults }}>
+              <QuickStatsSection
+                cards={quickStatsCards}
+              />
+            </PerfTrace>
 
-            <SearchControls
-              isSearchFiltersExpanded={controller.isSearchFiltersExpanded}
-              setIsSearchFiltersExpanded={controller.setIsSearchFiltersExpanded}
-              query={controller.query}
-              onQueryChange={controller.setQuery}
-              usahsIdQuery={controller.usahsIdQuery}
-              onUsahsIdQueryChange={controller.setUsahsIdQuery}
-              photoQuery={controller.photoQuery}
-              onPhotoQueryChange={controller.setPhotoQuery}
-              onSearchInputKeyDown={controller.handleSearchInputKeyDown}
-              isFilterOpen={controller.isFilterOpen}
-              onFilterOpenChange={controller.setIsFilterOpen}
-              filters={controller.filters}
-              setFilters={controller.setFilters}
-              countries={controller.countries}
-              onToggleStatus={controller.toggleStatus}
-              onToggleProgramType={controller.toggleProgramType}
-              onToggleScholarship={controller.toggleScholarship}
-              statusOptions={controller.statusOptionsForFilter}
-              stateOptions={controller.stateOptionsForFilter}
-              defaultStateValue={controller.defaultStateFilterValue}
-              onApplyFilters={controller.applyFilters}
-              onFindStudents={controller.handleFindStudents}
-              onClearFilters={controller.clearFilters}
-              activeFilterCount={controller.activeFilterCount}
-              totalResults={controller.totalResults}
-              viewMode={controller.viewMode}
-              onViewModeChange={controller.setViewMode}
-            />
+            <PerfTrace
+              id="search.controls"
+              metadata={{
+                active_filter_count: controller.activeFilterCount,
+                query_length: controller.query.length,
+              }}
+            >
+              <SearchControls
+                isSearchFiltersExpanded={controller.isSearchFiltersExpanded}
+                setIsSearchFiltersExpanded={controller.setIsSearchFiltersExpanded}
+                query={controller.query}
+                usahsIdQuery={controller.usahsIdQuery}
+                onUsahsIdQueryChange={controller.setUsahsIdQuery}
+                photoQuery={controller.photoQuery}
+                isFilterOpen={controller.isFilterOpen}
+                onFilterOpenChange={controller.setIsFilterOpen}
+                filters={controller.filters}
+                setFilters={controller.setFilters}
+                countries={controller.countries}
+                onToggleStatus={controller.toggleStatus}
+                onToggleProgramType={controller.toggleProgramType}
+                onToggleScholarship={controller.toggleScholarship}
+                statusOptions={controller.statusOptionsForFilter}
+                stateOptions={controller.stateOptionsForFilter}
+                defaultStateValue={controller.defaultStateFilterValue}
+                onApplyFilters={controller.applyFilters}
+                onFindStudents={controller.handleFindStudents}
+                onClearFilters={controller.clearFilters}
+                activeFilterCount={controller.activeFilterCount}
+                totalResults={controller.totalResults}
+                viewMode={controller.viewMode}
+                onViewModeChange={controller.setViewMode}
+              />
+            </PerfTrace>
 
-            <ResultsSection
-              students={controller.students}
-              viewMode={controller.viewMode}
-              isMobile={isMobile}
-              shouldAnimateResults={controller.resultsAnimationKey > 0}
-              resultsAnimationKey={controller.resultsAnimationKey}
-              favoritedStudents={controller.favoritedStudents}
-              orderBy={controller.orderBy}
-              descending={controller.descending}
-              onToggleSort={controller.toggleSort}
-              onFavorite={controller.handleFavorite}
-              onUnfavorite={controller.handleUnfavorite}
-              onOpenSimilarStudents={setStudentForSimilarDialog}
-            />
+            <PerfTrace
+              id="search.results"
+              metadata={{
+                visible_students: controller.students.length,
+                view_mode: controller.viewMode,
+              }}
+            >
+              <ResultsSection
+                students={controller.students}
+                viewMode={controller.viewMode}
+                isMobile={isMobile}
+                shouldAnimateResults={controller.resultsAnimationKey > 0}
+                favoritedStudents={controller.favoritedStudents}
+                orderBy={controller.orderBy}
+                descending={controller.descending}
+                onToggleSort={controller.toggleSort}
+                onFavorite={controller.handleFavorite}
+                onUnfavorite={controller.handleUnfavorite}
+                onOpenSimilarStudents={setStudentForSimilarDialog}
+              />
+            </PerfTrace>
 
-            <PaginationControls
-              currentPage={controller.currentPage}
-              totalPages={controller.totalPages}
-              showFavoritesOnly={controller.showFavoritesOnly}
-              resultsPerPage={controller.resultsPerPage}
-              onResultsPerPageChange={controller.handleResultsPerPageChange}
-              onPreviousPage={controller.goToPreviousPage}
-              onNextPage={controller.goToNextPage}
-            />
+            <PerfTrace
+              id="search.pagination"
+              metadata={{ current_page: controller.currentPage, total_pages: controller.totalPages }}
+            >
+              <PaginationControls
+                currentPage={controller.currentPage}
+                totalPages={controller.totalPages}
+                showFavoritesOnly={controller.showFavoritesOnly}
+                resultsPerPage={controller.resultsPerPage}
+                onResultsPerPageChange={controller.handleResultsPerPageChange}
+                onPreviousPage={controller.goToPreviousPage}
+                onNextPage={controller.goToNextPage}
+              />
+            </PerfTrace>
 
             <SimilarStudentsDialog
               open={studentForSimilarDialog !== null}
