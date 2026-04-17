@@ -82,19 +82,27 @@ export const ResultsSection = memo(function ResultsSection({
     );
   }
 
+  const desktopResults = (
+    <DesktopCompactResults
+      students={students}
+      shouldAnimateResults={shouldAnimateResults}
+      favoritedStudents={favoritedStudents}
+      orderBy={orderBy}
+      descending={descending}
+      onToggleSort={onToggleSort}
+      onFavorite={onFavorite}
+      onUnfavorite={onUnfavorite}
+      onOpenSimilarStudents={onOpenSimilarStudents}
+    />
+  );
+
+  if (!isPerfLoggingEnabled()) {
+    return desktopResults;
+  }
+
   return (
     <Profiler id="results-section" onRender={handleProfilerRender}>
-      <DesktopCompactResults
-        students={students}
-        shouldAnimateResults={shouldAnimateResults}
-        favoritedStudents={favoritedStudents}
-        orderBy={orderBy}
-        descending={descending}
-        onToggleSort={onToggleSort}
-        onFavorite={onFavorite}
-        onUnfavorite={onUnfavorite}
-        onOpenSimilarStudents={onOpenSimilarStudents}
-      />
+      {desktopResults}
     </Profiler>
   );
 }, areResultsSectionPropsEqual);

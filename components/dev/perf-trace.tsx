@@ -1,7 +1,7 @@
 "use client";
 
 import { Profiler, useEffect, useRef, type ReactNode } from "react";
-import { logPerf, now } from "@/lib/perf-logger";
+import { isPerfLoggingEnabled, logPerf, now } from "@/lib/perf-logger";
 
 type PerfTraceProps = {
   id: string;
@@ -16,6 +16,7 @@ export default function PerfTrace({
   metadata = {},
   hotPathThresholdMs = 24,
 }: PerfTraceProps) {
+  const shouldTrace = isPerfLoggingEnabled();
   const mountStartRef = useRef(now());
   const metadataRef = useRef(metadata);
 
@@ -24,6 +25,8 @@ export default function PerfTrace({
   }, [metadata]);
 
   useEffect(() => {
+    if (!shouldTrace) return;
+
     const rafId = window.requestAnimationFrame(() => {
       logPerf("render.mounted", {
         id,
@@ -36,7 +39,11 @@ export default function PerfTrace({
       window.cancelAnimationFrame(rafId);
       logPerf("render.unmounted", { id, ...metadataRef.current });
     };
-  }, [id]);
+  }, [id, shouldTrace]);
+
+  if (!shouldTrace) {
+    return <>{children}</>;
+  }
 
   return (
     <Profiler
