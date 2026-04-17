@@ -12,12 +12,18 @@ import RpmPage from "@/features/rpm/rpm-page";
 import AdminPage from "@/features/admin/admin-page";
 import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
+  getCachedValue,
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 import { getCurrentUser } from "@/lib/api/auth";
 import { getLastUpdateTime } from "@/lib/api/misc";
 import { updateStudentDatabase } from "@/lib/api/students";
+import { logPerf } from "@/lib/perf-logger";
+import PerfTrace from "@/components/dev/perf-trace";
+
+const AUTH_USER_CACHE_TTL_MS = 5 * 60_000;
+const LAST_UPDATE_CACHE_TTL_MS = 30_000;
 
 export default function HomePage() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -35,6 +41,13 @@ export default function HomePage() {
   const canShowAdmin = ENABLE_ADMIN_PANEL && isAdminUser;
 
   const handleViewChange = (view: HeaderView) => {
+    logPerf("home.viewChange", {
+      from: activeView,
+      to: view,
+      can_show_rpm: canShowRpm,
+      can_show_admin: canShowAdmin,
+    });
+
     if (view === "rpm" && !canShowRpm) {
       setActiveView("search");
       return;
@@ -69,8 +82,12 @@ export default function HomePage() {
     const fetchHeaderData = async () => {
       try {
         const [userData, updateData] = await Promise.all([
-          getCurrentUser({ redirectOnUnauthorized: false }),
-          getLastUpdateTime(),
+          getCachedValue(
+            "auth:me",
+            () => getCurrentUser({ redirectOnUnauthorized: false }),
+            AUTH_USER_CACHE_TTL_MS
+          ),
+          getCachedValue("misc:last_update_time", () => getLastUpdateTime(), LAST_UPDATE_CACHE_TTL_MS),
         ]);
 
         setFirstName(userData?.first_name ?? "");
@@ -122,34 +139,46 @@ export default function HomePage() {
   }
 
   let content = (
-    <StudentSearchPage
-      activeView={activeView}
-      onViewChange={handleViewChange}
-      embedded
-    />
+    <PerfTrace id="view.search" metadata={{ active_view: activeView }}>
+      <StudentSearchPage
+        activeView={activeView}
+        onViewChange={handleViewChange}
+        embedded
+        accountTypeOverride={accountType}
+        hasLoadedAuthUserOverride={hasLoadedAuthUser}
+      />
+    </PerfTrace>
   );
 
   if (activeView === "newsFeed") {
     content = (
-      <NewsFeedPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      <PerfTrace id="view.newsFeed" metadata={{ active_view: activeView }}>
+        <NewsFeedPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      </PerfTrace>
     );
   }
 
   if (activeView === "feedback") {
     content = (
-      <FeedbackPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      <PerfTrace id="view.feedback" metadata={{ active_view: activeView }}>
+        <FeedbackPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      </PerfTrace>
     );
   }
 
   if (activeView === "rpm") {
     content = (
-      <RpmPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      <PerfTrace id="view.rpm" metadata={{ active_view: activeView }}>
+        <RpmPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      </PerfTrace>
     );
   }
 
   if (activeView === "admin") {
     content = (
-      <AdminPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      <PerfTrace id="view.admin" metadata={{ active_view: activeView }}>
+        <AdminPage activeView={activeView} onViewChange={handleViewChange} embedded />
+      </PerfTrace>
     );
   }
 

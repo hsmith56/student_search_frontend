@@ -10,7 +10,6 @@ import {
 type CardResultsGridProps = {
   students: StudentRecord[];
   shouldAnimateResults: boolean;
-  resultsAnimationKey: number;
   favoritedStudents: Set<string>;
   onFavorite: (appId: string, event?: React.MouseEvent) => void;
   onUnfavorite: (appId: string, event?: React.MouseEvent) => void;
@@ -20,7 +19,6 @@ type CardResultsGridProps = {
 export function CardResultsGrid({
   students,
   shouldAnimateResults,
-  resultsAnimationKey,
   favoritedStudents,
   onFavorite,
   onUnfavorite,
@@ -28,7 +26,6 @@ export function CardResultsGrid({
 }: CardResultsGridProps) {
   return (
     <div
-      key={`card-results-${resultsAnimationKey}`}
       className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8 ${
         shouldAnimateResults ? "results-refresh-container" : ""
       }`}
