@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -289,14 +290,14 @@ export function StudentFiltersPanel({
         : [...prev.country_of_origin, country],
     }));
   };
-  const toggleInterest = (interestValue: string) => {
+  const toggleInterest = useCallback((interestValue: string) => {
     setFilters((prev) => ({
       ...prev,
       interests: prev.interests.includes(interestValue)
         ? prev.interests.filter((value) => value !== interestValue)
         : [...prev.interests, interestValue],
     }));
-  };
+  }, [setFilters]);
 
   const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
     const pills: ActiveFilterPill[] = [];
@@ -486,6 +487,7 @@ export function StudentFiltersPanel({
     defaultStateValue,
     stateLabels,
     setFilters,
+    toggleInterest,
   ]);
 
   if (!shouldRender) return null;

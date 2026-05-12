@@ -624,12 +624,25 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
   };
 
   const toggleScholarship = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      grants_options: prev.grants_options.includes(value)
-        ? prev.grants_options.filter((item) => item !== value)
-        : [...prev.grants_options, value],
-    }));
+    setFilters((prev) => {
+      if (value === "non-grants") {
+        return {
+          ...prev,
+          grants_options: prev.grants_options.includes(value) ? [] : [value],
+        };
+      }
+
+      const grantsOptions = prev.grants_options.filter(
+        (item) => item !== "non-grants"
+      );
+
+      return {
+        ...prev,
+        grants_options: grantsOptions.includes(value)
+          ? grantsOptions.filter((item) => item !== value)
+          : [...grantsOptions, value],
+      };
+    });
   };
 
   const toggleStatus = (value: string) => {

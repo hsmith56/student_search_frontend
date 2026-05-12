@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   Award,
   Calendar,
@@ -136,14 +136,14 @@ export function FiltersDialog({
         : [...prev.country_of_origin, country],
     }));
   };
-  const toggleInterest = (interestValue: string) => {
+  const toggleInterest = useCallback((interestValue: string) => {
     setFilters((prev) => ({
       ...prev,
       interests: prev.interests.includes(interestValue)
         ? prev.interests.filter((value) => value !== interestValue)
         : [...prev.interests, interestValue],
     }));
-  };
+  }, [setFilters]);
 
   const activeFilterPills = useMemo<ActiveFilterPill[]>(() => {
     const pills: ActiveFilterPill[] = [];
@@ -323,6 +323,7 @@ export function FiltersDialog({
     onToggleScholarship,
     onToggleStatus,
     setFilters,
+    toggleInterest,
   ]);
 
   return (

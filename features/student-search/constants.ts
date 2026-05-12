@@ -12,6 +12,7 @@ export const PROGRAM_TYPE_OPTIONS = [
 
 export const SCHOLARSHIP_OPTIONS = [
   { id: "grant", label: "Show all grant students", value: "grant" },
+  { id: "non-grants", label: "Non-Grants", value: "non-grants" },
   { id: "cbe", label: "CBE", value: "cbe" },
   { id: "cbx", label: "CBX", value: "cbx" },
   { id: "cbg", label: "CBG", value: "cbg" },
