@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Search,
   Bell,
+  BarChart3,
   MessageSquareText,
   ShieldCheck,
   ShieldPlus,
@@ -21,7 +22,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select"
 
-export type HeaderView = "search" | "newsFeed" | "rpm" | "feedback" | "admin"
+export type HeaderView = "search" | "newsFeed" | "dashboard" | "rpm" | "feedback" | "admin"
 
 interface HeaderProps {
   firstName: string
@@ -69,6 +70,12 @@ export default function Header({
           clearOnClick: true,
         },
         {
+          view: "dashboard" as const,
+          href: "/dashboard",
+          label: "Dashboard",
+          icon: BarChart3,
+        },
+        {
           view: "rpm" as const,
           href: "/rpm",
           label: "RPM",
@@ -95,6 +102,7 @@ export default function Header({
           icon: Bell,
           clearOnClick: true,
         },
+        { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
         { href: "/rpm", label: "RPM", icon: ShieldCheck },
         { href: "/admin", label: "Admin", icon: ShieldPlus },
         {
