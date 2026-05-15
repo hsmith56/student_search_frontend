@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
 import { getCachedValue } from "@/lib/client-cache";
+import { canAccessDashboard } from "@/lib/account-permissions";
 import { ENABLE_ADMIN_PANEL } from "@/lib/feature-flags";
 import { getCurrentUser, resetUserPassword } from "@/lib/api/auth";
 import { getLastUpdateTime } from "@/lib/api/misc";
@@ -302,6 +303,7 @@ export default function RpmPage({
   const canLoadSignupRequests =
     normalizedAccountType.includes("rpm") || normalizedAccountType.includes("admin");
   const showRpmNav = !normalizedAccountType.includes("lc");
+  const showDashboardNav = canAccessDashboard(accountType);
 
   const selectedUser = useMemo(
     () => lcUsers.find((user) => user.id === selectedUserId) ?? null,
@@ -661,6 +663,7 @@ export default function RpmPage({
               onViewChange={onViewChange}
               showRpm={showRpmNav}
               showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
+              showDashboard={showDashboardNav}
             />
           )}
 
@@ -715,6 +718,7 @@ export default function RpmPage({
             onViewChange={onViewChange}
             showRpm={showRpmNav}
             showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
+            showDashboard={showDashboardNav}
           />
         )}
 

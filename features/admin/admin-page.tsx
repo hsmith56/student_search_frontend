@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthRedirect } from "@/features/student-search/hooks/use-auth-redirect";
+import { canAccessDashboard } from "@/lib/account-permissions";
 import { getCachedValue } from "@/lib/client-cache";
 import { getRpmManagers } from "@/lib/api/admin";
 import { getCurrentUser, resetUserPassword } from "@/lib/api/auth";
@@ -47,7 +48,7 @@ const ASSIGNABLE_STATE_OPTIONS = states.filter(
   (stateOption) => !EXCLUDED_STATE_VALUES.has(stateOption.value)
 );
 
-const ACCOUNT_TYPE_OPTIONS = ["lc", "rpm", "admin"] as const;
+const ACCOUNT_TYPE_OPTIONS = ["lc", "rpm", "director", "admin"] as const;
 type ManagedAccountType = (typeof ACCOUNT_TYPE_OPTIONS)[number];
 
 type AdminPageProps = {
@@ -167,6 +168,7 @@ function getStatusClassName(status: AccountStatus): string {
 
 function getAccountTypeLabel(accountType: ManagedAccountType): string {
   if (accountType === "admin") return "Admin";
+  if (accountType === "director") return "Director";
   if (accountType === "rpm") return "RPM";
   return "LC";
 }
@@ -174,6 +176,10 @@ function getAccountTypeLabel(accountType: ManagedAccountType): string {
 function getAccountTypeClassName(accountType: ManagedAccountType): string {
   if (accountType === "admin") {
     return "border-[rgba(201,18,41,0.38)] bg-[rgba(201,18,41,0.1)] text-[var(--brand-danger)]";
+  }
+
+  if (accountType === "director") {
+    return "border-[rgba(255,87,0,0.4)] bg-[rgba(255,87,0,0.12)] text-[var(--brand-accent)]";
   }
 
   if (accountType === "rpm") {
@@ -187,7 +193,12 @@ function normalizeManagedAccountType(
   accountType: unknown,
   fallback: ManagedAccountType
 ): ManagedAccountType {
-  if (accountType === "lc" || accountType === "rpm" || accountType === "admin") {
+  if (
+    accountType === "lc" ||
+    accountType === "rpm" ||
+    accountType === "director" ||
+    accountType === "admin"
+  ) {
     return accountType;
   }
 
@@ -430,6 +441,7 @@ export default function AdminPage({
   const normalizedAccountType = accountType.trim().toLowerCase();
   const isAdminUser = normalizedAccountType.includes("admin");
   const showRpmNav = !normalizedAccountType.includes("lc");
+  const showDashboardNav = canAccessDashboard(accountType);
 
   const selectedUser = useMemo(
     () => managedUsers.find((user) => user.id === selectedUserId) ?? null,
@@ -844,6 +856,7 @@ export default function AdminPage({
               activeView={activeView}
               onViewChange={onViewChange}
               showRpm={showRpmNav}
+              showDashboard={showDashboardNav}
             />
           )}
 
@@ -898,6 +911,7 @@ export default function AdminPage({
             onViewChange={onViewChange}
             showRpm={showRpmNav}
             showAdmin
+            showDashboard={showDashboardNav}
           />
         )}
 
@@ -959,8 +973,9 @@ export default function AdminPage({
                       .sort((a, b) => {
                         const accountTypeOrder: Record<string, number> = {
                           admin: 0,
-                          rpm: 1,
-                          lc: 2,
+                          director: 1,
+                          rpm: 2,
+                          lc: 3,
                         };
                         const aOrder = accountTypeOrder[a.accountType.toLowerCase()] ?? 99;
                         const bOrder = accountTypeOrder[b.accountType.toLowerCase()] ?? 99;

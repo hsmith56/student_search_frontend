@@ -15,6 +15,7 @@ import StudentSearchPage from "@/features/student-search/student-search-page";
 import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
+import { canAccessDashboard } from "@/lib/account-permissions";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 import { getCurrentUser } from "@/lib/api/auth";
 import { getLastUpdateTime } from "@/lib/api/misc";
@@ -34,8 +35,13 @@ export default function HomePage() {
   const isAdminUser = normalizedAccountType.includes("admin");
   const canShowRpm = ENABLE_RPM && !isLcUser;
   const canShowAdmin = ENABLE_ADMIN_PANEL && isAdminUser;
+  const canShowDashboard = canAccessDashboard(accountType);
 
   const handleViewChange = (view: HeaderView) => {
+    if (view === "dashboard" && !canShowDashboard) {
+      setActiveView("search");
+      return;
+    }
     if (view === "rpm" && !canShowRpm) {
       setActiveView("search");
       return;
@@ -50,13 +56,16 @@ export default function HomePage() {
   const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   useEffect(() => {
+    if (!canShowDashboard && activeView === "dashboard") {
+      setActiveView("search");
+    }
     if (!canShowRpm && activeView === "rpm") {
       setActiveView("search");
     }
     if (!canShowAdmin && activeView === "admin") {
       setActiveView("search");
     }
-  }, [activeView, canShowAdmin, canShowRpm]);
+  }, [activeView, canShowAdmin, canShowDashboard, canShowRpm]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -172,6 +181,7 @@ export default function HomePage() {
         onViewChange={handleViewChange}
         showRpm={canShowRpm}
         showAdmin={canShowAdmin}
+        showDashboard={canShowDashboard}
       />
       {content}
       <Footer />

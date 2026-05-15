@@ -34,6 +34,7 @@ interface HeaderProps {
   onViewChange?: (view: HeaderView) => void
   showRpm?: boolean
   showAdmin?: boolean
+  showDashboard?: boolean
 }
 
 type HeaderNavItem = {
@@ -54,6 +55,7 @@ export default function Header({
   onViewChange,
   showRpm = false,
   showAdmin = false,
+  showDashboard = false,
 }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -113,8 +115,12 @@ export default function Header({
       ]
 
   const navItems: HeaderNavItem[] = baseNavItems.filter((item) => {
+    const isDashboardItem = item.view === "dashboard" || item.href === "/dashboard"
     const isRpmItem = item.view === "rpm" || item.href === "/rpm"
     const isAdminItem = item.view === "admin" || item.href === "/admin"
+    if (isDashboardItem && !showDashboard) {
+      return false
+    }
     if (isRpmItem && !showRpm) {
       return false
     }

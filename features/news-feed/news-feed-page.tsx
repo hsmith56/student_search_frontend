@@ -21,6 +21,7 @@ import {
   invalidateClientCacheByPrefix,
 } from "@/lib/client-cache";
 import type { HeaderView } from "@/components/layout/Header";
+import { canAccessDashboard } from "@/lib/account-permissions";
 import { ENABLE_ADMIN_PANEL, ENABLE_RPM } from "@/lib/feature-flags";
 import { getCurrentUser } from "@/lib/api/auth";
 import { addFavorite, getFavorites, removeFavorite } from "@/lib/api/favorites";
@@ -265,6 +266,7 @@ export default function NewsFeedPage({
   const [favoritedStudents, setFavoritedStudents] = useState<Set<string>>(new Set());
   const selectedStudentMediaLink = useSelectedStudentMedia(selectedStudent);
   const isAdminUser = accountType.toLowerCase().includes("admin");
+  const canShowDashboard = canAccessDashboard(accountType);
   const canUpdateDatabase = hasLoadedAuthUser && accountType.toLowerCase() !== "lc";
 
   const fetchNewsFeed = useCallback(async (manualRefresh = false) => {
@@ -473,6 +475,7 @@ export default function NewsFeedPage({
             onViewChange={onViewChange}
             showRpm={ENABLE_RPM}
             showAdmin={ENABLE_ADMIN_PANEL && isAdminUser}
+            showDashboard={canShowDashboard}
           />
         )}
 

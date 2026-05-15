@@ -110,6 +110,7 @@ export default function StudentSearchPage({
             onViewChange={onViewChange}
             showRpm={ENABLE_RPM && !controller.isLcUser}
             showAdmin={ENABLE_ADMIN_PANEL && controller.isAdminUser}
+            showDashboard={controller.isAdminUser || controller.isDirectorUser}
           />
         )}
 

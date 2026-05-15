@@ -255,6 +255,7 @@ export function useStudentSearchController({
   const isLcUser = accountType.toLowerCase() === LC_ACCOUNT_TYPE;
   const isRpmUser = accountType.toLowerCase().includes("rpm");
   const isAdminUser = accountType.toLowerCase().includes("admin");
+  const isDirectorUser = accountType.toLowerCase().includes("director");
   const isRpmOrAdminUser = isRpmUser || isAdminUser;
   const defaultStateFilterValue = isLcUser
     ? NO_PREFERENCES_FILTER_VALUE
@@ -1031,6 +1032,7 @@ const resolveStateFilterValue = async (stateValue: string): Promise<string[]> =>
     isLcUser,
     isRpmUser,
     isAdminUser,
+    isDirectorUser,
     statusOptionsForFilter,
     stateOptionsForFilter,
     defaultStateFilterValue,
