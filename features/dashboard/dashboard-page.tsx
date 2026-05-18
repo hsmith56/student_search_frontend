@@ -424,6 +424,12 @@ function InterestRarityView({
   onSortChange: (value: RaritySortKey) => void;
 }) {
   const [selectedInterestFilter, setSelectedInterestFilter] = useState<string | null>(null);
+  const [profileFilters, setProfileFilters] = useState({
+    allergies: false,
+    dietary: false,
+    medical: false,
+    pets: false,
+  });
   const [selectedGroupKey, setSelectedGroupKey] = useState(data.request_groups[0] ?? Object.keys(data.groups)[0] ?? "");
   const selectedGroup = data.groups[selectedGroupKey] ?? Object.values(data.groups)[0];
   const groupOptions = data.request_groups.filter((group) => data.groups[group]);
@@ -438,6 +444,13 @@ function InterestRarityView({
         return student.interests.some((interest) => interest.toLowerCase() === selectedInterest);
       })
       .filter((student) => {
+        if (profileFilters.allergies && !student.has_allergy_comments) return false;
+        if (profileFilters.dietary && !student.has_dietary_restrictions) return false;
+        if (profileFilters.medical && !student.has_health_comments) return false;
+        if (profileFilters.pets && student.live_with_pets !== false) return false;
+        return true;
+      })
+      .filter((student) => {
         if (!normalizedQuery) return true;
         return [student.first_name, student.country, String(student.app_id), ...student.interests]
           .filter(Boolean)
@@ -447,7 +460,7 @@ function InterestRarityView({
         const direction = sort === "least" ? 1 : -1;
         return direction * (getRaritySortValue(a, sort) - getRaritySortValue(b, sort)) || a.app_id - b.app_id;
       });
-  }, [query, selectedGroup, selectedInterestFilter, sort]);
+  }, [profileFilters, query, selectedGroup, selectedInterestFilter, sort]);
 
   useEffect(() => {
     setSelectedInterestFilter(null);
@@ -472,6 +485,24 @@ function InterestRarityView({
     <section>
       <div className="grid justify-center gap-5 xl:grid-cols-[minmax(0,820px)_320px]">
         <div className="rounded-3xl border border-[var(--brand-border-soft)] bg-white/80 p-5 shadow-[var(--brand-shadow-soft)]">
+          <div className="mb-4 grid grid-cols-4 gap-4">
+            {[
+              ["allergies", "Allergies"],
+              ["dietary", "Dietary"],
+              ["medical", "Medical"],
+              ["pets", "Pets"],
+            ].map(([key, label]) => (
+              <label key={key} className="flex flex-col items-center gap-1.5 text-center text-xs font-bold text-[var(--brand-muted)]">
+                <span>{label}</span>
+                <Switch
+                  checked={profileFilters[key as keyof typeof profileFilters]}
+                  onCheckedChange={(checked) => setProfileFilters((current) => ({ ...current, [key]: checked }))}
+                  aria-label={key === "pets" ? "Show only students with no pets" : `Show only students with ${label.toLowerCase()}`}
+                />
+              </label>
+            ))}
+          </div>
+
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <label className="block flex-1">
               <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand-muted)]">
