@@ -7,3 +7,9 @@ export function getDashboardInterests() {
     method: "GET",
   });
 }
+
+export function getDashboardInterestRarity<T = unknown>() {
+  return apiFetch<T>("/dashboard/interest-rarity", {
+    method: "GET",
+  });
+}
