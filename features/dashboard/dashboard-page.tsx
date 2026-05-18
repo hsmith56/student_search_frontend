@@ -215,7 +215,7 @@ function getReligionBadgeLabel(student: StudentRarity) {
 
 function getStudentProfileBadges(student: StudentRarity) {
   return [
-    student.has_allergy_comments ? { label: "Allergies", className: "border-[rgba(201,18,41,0.24)] bg-[rgba(201,18,41,0.08)] text-[var(--brand-danger)]" } : null,
+    student.has_allergy_comments ? { label: "Allergies", className: "border-[rgba(201,18,41,0.24)] bg-[rgba(201,18,41,0.08)] text-[var(--brand-danger)]", detail: student.allergy_comments?.trim() } : null,
     student.has_dietary_restrictions ? { label: "Dietary", className: "border-[rgba(255,87,0,0.24)] bg-[rgba(255,87,0,0.08)] text-[rgba(140,60,14,0.92)]", detail: student.dietary_restrictions?.trim() } : null,
     student.has_health_comments ? { label: "Medical", className: "border-[rgba(201,18,41,0.24)] bg-[rgba(201,18,41,0.08)] text-[var(--brand-danger)]", detail: student.health_comments?.filter((comment) => comment.trim()).join("\n") } : null,
     student.live_with_pets === false ? { label: "No pets", className: "border-[rgba(201,18,41,0.24)] bg-[rgba(201,18,41,0.08)] text-[var(--brand-danger)]" } : null,
